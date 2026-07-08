@@ -14,7 +14,9 @@ export type Reservation = {
   email?: string;
   date: string;
   people: number;
-  menu: string;
+  menu?: string;
+  menuItems: string[];
+  totalAmount: number;
   store: string | null;
   status: ReservationStatus;
   received: string;
@@ -45,10 +47,13 @@ export type Menu = {
 };
 
 export type CreateReservationInput = {
-  menu: string;
+  menu?: string;
+  menuItems?: string[];
   date: string;
   people: number;
   name: string;
   email: string;
   phone: string;
 };
+
+export type SaveMenuInput = Menu;

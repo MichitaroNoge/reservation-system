@@ -1,4 +1,4 @@
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, Store } from "../domain";
+import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveMenuInput, Store } from "../domain";
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
@@ -8,4 +8,7 @@ export type ReservationRepository = {
   listCustomers(): Promise<Customer[]>;
   listStores(): Promise<Store[]>;
   listMenus(): Promise<Menu[]>;
+  createMenu(input: SaveMenuInput): Promise<Menu>;
+  updateMenu(name: string, input: SaveMenuInput): Promise<Menu>;
+  deleteMenu(name: string): Promise<void>;
 };

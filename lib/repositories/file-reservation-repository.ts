@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, Store } from "../domain";
+import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveMenuInput, Store } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -15,7 +15,9 @@ const databasePath = path.join(process.cwd(), "data", "reservation-db.json");
 async function readDatabase(): Promise<Database> {
   try {
     const raw = await readFile(databasePath, "utf8");
-    return JSON.parse(raw) as Database;
+    const database = JSON.parse(raw) as Database;
+    database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
+    return database;
   } catch {
     const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores };
     await writeDatabase(initial);
@@ -46,6 +48,17 @@ function receivedLabel() {
   }).format(now).replace(" ", " ");
 }
 
+function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservation {
+  const legacyMenu = reservation.menu ? [reservation.menu] : [];
+  const menuItems = reservation.menuItems?.length ? reservation.menuItems : legacyMenu;
+  const totalAmount = reservation.totalAmount ?? calculateTotalAmount(menuItems, menus);
+  return { ...reservation, menuItems, totalAmount };
+}
+
+function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
+  return menuItems.reduce((total, name) => total + (menus.find((menu) => menu.name === name)?.price ?? 0), 0);
+}
+
 export class FileReservationRepository implements ReservationRepository {
   async listReservations() {
     const database = await readDatabase();
@@ -54,13 +67,15 @@ export class FileReservationRepository implements ReservationRepository {
 
   async createReservation(input: CreateReservationInput) {
     const database = await readDatabase();
+    const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];
     const reservation: Reservation = {
       id: nextReservationId(database.reservations),
       customer: input.name,
       email: input.email,
       date: input.date,
       people: input.people,
-      menu: input.menu,
+      menuItems,
+      totalAmount: calculateTotalAmount(menuItems, database.menus),
       store: null,
       status: "仮予約申請中",
       received: receivedLabel(),
@@ -113,5 +128,45 @@ export class FileReservationRepository implements ReservationRepository {
   async listMenus() {
     const database = await readDatabase();
     return database.menus;
+  }
+
+  async createMenu(input: SaveMenuInput) {
+    const database = await readDatabase();
+    if (database.menus.some((menu) => menu.name === input.name)) {
+      throw new Error(`Menu already exists: ${input.name}`);
+    }
+    database.menus = [...database.menus, input];
+    await writeDatabase(database);
+    return input;
+  }
+
+  async updateMenu(name: string, input: SaveMenuInput) {
+    const database = await readDatabase();
+    const index = database.menus.findIndex((menu) => menu.name === name);
+    if (index < 0) throw new Error(`Menu not found: ${name}`);
+    database.menus[index] = input;
+    if (name !== input.name) {
+      database.reservations = database.reservations.map((reservation) => ({
+        ...reservation,
+        menuItems: reservation.menuItems.map((item) => item === name ? input.name : item),
+      }));
+    }
+    database.reservations = database.reservations.map((reservation) => ({
+      ...reservation,
+      totalAmount: calculateTotalAmount(reservation.menuItems, database.menus),
+    }));
+    await writeDatabase(database);
+    return input;
+  }
+
+  async deleteMenu(name: string) {
+    const database = await readDatabase();
+    database.menus = database.menus.filter((menu) => menu.name !== name);
+    database.reservations = database.reservations.map((reservation) => ({
+      ...reservation,
+      menuItems: reservation.menuItems.filter((item) => item !== name),
+      totalAmount: calculateTotalAmount(reservation.menuItems.filter((item) => item !== name), database.menus),
+    }));
+    await writeDatabase(database);
   }
 }

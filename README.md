@@ -16,6 +16,8 @@ npm run dev
 - 顧客向け4ステップ仮予約フォーム
 - 管理者ダッシュボード、予約一覧・絞り込み
 - 予約詳細、承認、店舗割当、状態更新
+- 複数メニューを選択した飲食店予約
+- メニュー管理画面での料理・コース・オプション追加、編集、削除
 - キャンセル確定、来店受付・利用実績への遷移
 - Next.js API Routes による予約データ操作
 - 開発用JSON DBによる予約作成・ステータス更新・店舗割当の永続化
@@ -32,6 +34,9 @@ npm run dev
 - `GET /api/customers` 顧客一覧
 - `GET /api/stores` 店舗一覧
 - `GET /api/menus` メニュー一覧
+- `POST /api/menus` メニュー追加
+- `PATCH /api/menus/:name` メニュー更新
+- `DELETE /api/menus/:name` メニュー削除
 
 ## Firebase SQL Connect
 

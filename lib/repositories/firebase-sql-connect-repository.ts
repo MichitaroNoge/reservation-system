@@ -40,4 +40,16 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   listMenus() {
     return this.unavailable();
   }
+
+  createMenu() {
+    return this.unavailable();
+  }
+
+  updateMenu() {
+    return this.unavailable();
+  }
+
+  deleteMenu() {
+    return this.unavailable();
+  }
 }

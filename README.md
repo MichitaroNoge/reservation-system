@@ -43,13 +43,15 @@ npm run dev
 - プロジェクトID: `reservation-system-7f132`
 - プロジェクト番号: `733972352801`
 - WebアプリID: `1:733972352801:web:94f77b4e829dbf08793860`
+- Storage Bucket: `reservation-system-7f132.firebasestorage.app`
+- Messaging Sender ID: `733972352801`
 
 1. `.firebaserc.example` を `.firebaserc` にコピーしてFirebaseプロジェクトIDを設定
-2. `.env.example` を `.env.local` にコピーしてFirebase Web Appの設定を入力
+2. `.env.example` を `.env.local` にコピーしてFirebase Web Appの設定を確認
 3. Firebase CLIで `firebase init dataconnect:sdk` を実行
 4. `firebase emulators:start --only dataconnect` でローカルPGLiteを起動
 5. `firebase dataconnect:sdk:generate` で型安全なWeb SDKを生成
 
-Firebase Web App の `apiKey` は未設定です。Firebaseコンソールで確認後、`.env.local` の `NEXT_PUBLIC_FIREBASE_API_KEY` に設定してください。
+Firebase Web App の接続情報は `.env.example` に反映済みです。ローカル実行では `.env.local` を利用します。
 
 スキーマと操作定義は `dataconnect/` にあります。現在の公開権限はプロトタイプ用です。本番公開前にFirebase Authenticationを有効化し、管理操作をロールベース認証へ変更してください。

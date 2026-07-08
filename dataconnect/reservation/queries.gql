@@ -1,0 +1,42 @@
+query ListReservations @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  reservations(orderBy: {receivedAt: DESC}) {
+    id reservationCode usageDate usageTime status expectedPeople receivedAt
+    customer { id name phone email }
+    reservationDetails_on_reservation { id quantity unitPrice menu { id name standardPrice durationMinutes } }
+    storeAssignments_on_reservation { id assignedAt store { id name address } }
+  }
+}
+
+query GetReservation($id: UUID!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  reservation(key: {id: $id}) {
+    id reservationCode usageDate usageTime status expectedPeople receivedAt updatedAt
+    customer { id name phone email }
+    reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes } }
+    storeAssignments_on_reservation { id assignedAt store { id name address } }
+    visitRecords_on_reservation { id visitedAt actualPeople }
+    billings_on_reservation { id billingType amount billingDate status }
+  }
+}
+
+query ListCustomers @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  customers(orderBy: {createdAt: DESC}) {
+    id name phone email firebaseUid createdAt
+    reservations_on_customer { id reservationCode usageDate status }
+  }
+}
+
+query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
+  stores(where: {active: {eq: true}}, orderBy: {name: ASC}) { id name address active }
+}
+
+query ListMenus @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
+  menus(where: {active: {eq: true}}, orderBy: {standardPrice: ASC}) { id name description standardPrice durationMinutes active }
+}
+
+query ListBillingRecords @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  billings(orderBy: {billingDate: DESC}) {
+    id billingType amount billingDate status
+    reservation { id reservationCode customer { id name } }
+    invoices_on_billing { id invoiceNumber issuedAt }
+  }
+}

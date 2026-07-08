@@ -1,0 +1,12 @@
+mutation SeedStoresAndMenus @auth(level: NO_ACCESS) {
+  store_insertMany(data: [
+    { name: "渋谷店", address: "東京都渋谷区", active: true }
+    { name: "新宿店", address: "東京都新宿区", active: true }
+    { name: "横浜店", address: "神奈川県横浜市", active: true }
+  ])
+  menu_insertMany(data: [
+    { name: "スタンダード", description: "基本プラン。初めての方にもおすすめです", standardPrice: 5500, durationMinutes: 60, active: true }
+    { name: "パーソナル診断", description: "ご希望に合わせて丁寧にご提案します", standardPrice: 8800, durationMinutes: 90, active: true }
+    { name: "プレミアム", description: "充実した内容をゆっくり体験できます", standardPrice: 13200, durationMinutes: 120, active: true }
+  ])
+}

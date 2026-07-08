@@ -1,0 +1,10 @@
+connectorId: reservation
+generate:
+  javascriptSdk:
+    outputDir: ../../src/generated/dataconnect
+    package: "@reservation-system/dataconnect"
+    packageJsonDir: ../..
+    react: true
+    clientCache:
+      maxAge: 30s
+      storage: memory

@@ -1,0 +1,106 @@
+enum ReservationStatus {
+  TEMPORARY_REQUESTED
+  TEMPORARY_CONFIRMED
+  TEMPORARY_CHANGE_REQUESTED
+  FULL_REQUESTED
+  FULL_CONFIRMED
+  FULL_CHANGE_REQUESTED
+  WAITING_FOR_VISIT
+  VISITED
+  CANCEL_REQUESTED
+  CANCELLED
+  REJECTED
+  VOIDED
+}
+
+enum BillingType { USAGE CANCELLATION }
+enum BillingStatus { UNBILLED INVOICED PAID VOIDED }
+
+type Customer @table {
+  id: UUID! @default(expr: "uuidV4()")
+  firebaseUid: String @unique
+  name: String! @col(dataType: "varchar(100)")
+  phone: String! @col(dataType: "varchar(30)")
+  email: String! @col(dataType: "varchar(255)")
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Store @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String! @col(dataType: "varchar(100)")
+  address: String @col(dataType: "varchar(255)")
+  active: Boolean! @default(value: true)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Menu @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String! @col(dataType: "varchar(100)")
+  description: String
+  standardPrice: Int!
+  durationMinutes: Int!
+  active: Boolean! @default(value: true)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Reservation @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservationCode: String! @unique @col(dataType: "varchar(30)")
+  customer: Customer!
+  usageDate: Date!
+  usageTime: String! @col(dataType: "varchar(5)")
+  status: ReservationStatus!
+  expectedPeople: Int!
+  receivedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type ReservationDetail @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservation: Reservation!
+  menu: Menu!
+  quantity: Int!
+  unitPrice: Int!
+}
+
+type StoreAssignment @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservation: Reservation! @unique
+  store: Store!
+  assignedAt: Timestamp! @default(expr: "request.time")
+}
+
+type VisitRecord @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservation: Reservation! @unique
+  visitedAt: Timestamp!
+  actualPeople: Int!
+}
+
+type VisitDetail @table {
+  id: UUID! @default(expr: "uuidV4()")
+  visitRecord: VisitRecord!
+  menu: Menu!
+  quantity: Int!
+  unitPrice: Int!
+  amount: Int!
+}
+
+type Billing @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservation: Reservation!
+  visitDetail: VisitDetail
+  billingType: BillingType!
+  amount: Int!
+  billingDate: Date!
+  status: BillingStatus!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Invoice @table {
+  id: UUID! @default(expr: "uuidV4()")
+  billing: Billing! @unique
+  invoiceNumber: String! @unique @col(dataType: "varchar(50)")
+  issuedAt: Timestamp! @default(expr: "request.time")
+}

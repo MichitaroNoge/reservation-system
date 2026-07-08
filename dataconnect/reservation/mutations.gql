@@ -1,0 +1,31 @@
+mutation CreateCustomer($name: String!, $phone: String!, $email: String!)
+@auth(level: PUBLIC, insecureReason: "Guest customers can submit a reservation request.") {
+  customer_insert(data: {name: $name, phone: $phone, email: $email})
+}
+
+mutation CreateReservation($reservationCode: String!, $customerId: UUID!, $usageDate: Date!, $usageTime: String!, $expectedPeople: Int!)
+@auth(level: PUBLIC, insecureReason: "Guest customers can submit a temporary reservation request.") {
+  reservation_insert(data: {reservationCode: $reservationCode, customerId: $customerId, usageDate: $usageDate, usageTime: $usageTime, expectedPeople: $expectedPeople, status: TEMPORARY_REQUESTED})
+}
+
+mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: Int!, $unitPrice: Int!)
+@auth(level: PUBLIC, insecureReason: "Used while submitting a guest reservation request.") {
+  reservationDetail_insert(data: {reservationId: $reservationId, menuId: $menuId, quantity: $quantity, unitPrice: $unitPrice})
+}
+
+mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  reservation_update(key: {id: $id}, data: {status: $status, updatedAt_expr: "request.time"})
+}
+
+mutation AssignStore($reservationId: UUID!, $storeId: UUID!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  storeAssignment_upsert(data: {reservationId: $reservationId, storeId: $storeId, assignedAt_expr: "request.time"})
+}
+
+mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.")
+@transaction {
+  visitRecord_insert(data: {reservationId: $reservationId, visitedAt: $visitedAt, actualPeople: $actualPeople})
+  reservation_update(key: {id: $reservationId}, data: {status: VISITED, updatedAt_expr: "request.time"})
+}

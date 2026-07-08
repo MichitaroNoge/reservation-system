@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Status = "仮予約申請中" | "仮予約確定" | "本予約申請中" | "本予約確定" | "来店待ち" | "来店済" | "キャンセル申請中" | "キャンセル確定";
 type Reservation = { id: string; customer: string; date: string; people: number; menu: string; store: string | null; status: Status; received: string; phone: string };
@@ -23,6 +23,18 @@ const menus = [
 
 const statusClass: Record<Status, string> = { "仮予約申請中": "amber", "仮予約確定": "blue", "本予約申請中": "violet", "本予約確定": "green", "来店待ち": "cyan", "来店済": "gray", "キャンセル申請中": "red", "キャンセル確定": "red" };
 
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  return response.json() as Promise<T>;
+}
+
 function Icon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
     grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
@@ -44,12 +56,45 @@ export default function Home() {
   const [view, setView] = useState<View>("dashboard");
   const [form, setForm] = useState<BookingForm>({ menu: "パーソナル診断", date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
 
+  useEffect(() => {
+    requestJson<{ reservations: Reservation[] }>("/api/reservations")
+      .then(({ reservations }) => setReservations(reservations))
+      .catch(() => notify("予約データの読み込みに失敗しました"));
+  }, []);
+
   const visible = useMemo(() => filter === "すべて" ? reservations : reservations.filter(r => r.status.includes(filter)), [filter, reservations]);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2500); };
-  const updateStatus = (id: string, status: Status) => { setReservations(rs => rs.map(r => r.id === id ? { ...r, status } : r)); setSelected(s => s?.id === id ? { ...s, status } : s); notify(`予約を「${status}」へ更新しました`); };
-  const assignStore = (id: string, store: string) => { setReservations(rs => rs.map(r => r.id === id ? { ...r, store } : r)); setSelected(s => s?.id === id ? { ...s, store } : s); notify(`${store}を割り当てました`); };
+  const updateStatus = async (id: string, status: Status) => {
+    setReservations(rs => rs.map(r => r.id === id ? { ...r, status } : r));
+    setSelected(s => s?.id === id ? { ...s, status } : s);
+    try {
+      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      setReservations(rs => rs.map(r => r.id === id ? reservation : r));
+      setSelected(s => s?.id === id ? reservation : s);
+      notify(`予約を「${status}」へ更新しました`);
+    } catch {
+      notify("ステータス更新の保存に失敗しました");
+    }
+  };
+  const assignStore = async (id: string, store: string) => {
+    setReservations(rs => rs.map(r => r.id === id ? { ...r, store } : r));
+    setSelected(s => s?.id === id ? { ...s, store } : s);
+    try {
+      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/store`, { method: "PATCH", body: JSON.stringify({ store }) });
+      setReservations(rs => rs.map(r => r.id === id ? reservation : r));
+      setSelected(s => s?.id === id ? reservation : s);
+      notify(`${store}を割り当てました`);
+    } catch {
+      notify("店舗割当の保存に失敗しました");
+    }
+  };
+  const createReservation = async (input: BookingForm) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations", { method: "POST", body: JSON.stringify(input) });
+    setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
+    return reservation;
+  };
 
-  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} />;
+  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} />;
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -111,9 +156,17 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, assignStore 
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{r.status}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>customer@example.jp</small></div></div></section><section><p className="section-label">予約内容</p><dl><div><dt>利用日</dt><dd>{r.date.replaceAll("-", "/")} 10:00</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{r.menu}</dd></div><div><dt>担当店舗</dt><dd><select value={r.store ?? ""} onChange={e => e.target.value && assignStore(r.id, e.target.value)}><option value="">未割当</option><option>渋谷店</option><option>新宿店</option><option>横浜店</option></select></dd></div></dl></section><section><p className="section-label">次のアクション</p>{r.status === "仮予約申請中" && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id,"仮予約確定")}><Icon name="check"/>承認する</button></div>}{r.status === "仮予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約申請中")}>本予約申請へ進める</button>}{r.status === "本予約申請中" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約確定")}>本予約を承認する</button>}{r.status === "本予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"来店待ち")}>業務タスク完了・来店待ちへ</button>}{r.status === "来店待ち" && <button className="full-action" onClick={() => updateStatus(r.id,"来店済")}>来店受付・利用実績を登録</button>}{r.status === "キャンセル申請中" && <button className="full-action danger" onClick={() => { updateStatus(r.id,"キャンセル確定"); onClose(); }}>キャンセルを確定する</button>}</section></aside></>;
 }
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string }) {
+function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm)=>Promise<Reservation> }) {
   const selectedMenu = menus.find(m => m.name === form.menu)!;
-  const submit = () => { notify("仮予約を受け付けました（RSV-1049）"); setStep(4); };
+  const submit = async () => {
+    try {
+      const reservation = await onSubmitReservation(form);
+      notify(`仮予約を受け付けました（${reservation.id}）`);
+      setStep(4);
+    } catch {
+      notify("仮予約の保存に失敗しました");
+    }
+  };
   return <main className="customer-page"><header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><a href="#guide">ご利用ガイド</a><a href="#contact">お問い合わせ</a><button onClick={onAdmin}>管理画面</button></nav></header><section className="customer-hero"><div><p>ONLINE RESERVATION</p><h1>あなたにぴったりの時間を、<br/><em>かんたん予約。</em></h1><span>ご希望のメニューと日時を選んで、オンラインで仮予約を申請できます。</span></div><div className="hero-orb"><Icon name="calendar"/></div></section><section className="booking-card"><div className="stepper">{["メニュー選択","日時・人数","お客様情報","受付完了"].map((s,i)=><div key={s} className={step >= i+1 ? "active" : ""}><span>{step > i+1 ? "✓" : i+1}</span><small>{s}</small>{i<3&&<i/>}</div>)}</div>
     {step === 1 && <div className="form-body"><p className="form-kicker">STEP 1</p><h2>ご希望のメニューを選択</h2><p>内容はあとから変更申請もできます。</p><div className="menu-grid">{menus.map(m=><button key={m.name} className={form.menu===m.name?"selected":""} onClick={()=>setForm({...form,menu:m.name})}><span>{form.menu===m.name&&<Icon name="check"/>}</span><h3>{m.name}</h3><p>{m.description}</p><div><strong>¥{m.price.toLocaleString()}</strong><small>{m.duration}</small></div></button>)}</div><button className="next" onClick={()=>setStep(2)}>日時・人数を選ぶ <Icon name="arrow"/></button></div>}
     {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数を選択</h2><div className="form-fields"><label>ご利用日<input type="date" value={form.date} min="2026-07-08" onChange={e=>setForm({...form,date:e.target.value})}/></label><label>人数<select value={form.people} onChange={e=>setForm({...form,people:Number(e.target.value)})}>{[1,2,3,4,5,6].map(x=><option key={x}>{x}</option>)}</select></label></div><div className="form-nav"><button onClick={()=>setStep(1)}>戻る</button><button className="next" onClick={()=>setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}

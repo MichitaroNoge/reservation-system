@@ -41,7 +41,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 function reservationMenuLabel(reservation: Reservation) {
   const items = reservation.menuItems?.length ? reservation.menuItems : reservation.menu ? [reservation.menu] : [];
-  return items.length ? items.join("、") : "未選択";
+  return items.length ? items.join("、") : "来店後に注文";
 }
 
 function selectedMenuTotal(menuItems: string[], menuCatalog: Menu[]) {
@@ -68,9 +68,9 @@ export default function Home() {
   const [formStep, setFormStep] = useState(1);
   const [view, setView] = useState<View>("dashboard");
   const [menuCatalog, setMenuCatalog] = useState<Menu[]>(defaultMenus);
-  const [form, setForm] = useState<BookingForm>({ menuItems: ["季節のコース"], date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
+  const [form, setForm] = useState<BookingForm>({ menuItems: [], date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
-  const [adminForm, setAdminForm] = useState<BookingForm>({ menuItems: ["季節のコース"], date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
+  const [adminForm, setAdminForm] = useState<BookingForm>({ menuItems: [], date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
 
   useEffect(() => {
     requestJson<{ reservations: Reservation[] }>("/api/reservations")
@@ -129,7 +129,7 @@ export default function Home() {
   const submitAdminReservation = async () => {
     try {
       const reservation = await createReservation(adminForm);
-      setAdminForm({ menuItems: [menuCatalog[0]?.name ?? ""].filter(Boolean), date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
+      setAdminForm({ menuItems: [], date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
       setIsNewReservationOpen(false);
       setView("reservations");
       setSelected(reservation);
@@ -226,13 +226,14 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, assignStore 
 }
 
 function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; onClose: () => void; onSubmit: () => void; menuCatalog: Menu[] }) {
-  const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.menuItems.length && form.people);
+  const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.people);
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
 
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer new-reservation-drawer"><header><div><span className="badge blue"><i/>新規登録</span><h2>新規予約</h2></div><button onClick={onClose}><Icon name="close"/></button></header>
-    <section><p className="section-label">予約内容</p><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/><div className="drawer-form"><label>利用日<input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}/></label><label>人数<select value={form.people} onChange={e => setForm({ ...form, people: Number(e.target.value) })}>{[1,2,3,4,5,6].map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+    <section><p className="section-label">予約内容</p><div className="drawer-form"><label>利用日<input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}/></label><label>人数<select value={form.people} onChange={e => setForm({ ...form, people: Number(e.target.value) })}>{[1,2,3,4,5,6].map(x => <option key={x}>{x}</option>)}</select></label></div></section>
     <section><p className="section-label">お客様情報</p><div className="drawer-form single"><label>お名前<input placeholder="例：山田 花子" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label><label>メールアドレス<input type="email" placeholder="hanako@example.jp" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}/></label><label>電話番号<input placeholder="090-0000-0000" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}/></label></div></section>
-    <section><p className="section-label">登録内容の確認</p><div className="reservation-summary"><strong>{form.menuItems.join("、") || "未選択"}</strong><span>{form.date.replaceAll("-", "/")}・{form.people}名</span><small>¥{total.toLocaleString()}</small></div><button className="full-action" disabled={!canSubmit} onClick={onSubmit}><Icon name="check"/>予約を登録する</button></section>
+    <section><p className="section-label">任意メニュー</p><p className="optional-note">事前に注文内容が決まっている場合のみ選択してください。未選択でも予約できます。</p><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/></section>
+    <section><p className="section-label">登録内容の確認</p><div className="reservation-summary"><strong>{form.menuItems.join("、") || "来店後に注文"}</strong><span>{form.date.replaceAll("-", "/")}・{form.people}名</span><small>¥{total.toLocaleString()}</small></div><button className="full-action" disabled={!canSubmit} onClick={onSubmit}><Icon name="check"/>予約を登録する</button></section>
   </aside></>;
 }
 
@@ -247,10 +248,10 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
       notify("仮予約の保存に失敗しました");
     }
   };
-  return <main className="customer-page"><header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><a href="#guide">ご利用ガイド</a><a href="#contact">お問い合わせ</a><button onClick={onAdmin}>管理画面</button></nav></header><section className="customer-hero"><div><p>ONLINE RESERVATION</p><h1>あなたにぴったりの時間を、<br/><em>かんたん予約。</em></h1><span>ご希望のメニューと日時を選んで、オンラインで仮予約を申請できます。</span></div><div className="hero-orb"><Icon name="calendar"/></div></section><section className="booking-card"><div className="stepper">{["メニュー選択","日時・人数","お客様情報","受付完了"].map((s,i)=><div key={s} className={step >= i+1 ? "active" : ""}><span>{step > i+1 ? "✓" : i+1}</span><small>{s}</small>{i<3&&<i/>}</div>)}</div>
-    {step === 1 && <div className="form-body"><p className="form-kicker">STEP 1</p><h2>ご希望のメニューを選択</h2><p>複数の料理・コース・オプションを選択できます。</p><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems=>setForm({...form,menuItems})}/><button className="next" disabled={!form.menuItems.length} onClick={()=>setStep(2)}>日時・人数を選ぶ <Icon name="arrow"/></button></div>}
-    {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数を選択</h2><div className="form-fields"><label>ご利用日<input type="date" value={form.date} min="2026-07-08" onChange={e=>setForm({...form,date:e.target.value})}/></label><label>人数<select value={form.people} onChange={e=>setForm({...form,people:Number(e.target.value)})}>{[1,2,3,4,5,6].map(x=><option key={x}>{x}</option>)}</select></label></div><div className="form-nav"><button onClick={()=>setStep(1)}>戻る</button><button className="next" onClick={()=>setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}
-    {step === 3 && <div className="form-body narrow"><p className="form-kicker">STEP 3</p><h2>お客様情報を入力</h2><div className="form-fields single"><label>お名前<input placeholder="例）山田 花子" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>メールアドレス<input type="email" placeholder="hanako@example.jp" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>電話番号<input placeholder="090-0000-0000" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></div><div className="confirm-box"><span>{form.date.replaceAll("-","/")}</span><strong>{form.menuItems.join("、")}・{form.people}名</strong><small>¥{total.toLocaleString()}（税込）</small></div><div className="form-nav"><button onClick={()=>setStep(2)}>戻る</button><button className="next" disabled={!form.name||!form.email||!form.phone} onClick={submit}>仮予約を申請する <Icon name="arrow"/></button></div></div>}
+  return <main className="customer-page"><header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><a href="#guide">ご利用ガイド</a><a href="#contact">お問い合わせ</a><button onClick={onAdmin}>管理画面</button></nav></header><section className="customer-hero"><div><p>ONLINE RESERVATION</p><h1>あなたにぴったりの時間を、<br/><em>かんたん予約。</em></h1><span>日時と人数を選んで、オンラインで仮予約を申請できます。メニューは任意で事前選択できます。</span></div><div className="hero-orb"><Icon name="calendar"/></div></section><section className="booking-card"><div className="stepper">{["日時・人数","お客様情報","任意メニュー","受付完了"].map((s,i)=><div key={s} className={step >= i+1 ? "active" : ""}><span>{step > i+1 ? "✓" : i+1}</span><small>{s}</small>{i<3&&<i/>}</div>)}</div>
+    {step === 1 && <div className="form-body narrow"><p className="form-kicker">STEP 1</p><h2>日時と人数を選択</h2><div className="form-fields"><label>ご利用日<input type="date" value={form.date} min="2026-07-08" onChange={e=>setForm({...form,date:e.target.value})}/></label><label>人数<select value={form.people} onChange={e=>setForm({...form,people:Number(e.target.value)})}>{[1,2,3,4,5,6].map(x=><option key={x}>{x}</option>)}</select></label></div><div className="form-nav"><span/><button className="next" onClick={()=>setStep(2)}>お客様情報へ <Icon name="arrow"/></button></div></div>}
+    {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>お客様情報を入力</h2><div className="form-fields single"><label>お名前<input placeholder="例）山田 花子" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>メールアドレス<input type="email" placeholder="hanako@example.jp" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>電話番号<input placeholder="090-0000-0000" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></div><div className="form-nav"><button onClick={()=>setStep(1)}>戻る</button><button className="next" disabled={!form.name||!form.email||!form.phone} onClick={()=>setStep(3)}>任意メニューへ <Icon name="arrow"/></button></div></div>}
+    {step === 3 && <div className="form-body"><p className="form-kicker">STEP 3</p><h2>メニューを任意で選択</h2><p>未選択でも予約できます。来店後に注文する場合は、そのまま申請してください。</p><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems=>setForm({...form,menuItems})}/><div className="confirm-box"><span>{form.date.replaceAll("-","/")}</span><strong>{form.menuItems.join("、") || "来店後に注文"}・{form.people}名</strong><small>¥{total.toLocaleString()}（税込）</small></div><div className="form-nav"><button onClick={()=>setStep(2)}>戻る</button><button className="next" onClick={submit}>仮予約を申請する <Icon name="arrow"/></button></div></div>}
     {step === 4 && <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>仮予約を受け付けました</h2><p>管理部門で内容を確認後、確定メールをお送りします。</p><button className="next" onClick={()=>{setStep(1);setForm({...form,name:"",email:"",phone:""})}}>トップに戻る</button></div>}
-  </section><section className="guide" id="guide"><div><span>01</span><h3>仮予約を申請</h3><p>メニューと日時を選び、お客様情報を入力します。</p></div><div><span>02</span><h3>運営が内容を確認</h3><p>空き状況を確認し、受付可否をメールでご連絡します。</p></div><div><span>03</span><h3>予約確定</h3><p>本予約の承認後、担当店舗をご案内します。</p></div></section>{toast&&<div className="toast"><Icon name="check"/>{toast}</div>}</main>;
+  </section><section className="guide" id="guide"><div><span>01</span><h3>仮予約を申請</h3><p>日時と人数、お客様情報を入力します。メニューは任意です。</p></div><div><span>02</span><h3>運営が内容を確認</h3><p>空き状況を確認し、受付可否をメールでご連絡します。</p></div><div><span>03</span><h3>予約確定</h3><p>本予約の承認後、担当店舗をご案内します。</p></div></section>{toast&&<div className="toast"><Icon name="check"/>{toast}</div>}</main>;
 }

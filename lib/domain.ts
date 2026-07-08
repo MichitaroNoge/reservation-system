@@ -56,4 +56,6 @@ export type CreateReservationInput = {
   phone: string;
 };
 
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "people" | "menuItems" | "customer" | "email" | "phone">>;
+
 export type SaveMenuInput = Menu;

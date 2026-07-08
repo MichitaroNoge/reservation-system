@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveMenuInput, Store } from "../domain";
+import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveMenuInput, Store, UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -82,6 +82,23 @@ export class FileReservationRepository implements ReservationRepository {
       phone: input.phone,
     };
     database.reservations = [reservation, ...database.reservations];
+    await writeDatabase(database);
+    return reservation;
+  }
+
+  async updateReservation(id: string, input: UpdateReservationInput) {
+    const database = await readDatabase();
+    const reservation = database.reservations.find((item) => item.id === id);
+    if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    if (input.date !== undefined) reservation.date = input.date;
+    if (input.people !== undefined) reservation.people = input.people;
+    if (input.customer !== undefined) reservation.customer = input.customer;
+    if (input.email !== undefined) reservation.email = input.email;
+    if (input.phone !== undefined) reservation.phone = input.phone;
+    if (input.menuItems !== undefined) {
+      reservation.menuItems = input.menuItems;
+      reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
+    }
     await writeDatabase(database);
     return reservation;
   }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Status = "仮予約申請中" | "仮予約確定" | "本予約申請中" | "本予約確定" | "来店待ち" | "来店済" | "キャンセル申請中" | "キャンセル確定";
-type Reservation = { id: string; customer: string; date: string; people: number; menu?: string; menuItems?: string[]; totalAmount?: number; store: string | null; status: Status; received: string; phone: string };
+type Reservation = { id: string; customer: string; email?: string; date: string; people: number; menu?: string; menuItems?: string[]; totalAmount?: number; store: string | null; status: Status; received: string; phone: string };
 type Menu = { name: string; description: string; price: number; duration: string };
 type BookingForm = { menuItems: string[]; date: string; people: number; name: string; email: string; phone: string };
 type MenuForm = Menu;
@@ -112,6 +112,23 @@ export default function Home() {
     setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
     return reservation;
   };
+  const updateReservation = async (id: string, input: BookingForm) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        date: input.date,
+        people: input.people,
+        menuItems: input.menuItems,
+        customer: input.name,
+        email: input.email,
+        phone: input.phone,
+      }),
+    });
+    setReservations(rs => rs.map(r => r.id === id ? reservation : r));
+    setSelected(s => s?.id === id ? reservation : s);
+    notify(`予約内容を更新しました（${id}）`);
+    return reservation;
+  };
   const saveMenu = async (input: MenuForm, originalName?: string) => {
     const url = originalName ? `/api/menus/${encodeURIComponent(originalName)}` : "/api/menus";
     const method = originalName ? "PATCH" : "POST";
@@ -169,7 +186,7 @@ export default function Home() {
       </main> : <ManagementPage view={view} reservations={reservations} menus={menuCatalog} onSelect={setSelected} notify={notify} onSaveMenu={saveMenu} onDeleteMenu={deleteMenu} />}
     </div>
     {isNewReservationOpen && <NewReservationDrawer form={adminForm} setForm={setAdminForm} onClose={() => setIsNewReservationOpen(false)} onSubmit={submitAdminReservation} menuCatalog={menuCatalog} />}
-    {selected && <ReservationDrawer reservation={selected} onClose={() => setSelected(null)} updateStatus={updateStatus} assignStore={assignStore} />}
+    {selected && <ReservationDrawer reservation={selected} onClose={() => setSelected(null)} updateStatus={updateStatus} assignStore={assignStore} updateReservation={updateReservation} menuCatalog={menuCatalog} />}
     {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
   </div>;
 }
@@ -221,8 +238,20 @@ function MenuManagement({ menus, onSaveMenu, onDeleteMenu }: { menus: Menu[]; on
     <aside className="panel menu-editor"><div className="panel-head"><div><h3>{editingName ? "メニュー編集" : "メニュー追加"}</h3><p>料理、コース、オプションを登録します</p></div></div><div className="drawer-form single"><label>メニュー名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label><label>説明<input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}/></label><label>金額<input type="number" value={form.price || ""} onChange={e => setForm({ ...form, price: Number(e.target.value) })}/></label><label>提供目安<input placeholder="例：45分" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}/></label><button className="full-action" disabled={!canSubmit} onClick={submit}>{editingName ? "更新する" : "追加する"}</button>{editingName && <button className="cancel-edit" onClick={() => { setEditingName(undefined); setForm(emptyForm); }}>編集をキャンセル</button>}</div></aside></section>;
 }
 
-function ReservationDrawer({ reservation: r, onClose, updateStatus, assignStore }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status) => void; assignStore: (id: string, store: string) => void }) {
-  return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{r.status}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>customer@example.jp</small></div></div></section><section><p className="section-label">予約内容</p><dl><div><dt>利用日</dt><dd>{r.date.replaceAll("-", "/")} 10:00</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>¥{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>担当店舗</dt><dd><select value={r.store ?? ""} onChange={e => e.target.value && assignStore(r.id, e.target.value)}><option value="">未割当</option><option>渋谷店</option><option>新宿店</option><option>横浜店</option></select></dd></div></dl></section><section><p className="section-label">次のアクション</p>{r.status === "仮予約申請中" && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id,"仮予約確定")}><Icon name="check"/>承認する</button></div>}{r.status === "仮予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約申請中")}>本予約申請へ進める</button>}{r.status === "本予約申請中" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約確定")}>本予約を承認する</button>}{r.status === "本予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"来店待ち")}>業務タスク完了・来店待ちへ</button>}{r.status === "来店待ち" && <button className="full-action" onClick={() => updateStatus(r.id,"来店済")}>来店受付・利用実績を登録</button>}{r.status === "キャンセル申請中" && <button className="full-action danger" onClick={() => { updateStatus(r.id,"キャンセル確定"); onClose(); }}>キャンセルを確定する</button>}</section></aside></>;
+function ReservationDrawer({ reservation: r, onClose, updateStatus, assignStore, updateReservation, menuCatalog }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status) => void; assignStore: (id: string, store: string) => void; updateReservation: (id: string, form: BookingForm) => Promise<Reservation>; menuCatalog: Menu[] }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<BookingForm>({ menuItems: r.menuItems ?? [], date: r.date, people: r.people, name: r.customer, email: r.email ?? "", phone: r.phone });
+  const editTotal = selectedMenuTotal(editForm.menuItems, menuCatalog);
+  const canSave = Boolean(editForm.date && editForm.people && editForm.name && editForm.email && editForm.phone);
+  const save = async () => {
+    await updateReservation(r.id, editForm);
+    setIsEditing(false);
+  };
+
+  return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{r.status}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header>
+    {!isEditing ? <><section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section><section><p className="section-label">予約内容</p><dl><div><dt>利用日</dt><dd>{r.date.replaceAll("-", "/")} 10:00</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>¥{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>担当店舗</dt><dd><select value={r.store ?? ""} onChange={e => e.target.value && assignStore(r.id, e.target.value)}><option value="">未割当</option><option>渋谷店</option><option>新宿店</option><option>横浜店</option></select></dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditing(true)}>予約内容を編集</button></section><section><p className="section-label">次のアクション</p>{r.status === "仮予約申請中" && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id,"仮予約確定")}><Icon name="check"/>承認する</button></div>}{r.status === "仮予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約申請中")}>本予約申請へ進める</button>}{r.status === "本予約申請中" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約確定")}>本予約を承認する</button>}{r.status === "本予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"来店待ち")}>業務タスク完了・来店待ちへ</button>}{r.status === "来店待ち" && <button className="full-action" onClick={() => updateStatus(r.id,"来店済")}>来店受付・利用実績を登録</button>}{r.status === "キャンセル申請中" && <button className="full-action danger" onClick={() => { updateStatus(r.id,"キャンセル確定"); onClose(); }}>キャンセルを確定する</button>}</section></> :
+    <><section><p className="section-label">予約内容を編集</p><div className="drawer-form"><label>利用日<input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })}/></label><label>人数<select value={editForm.people} onChange={e => setEditForm({ ...editForm, people: Number(e.target.value) })}>{[1,2,3,4,5,6].map(x => <option key={x}>{x}</option>)}</select></label></div></section><section><p className="section-label">お客様情報</p><div className="drawer-form single"><label>お名前<input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}/></label><label>メールアドレス<input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}/></label><label>電話番号<input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}/></label></div></section><section><p className="section-label">任意メニュー</p><p className="optional-note">変更連絡に応じて、事前注文メニューを追加・削除できます。未選択でも保存できます。</p><MenuPicker menuCatalog={menuCatalog} selected={editForm.menuItems} onChange={menuItems => setEditForm({ ...editForm, menuItems })}/><div className="reservation-summary"><strong>{editForm.menuItems.join("、") || "来店後に注文"}</strong><span>{editForm.date.replaceAll("-", "/")}・{editForm.people}名</span><small>¥{editTotal.toLocaleString()}</small></div><div className="drawer-actions"><button onClick={() => { setEditForm({ menuItems: r.menuItems ?? [], date: r.date, people: r.people, name: r.customer, email: r.email ?? "", phone: r.phone }); setIsEditing(false); }}>キャンセル</button><button className="approve" disabled={!canSave} onClick={save}><Icon name="check"/>保存する</button></div></section></>}
+  </aside></>;
 }
 
 function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; onClose: () => void; onSubmit: () => void; menuCatalog: Menu[] }) {

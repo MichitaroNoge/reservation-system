@@ -21,6 +21,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.unavailable();
   }
 
+  updateReservation() {
+    return this.unavailable();
+  }
+
   updateReservationStatus(_id: string, _status: ReservationStatus) {
     return this.unavailable();
   }

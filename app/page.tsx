@@ -55,6 +55,8 @@ export default function Home() {
   const [formStep, setFormStep] = useState(1);
   const [view, setView] = useState<View>("dashboard");
   const [form, setForm] = useState<BookingForm>({ menu: "パーソナル診断", date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
+  const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
+  const [adminForm, setAdminForm] = useState<BookingForm>({ menu: "パーソナル診断", date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
 
   useEffect(() => {
     requestJson<{ reservations: Reservation[] }>("/api/reservations")
@@ -91,7 +93,19 @@ export default function Home() {
   const createReservation = async (input: BookingForm) => {
     const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations", { method: "POST", body: JSON.stringify(input) });
     setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
-    return reservation;
+      return reservation;
+  };
+  const submitAdminReservation = async () => {
+    try {
+      const reservation = await createReservation(adminForm);
+      setAdminForm({ menu: "パーソナル診断", date: "2026-07-12", people: 2, name: "", email: "", phone: "" });
+      setIsNewReservationOpen(false);
+      setView("reservations");
+      setSelected(reservation);
+      notify(`予約を登録しました（${reservation.id}）`);
+    } catch {
+      notify("予約登録に失敗しました");
+    }
   };
 
   if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} />;
@@ -103,7 +117,7 @@ export default function Home() {
       <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><div className="profile"><span>MN</span><div><strong>野毛 道太郎</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約管理",customers:"顧客管理",stores:"店舗管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div><div className="top-actions"><label><Icon name="search"/><input placeholder="予約ID・顧客名で検索" /></label><button className="icon-btn"><Icon name="bell"/><i/></button><button className="new-btn" onClick={() => setRole("customer")}><Icon name="plus"/>新規予約</button></div></header>
+      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約管理",customers:"顧客管理",stores:"店舗管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div><div className="top-actions"><label><Icon name="search"/><input placeholder="予約ID・顧客名で検索" /></label><button className="icon-btn"><Icon name="bell"/><i/></button><button className="new-btn" onClick={() => setIsNewReservationOpen(true)}><Icon name="plus"/>新規予約</button></div></header>
       {view === "dashboard" ? <main className="dashboard">
         <section className="welcome"><div><p>おはようございます、野毛さん</p><h2>今日も予約状況を確認しましょう。</h2></div><div className="pulse"><span/>システム正常稼働中</div></section>
         <section className="stats">
@@ -123,6 +137,7 @@ export default function Home() {
         </section>
       </main> : <ManagementPage view={view} reservations={reservations} onSelect={setSelected} notify={notify} />}
     </div>
+    {isNewReservationOpen && <NewReservationDrawer form={adminForm} setForm={setAdminForm} onClose={() => setIsNewReservationOpen(false)} onSubmit={submitAdminReservation} />}
     {selected && <ReservationDrawer reservation={selected} onClose={() => setSelected(null)} updateStatus={updateStatus} assignStore={assignStore} />}
     {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
   </div>;
@@ -154,6 +169,17 @@ function ManagementPage({ view, reservations, onSelect, notify }: { view: Exclud
 
 function ReservationDrawer({ reservation: r, onClose, updateStatus, assignStore }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status) => void; assignStore: (id: string, store: string) => void }) {
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{r.status}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>customer@example.jp</small></div></div></section><section><p className="section-label">予約内容</p><dl><div><dt>利用日</dt><dd>{r.date.replaceAll("-", "/")} 10:00</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{r.menu}</dd></div><div><dt>担当店舗</dt><dd><select value={r.store ?? ""} onChange={e => e.target.value && assignStore(r.id, e.target.value)}><option value="">未割当</option><option>渋谷店</option><option>新宿店</option><option>横浜店</option></select></dd></div></dl></section><section><p className="section-label">次のアクション</p>{r.status === "仮予約申請中" && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id,"仮予約確定")}><Icon name="check"/>承認する</button></div>}{r.status === "仮予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約申請中")}>本予約申請へ進める</button>}{r.status === "本予約申請中" && <button className="full-action" onClick={() => updateStatus(r.id,"本予約確定")}>本予約を承認する</button>}{r.status === "本予約確定" && <button className="full-action" onClick={() => updateStatus(r.id,"来店待ち")}>業務タスク完了・来店待ちへ</button>}{r.status === "来店待ち" && <button className="full-action" onClick={() => updateStatus(r.id,"来店済")}>来店受付・利用実績を登録</button>}{r.status === "キャンセル申請中" && <button className="full-action danger" onClick={() => { updateStatus(r.id,"キャンセル確定"); onClose(); }}>キャンセルを確定する</button>}</section></aside></>;
+}
+
+function NewReservationDrawer({ form, setForm, onClose, onSubmit }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; onClose: () => void; onSubmit: () => void }) {
+  const selectedMenu = menus.find(m => m.name === form.menu)!;
+  const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.menu && form.people);
+
+  return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer new-reservation-drawer"><header><div><span className="badge blue"><i/>新規登録</span><h2>新規予約</h2></div><button onClick={onClose}><Icon name="close"/></button></header>
+    <section><p className="section-label">予約内容</p><div className="drawer-form"><label>メニュー<select value={form.menu} onChange={e => setForm({ ...form, menu: e.target.value })}>{menus.map(menu => <option key={menu.name}>{menu.name}</option>)}</select></label><label>利用日<input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}/></label><label>人数<select value={form.people} onChange={e => setForm({ ...form, people: Number(e.target.value) })}>{[1,2,3,4,5,6].map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+    <section><p className="section-label">お客様情報</p><div className="drawer-form single"><label>お名前<input placeholder="例：山田 花子" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label><label>メールアドレス<input type="email" placeholder="hanako@example.jp" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}/></label><label>電話番号<input placeholder="090-0000-0000" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}/></label></div></section>
+    <section><p className="section-label">登録内容の確認</p><div className="reservation-summary"><strong>{selectedMenu.name}</strong><span>{form.date.replaceAll("-", "/")}・{form.people}名</span><small>¥{(selectedMenu.price * form.people).toLocaleString()}</small></div><button className="full-action" disabled={!canSubmit} onClick={onSubmit}><Icon name="check"/>予約を登録する</button></section>
+  </aside></>;
 }
 
 function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm)=>Promise<Reservation> }) {

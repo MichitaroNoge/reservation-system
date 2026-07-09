@@ -1,0 +1,13 @@
+specVersion: "v1beta"
+serviceId: reservation-system
+location: asia-northeast1
+schema:
+  source: ./schema
+  datasource:
+    postgresql:
+      database: reservation-system
+      cloudSql:
+        instanceId: reservation-system-db
+        schemaValidation: COMPATIBLE
+connectorDirs:
+  - ./reservation

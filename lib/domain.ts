@@ -18,9 +18,16 @@ export type Reservation = {
   menuItems: string[];
   totalAmount: number;
   store: string | null;
+  storeAssignments?: StoreAssignment[];
   status: ReservationStatus;
+  confirmationContactedAt?: string | null;
   received: string;
   phone: string;
+};
+
+export type StoreAssignment = {
+  store: string;
+  people: number;
 };
 
 export type Customer = {
@@ -31,6 +38,12 @@ export type Customer = {
   last: string;
 };
 
+export type SaveCustomerInput = {
+  name: string;
+  contact: string;
+  phone: string;
+};
+
 export type Store = {
   name: string;
   area: string;
@@ -38,6 +51,8 @@ export type Store = {
   month: number;
   state: string;
 };
+
+export type SaveStoreInput = Store;
 
 export type Menu = {
   name: string;
@@ -49,6 +64,7 @@ export type Menu = {
 export type CreateReservationInput = {
   menu?: string;
   menuItems?: string[];
+  status?: ReservationStatus;
   date: string;
   people: number;
   name: string;
@@ -57,5 +73,9 @@ export type CreateReservationInput = {
 };
 
 export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "people" | "menuItems" | "customer" | "email" | "phone">>;
+
+export type UpdateStoreAssignmentsInput = {
+  assignments: StoreAssignment[];
+};
 
 export type SaveMenuInput = Menu;

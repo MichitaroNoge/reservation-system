@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveMenuInput, Store, UpdateReservationInput } from "../domain";
+import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -52,7 +52,13 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
   const legacyMenu = reservation.menu ? [reservation.menu] : [];
   const menuItems = reservation.menuItems?.length ? reservation.menuItems : legacyMenu;
   const totalAmount = reservation.totalAmount ?? calculateTotalAmount(menuItems, menus);
-  return { ...reservation, menuItems, totalAmount };
+  const storeAssignments = reservation.storeAssignments?.length
+    ? reservation.storeAssignments
+    : reservation.store
+      ? [{ store: reservation.store, people: reservation.people }]
+      : [];
+  const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
+  return { ...reservation, menuItems, totalAmount, storeAssignments, store };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -77,7 +83,9 @@ export class FileReservationRepository implements ReservationRepository {
       menuItems,
       totalAmount: calculateTotalAmount(menuItems, database.menus),
       store: null,
-      status: "仮予約申請中",
+      storeAssignments: [],
+      status: input.status ?? "仮予約申請中",
+      confirmationContactedAt: null,
       received: receivedLabel(),
       phone: input.phone,
     };
@@ -112,11 +120,28 @@ export class FileReservationRepository implements ReservationRepository {
     return reservation;
   }
 
-  async assignStore(id: string, store: string) {
+  async updateConfirmationContact(id: string, contactedAt: string | null) {
     const database = await readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
-    reservation.store = store;
+    reservation.confirmationContactedAt = contactedAt;
+    await writeDatabase(database);
+    return reservation;
+  }
+
+  async assignStores(id: string, assignments: StoreAssignment[]) {
+    const database = await readDatabase();
+    const reservation = database.reservations.find((item) => item.id === id);
+    if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    const validAssignments = assignments
+      .filter((assignment) => assignment.store && assignment.people > 0)
+      .map((assignment) => ({ store: assignment.store, people: Number(assignment.people) }));
+    const assignedPeople = validAssignments.reduce((total, assignment) => total + assignment.people, 0);
+    if (assignedPeople !== reservation.people) {
+      throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
+    }
+    reservation.storeAssignments = validAssignments;
+    reservation.store = validAssignments.length === 1 ? validAssignments[0].store : validAssignments.length > 1 ? "複数店舗" : null;
     await writeDatabase(database);
     return reservation;
   }
@@ -137,9 +162,62 @@ export class FileReservationRepository implements ReservationRepository {
     return Array.from(grouped.values());
   }
 
+  async updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer> {
+    const database = await readDatabase();
+    const decodedName = decodeURIComponent(name);
+    const targets = database.reservations.filter((reservation) => reservation.customer === decodedName);
+    if (!targets.length) throw new Error(`Customer not found: ${decodedName}`);
+    database.reservations = database.reservations.map((reservation) => reservation.customer === decodedName ? {
+      ...reservation,
+      customer: input.name,
+      email: input.contact,
+      phone: input.phone,
+    } : reservation);
+    await writeDatabase(database);
+    const updated = (await this.listCustomers()).find((customer) => customer.name === input.name);
+    if (!updated) throw new Error(`Customer not found after update: ${input.name}`);
+    return updated;
+  }
+
+  async deleteCustomer(name: string): Promise<void> {
+    const database = await readDatabase();
+    const decodedName = decodeURIComponent(name);
+    database.reservations = database.reservations.filter((reservation) => reservation.customer !== decodedName);
+    await writeDatabase(database);
+  }
+
   async listStores() {
     const database = await readDatabase();
     return database.stores;
+  }
+
+  async updateStore(name: string, input: SaveStoreInput) {
+    const database = await readDatabase();
+    const decodedName = decodeURIComponent(name);
+    const index = database.stores.findIndex((store) => store.name === decodedName);
+    if (index < 0) throw new Error(`Store not found: ${decodedName}`);
+    database.stores[index] = input;
+    if (decodedName !== input.name) {
+      database.reservations = database.reservations.map((reservation) => {
+        const storeAssignments = (reservation.storeAssignments ?? []).map((assignment) => assignment.store === decodedName ? { ...assignment, store: input.name } : assignment);
+        const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : reservation.store === decodedName ? input.name : reservation.store;
+        return { ...reservation, storeAssignments, store };
+      });
+    }
+    await writeDatabase(database);
+    return input;
+  }
+
+  async deleteStore(name: string) {
+    const database = await readDatabase();
+    const decodedName = decodeURIComponent(name);
+    database.stores = database.stores.filter((store) => store.name !== decodedName);
+    database.reservations = database.reservations.map((reservation) => {
+      const storeAssignments = (reservation.storeAssignments ?? []).filter((assignment) => assignment.store !== decodedName);
+      const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
+      return { ...reservation, storeAssignments, store };
+    });
+    await writeDatabase(database);
   }
 
   async listMenus() {

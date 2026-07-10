@@ -14,6 +14,7 @@ export const seedMenus: Menu[] = [
   { name: "季節のコース", description: "前菜、メイン、デザートまで楽しめるコース", price: 6600, duration: "90分" },
   { name: "飲み放題プラン", description: "コースに追加できる90分飲み放題", price: 2800, duration: "90分" },
   { name: "記念日プレート", description: "メッセージ付きデザートプレート", price: 2400, duration: "10分" },
+  { name: "来店後に注文", description: "来店後にメニューを注文します", price: 0, duration: "来店後" },
 ];
 
 export const seedStores: Store[] = [

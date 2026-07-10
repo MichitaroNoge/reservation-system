@@ -5,8 +5,7 @@ export const runtime = "nodejs";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const body = await request.json();
-  const assignments = body.assignments ?? (body.store ? [{ store: body.store, people: body.people ?? 1 }] : []);
-  const reservation = await getReservationRepository().assignStores(id, assignments);
+  const { contactedAt } = await request.json();
+  const reservation = await getReservationRepository().updateConfirmationContact(id, contactedAt ?? null);
   return NextResponse.json({ reservation });
 }

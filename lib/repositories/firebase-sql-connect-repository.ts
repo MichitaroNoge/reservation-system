@@ -1,4 +1,4 @@
-import type { CreateReservationInput, ReservationStatus } from "../domain";
+import type { CreateReservationInput, ReservationStatus, SaveCustomerInput, SaveStoreInput, StoreAssignment, UpdateReservationInput } from "../domain";
 import type { ReservationRepository } from "./reservation-repository";
 
 /**
@@ -21,7 +21,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.unavailable();
   }
 
-  updateReservation() {
+  updateReservation(_id: string, _input: UpdateReservationInput) {
     return this.unavailable();
   }
 
@@ -29,7 +29,11 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.unavailable();
   }
 
-  assignStore(_id: string, _store: string) {
+  updateConfirmationContact(_id: string, _contactedAt: string | null) {
+    return this.unavailable();
+  }
+
+  assignStores(_id: string, _assignments: StoreAssignment[]) {
     return this.unavailable();
   }
 
@@ -37,7 +41,23 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.unavailable();
   }
 
+  updateCustomer(_name: string, _input: SaveCustomerInput) {
+    return this.unavailable();
+  }
+
+  deleteCustomer(_name: string) {
+    return this.unavailable();
+  }
+
   listStores() {
+    return this.unavailable();
+  }
+
+  updateStore(_name: string, _input: SaveStoreInput) {
+    return this.unavailable();
+  }
+
+  deleteStore(_name: string) {
     return this.unavailable();
   }
 

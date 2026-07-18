@@ -1,42 +1,163 @@
 query ListReservations @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
   reservations(orderBy: {receivedAt: DESC}) {
-    id reservationCode usageDate usageTime status expectedPeople receivedAt
+    id
+    reservationCode
+    usageDate
+    usageTime
+    status
+    expectedPeople
+    policyAgreementKind
+    policyAgreementAcceptedAt
+    confirmationContactedAt
+    receivedAt
+    updatedAt
     customer { id name phone email }
-    reservationDetails_on_reservation { id quantity unitPrice menu { id name standardPrice durationMinutes } }
-    storeAssignments_on_reservation { id assignedAt store { id name address } }
+    reservationDetails_on_reservation {
+      id
+      quantity
+      unitPrice
+      menu { id name description standardPrice durationMinutes }
+    }
+    storeAssignments_on_reservation {
+      id
+      people
+      assignedAt
+      store { id name address }
+    }
   }
 }
 
 query GetReservation($id: UUID!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
   reservation(key: {id: $id}) {
-    id reservationCode usageDate usageTime status expectedPeople receivedAt updatedAt
+    id
+    reservationCode
+    usageDate
+    usageTime
+    status
+    expectedPeople
+    policyAgreementKind
+    policyAgreementAcceptedAt
+    confirmationContactedAt
+    receivedAt
+    updatedAt
     customer { id name phone email }
-    reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes } }
-    storeAssignments_on_reservation { id assignedAt store { id name address } }
-    visitRecords_on_reservation { id visitedAt actualPeople }
+    reservationDetails_on_reservation {
+      id
+      quantity
+      unitPrice
+      menu { id name description standardPrice durationMinutes }
+    }
+    storeAssignments_on_reservation {
+      id
+      people
+      assignedAt
+      store { id name address }
+    }
+    visitRecord_on_reservation { id visitedAt actualPeople }
     billings_on_reservation { id billingType amount billingDate status }
   }
 }
 
+query GetReservationByCode($reservationCode: String!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  reservations(where: {reservationCode: {eq: $reservationCode}}, limit: 1) {
+    id
+    reservationCode
+    usageDate
+    usageTime
+    status
+    expectedPeople
+    policyAgreementKind
+    policyAgreementAcceptedAt
+    confirmationContactedAt
+    receivedAt
+    updatedAt
+    customer { id name phone email }
+    reservationDetails_on_reservation {
+      id
+      quantity
+      unitPrice
+      menu { id name description standardPrice durationMinutes }
+    }
+    storeAssignments_on_reservation {
+      id
+      people
+      assignedAt
+      store { id name address }
+    }
+  }
+}
+
 query ListCustomers @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
-  customers(orderBy: {createdAt: DESC}) {
-    id name phone email firebaseUid createdAt
+  customers(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
+    id
+    name
+    phone
+    email
+    firebaseUid
+    active
+    createdAt
     reservations_on_customer { id reservationCode usageDate status }
   }
 }
 
+query GetCustomerByName($name: String!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+  customers(where: {name: {eq: $name}, active: {eq: true}}, limit: 1) {
+    id
+    name
+    phone
+    email
+    active
+  }
+}
+
 query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
-  stores(where: {active: {eq: true}}, orderBy: {name: ASC}) { id name address active }
+  stores(where: {active: {eq: true}}, orderBy: {name: ASC}) {
+    id
+    name
+    address
+    active
+  }
+}
+
+query GetStoreByName($name: String!) @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
+  stores(where: {name: {eq: $name}}, limit: 1) {
+    id
+    name
+    address
+    active
+  }
 }
 
 query ListMenus @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
-  menus(where: {active: {eq: true}}, orderBy: {standardPrice: ASC}) { id name description standardPrice durationMinutes active }
+  menus(where: {active: {eq: true}}, orderBy: {standardPrice: ASC}) {
+    id
+    name
+    description
+    standardPrice
+    durationMinutes
+    active
+  }
+}
+
+query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
+  menus(where: {name: {eq: $name}}, limit: 1) {
+    id
+    name
+    description
+    standardPrice
+    durationMinutes
+    active
+  }
 }
 
 query ListBillingRecords @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
   billings(orderBy: {billingDate: DESC}) {
-    id billingType amount billingDate status
+    id
+    billingType
+    amount
+    billingDate
+    status
     reservation { id reservationCode customer { id name } }
-    invoices_on_billing { id invoiceNumber issuedAt }
+    invoice_on_billing { id invoiceNumber issuedAt }
   }
 }

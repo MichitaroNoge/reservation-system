@@ -1,31 +1,168 @@
 mutation CreateCustomer($name: String!, $phone: String!, $email: String!)
 @auth(level: PUBLIC, insecureReason: "Guest customers can submit a reservation request.") {
-  customer_insert(data: {name: $name, phone: $phone, email: $email})
+  customer_insert(data: {
+    name: $name
+    phone: $phone
+    email: $email
+  })
 }
 
-mutation CreateReservation($reservationCode: String!, $customerId: UUID!, $usageDate: Date!, $usageTime: String!, $expectedPeople: Int!)
-@auth(level: PUBLIC, insecureReason: "Guest customers can submit a temporary reservation request.") {
-  reservation_insert(data: {reservationCode: $reservationCode, customerId: $customerId, usageDate: $usageDate, usageTime: $usageTime, expectedPeople: $expectedPeople, status: TEMPORARY_REQUESTED})
+mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  customer_update(key: {id: $id}, data: {
+    name: $name
+    phone: $phone
+    email: $email
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeactivateCustomer($id: UUID!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  customer_update(key: {id: $id}, data: {
+    active: false
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation CreateReservation(
+  $reservationCode: String!
+  $customerId: UUID!
+  $usageDate: Date!
+  $usageTime: String!
+  $expectedPeople: Int!
+  $status: ReservationStatus!
+  $policyAgreementKind: String
+  $policyAgreementAcceptedAt: Timestamp
+)
+@auth(level: PUBLIC, insecureReason: "Guest customers can submit a reservation request.") {
+  reservation_insert(data: {
+    reservationCode: $reservationCode
+    customerId: $customerId
+    usageDate: $usageDate
+    usageTime: $usageTime
+    expectedPeople: $expectedPeople
+    status: $status
+    policyAgreementKind: $policyAgreementKind
+    policyAgreementAcceptedAt: $policyAgreementAcceptedAt
+  })
 }
 
 mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: Int!, $unitPrice: Int!)
 @auth(level: PUBLIC, insecureReason: "Used while submitting a guest reservation request.") {
-  reservationDetail_insert(data: {reservationId: $reservationId, menuId: $menuId, quantity: $quantity, unitPrice: $unitPrice})
+  reservationDetail_insert(data: {
+    reservationId: $reservationId
+    menuId: $menuId
+    quantity: $quantity
+    unitPrice: $unitPrice
+  })
+}
+
+mutation UpdateReservation(
+  $id: UUID!
+  $usageDate: Date!
+  $usageTime: String!
+  $expectedPeople: Int!
+)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  reservation_update(key: {id: $id}, data: {
+    usageDate: $usageDate
+    usageTime: $usageTime
+    expectedPeople: $expectedPeople
+    updatedAt_expr: "request.time"
+  })
 }
 
 mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!)
 @auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
-  reservation_update(key: {id: $id}, data: {status: $status, updatedAt_expr: "request.time"})
+  reservation_update(key: {id: $id}, data: {
+    status: $status
+    updatedAt_expr: "request.time"
+  })
 }
 
-mutation AssignStore($reservationId: UUID!, $storeId: UUID!)
+mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timestamp)
 @auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
-  storeAssignment_upsert(data: {reservationId: $reservationId, storeId: $storeId, assignedAt_expr: "request.time"})
+  reservation_update(key: {id: $id}, data: {
+    confirmationContactedAt: $confirmationContactedAt
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  storeAssignment_insert(data: {
+    reservationId: $reservationId
+    storeId: $storeId
+    people: $people
+    assignedAt_expr: "request.time"
+  })
+}
+
+mutation DeleteStoreAssignment($id: UUID!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  storeAssignment_delete(key: {id: $id})
+}
+
+mutation UpdateStore($id: UUID!, $name: String!, $address: String, $active: Boolean!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  store_update(key: {id: $id}, data: {
+    name: $name
+    address: $address
+    active: $active
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeactivateStore($id: UUID!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  store_update(key: {id: $id}, data: {
+    active: false
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation CreateMenu($name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $active: Boolean!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  menu_insert(data: {
+    name: $name
+    description: $description
+    standardPrice: $standardPrice
+    durationMinutes: $durationMinutes
+    active: $active
+  })
+}
+
+mutation UpdateMenu($id: UUID!, $name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $active: Boolean!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  menu_update(key: {id: $id}, data: {
+    name: $name
+    description: $description
+    standardPrice: $standardPrice
+    durationMinutes: $durationMinutes
+    active: $active
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation DeactivateMenu($id: UUID!)
+@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+  menu_update(key: {id: $id}, data: {
+    active: false
+    updatedAt_expr: "request.time"
+  })
 }
 
 mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!)
 @auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.")
 @transaction {
-  visitRecord_insert(data: {reservationId: $reservationId, visitedAt: $visitedAt, actualPeople: $actualPeople})
-  reservation_update(key: {id: $reservationId}, data: {status: VISITED, updatedAt_expr: "request.time"})
+  visitRecord_insert(data: {
+    reservationId: $reservationId
+    visitedAt: $visitedAt
+    actualPeople: $actualPeople
+  })
+  reservation_update(key: {id: $reservationId}, data: {
+    status: VISITED
+    updatedAt_expr: "request.time"
+  })
 }

@@ -1,6 +1,6 @@
 # Reservation System
 
-予約システム設計書をもとにした Next.js プロトタイプです。
+レストラン予約の申請、管理、確認連絡、店舗割当、メニュー管理を行う Next.js アプリケーションです。
 
 ## 起動方法
 
@@ -9,54 +9,103 @@ npm install
 npm run dev
 ```
 
-ブラウザで `http://localhost:3000` を開いてください。
+ブラウザで `http://localhost:3000` を開きます。
 
-## 実装済み
+## 主な機能
 
-- 顧客向け4ステップ仮予約フォーム
-- 管理者ダッシュボード、予約一覧・絞り込み
-- 予約詳細、承認、店舗割当、状態更新
-- 複数メニューを選択した飲食店予約
-- メニュー管理画面での料理・コース・オプション追加、編集、削除
-- キャンセル確定、来店受付・利用実績への遷移
-- Next.js API Routes による予約データ操作
-- 開発用JSON DBによる予約作成・ステータス更新・店舗割当の永続化
-- レスポンシブ表示
+- 顧客向け予約申請フォーム
+- 仮予約・本予約・キャンセル申請の管理
+- 予約一覧の検索、絞り込み、並び替え
+- 予約詳細、ステータス更新、確認連絡、店舗割当
+- 複数メニュー選択とメニュー管理
+- 顧客管理、店舗管理
+- 設計資料: [docs/README.md](docs/README.md)
 
-現在は `data/reservation-db.json` を開発用DBとして利用しています。初回APIアクセス時にシードデータから自動生成され、顧客画面から作成した仮予約や管理画面での更新内容はブラウザ更新後も保持されます。
+## DB方針
+
+本番運用の保存先は Firebase Data Connect / Cloud SQL for PostgreSQL に寄せます。
+
+`data/reservation-db.json` はローカル開発用の暫定フォールバックです。リポジトリでは管理しません。`RESERVATION_REPOSITORY=file` の場合のみ、初回APIアクセス時に `lib/seed-data.ts` から自動生成されます。通常は `RESERVATION_REPOSITORY=dataconnect` を使用します。
+
+Repositoryは `RESERVATION_REPOSITORY` で切り替えます。
+
+| 値 | 用途 |
+| --- | --- |
+| `file` | ローカル開発用。`data/reservation-db.json` を使用 |
+| `dataconnect` | Firebase Data Connect / Cloud SQL for PostgreSQL を使用 |
+
+Data Connect SDKは `src/generated/dataconnect` と `src/generated/dataconnect-admin` に生成されています。`FirebaseSqlConnectReservationRepository` は生成admin SDKを利用して一部の予約操作を実装しています。
 
 ## API
 
-- `GET /api/reservations` 予約一覧
-- `POST /api/reservations` 仮予約作成
-- `PATCH /api/reservations/:id/status` 予約ステータス更新
-- `PATCH /api/reservations/:id/store` 店舗割当
-- `GET /api/customers` 顧客一覧
-- `GET /api/stores` 店舗一覧
-- `GET /api/menus` メニュー一覧
-- `POST /api/menus` メニュー追加
-- `PATCH /api/menus/:name` メニュー更新
-- `DELETE /api/menus/:name` メニュー削除
+- `GET /api/reservations`
+- `POST /api/reservations`
+- `PATCH /api/reservations/:id`
+- `PATCH /api/reservations/:id/status`
+- `PATCH /api/reservations/:id/store`
+- `PATCH /api/reservations/:id/confirmation-contact`
+- `GET /api/customers`
+- `PATCH /api/customers/:name`
+- `DELETE /api/customers/:name`
+- `GET /api/stores`
+- `PATCH /api/stores/:name`
+- `DELETE /api/stores/:name`
+- `GET /api/menus`
+- `POST /api/menus`
+- `PATCH /api/menus/:name`
+- `DELETE /api/menus/:name`
 
-## Firebase SQL Connect
+## Firebase Data Connect
 
-永続化層は Firebase SQL Connect（Cloud SQL for PostgreSQL）向けに構成しています。
+Data Connect定義は `dataconnect/` にあります。
 
-設定済みのFirebaseプロジェクト情報:
+- `dataconnect/dataconnect.yaml`
+- `dataconnect/schema/schema.gql`
+- `dataconnect/reservation/queries.gql`
+- `dataconnect/reservation/mutations.gql`
+- `dataconnect/seed_data.gql`
 
-- プロジェクト名: `reservation-system`
-- プロジェクトID: `reservation-system-7f132`
-- プロジェクト番号: `733972352801`
-- WebアプリID: `1:733972352801:web:94f77b4e829dbf08793860`
-- Storage Bucket: `reservation-system-7f132.firebasestorage.app`
-- Messaging Sender ID: `733972352801`
+実FirebaseのData Connectを使用する流れ:
 
-1. `.firebaserc.example` を `.firebaserc` にコピーしてFirebaseプロジェクトIDを設定
-2. `.env.example` を `.env.local` にコピーしてFirebase Web Appの設定を確認
-3. Firebase CLIで `firebase init dataconnect:sdk` を実行
-4. `firebase emulators:start --only dataconnect` でローカルPGLiteを起動
-5. `firebase dataconnect:sdk:generate` で型安全なWeb SDKを生成
+1. `.firebaserc.example` を `.firebaserc` にコピーし、FirebaseプロジェクトIDを設定
+2. `.env.example` を `.env.local` にコピーし、必要な環境変数を設定
+3. Firebase CLIでログイン
+   ```bash
+   npx firebase login
+   ```
+4. クラウド側のData Connectサービスを確認
+   ```bash
+   npx firebase dataconnect:services:list
+   ```
+5. スキーマやGraphQL操作を変更した場合はSDKを再生成
+   ```bash
+   npx firebase dataconnect:sdk:generate
+   ```
+6. Data Connect定義をクラウドへデプロイ
+   ```bash
+   npx firebase deploy --only dataconnect
+   ```
+7. 必要に応じて初期データを投入
 
-Firebase Web App の接続情報は `.env.example` に反映済みです。ローカル実行では `.env.local` を利用します。
+ローカルEmulatorでData Connectを検証する流れ:
 
-スキーマと操作定義は `dataconnect/` にあります。現在の公開権限はプロトタイプ用です。本番公開前にFirebase Authenticationを有効化し、管理操作をロールベース認証へ変更してください。
+1. `.env.local` で `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR=true` を設定
+2. `RESERVATION_REPOSITORY=dataconnect` を設定
+3. Data Connect Emulatorを起動
+   ```bash
+   npx firebase emulators:start --only dataconnect
+   ```
+
+共通の注意:
+
+- 実Firebaseを使う場合は `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR=false` を設定
+- 実Firebaseを使う場合は `RESERVATION_REPOSITORY=dataconnect` を設定
+- スキーマやGraphQL操作を変更した場合は `npx firebase dataconnect:sdk:generate` でSDKを再生成
+
+現在のGraphQL定義はプロトタイプ用に `@auth(level: PUBLIC)` を含みます。本番公開前に Firebase Authentication とロールベース認可へ変更してください。
+
+## ビルド
+
+```bash
+npm run build
+```

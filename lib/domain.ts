@@ -21,6 +21,38 @@ export const reservationStatuses = [
 
 export const defaultReservationStatus: ReservationStatus = "temporary_requested";
 
+export type DataConnectReservationStatus =
+  | "TEMPORARY_REQUESTED"
+  | "TEMPORARY_CONFIRMED"
+  | "CONFIRMED_REQUESTED"
+  | "CONFIRMED"
+  | "WAITING_FOR_VISIT"
+  | "VISITED"
+  | "CANCELLATION_REQUESTED"
+  | "CANCELLED";
+
+export const dataConnectReservationStatusMap: Record<ReservationStatus, DataConnectReservationStatus> = {
+  temporary_requested: "TEMPORARY_REQUESTED",
+  temporary_confirmed: "TEMPORARY_CONFIRMED",
+  confirmed_requested: "CONFIRMED_REQUESTED",
+  confirmed: "CONFIRMED",
+  waiting_for_visit: "WAITING_FOR_VISIT",
+  visited: "VISITED",
+  cancellation_requested: "CANCELLATION_REQUESTED",
+  cancelled: "CANCELLED",
+};
+
+const reservationStatusByDataConnectStatus: Record<DataConnectReservationStatus, ReservationStatus> = {
+  TEMPORARY_REQUESTED: "temporary_requested",
+  TEMPORARY_CONFIRMED: "temporary_confirmed",
+  CONFIRMED_REQUESTED: "confirmed_requested",
+  CONFIRMED: "confirmed",
+  WAITING_FOR_VISIT: "waiting_for_visit",
+  VISITED: "visited",
+  CANCELLATION_REQUESTED: "cancellation_requested",
+  CANCELLED: "cancelled",
+};
+
 const legacyReservationStatusMap: Record<string, ReservationStatus> = {
   "仮予約申請中": "temporary_requested",
   "仮予約確定": "temporary_confirmed",
@@ -35,7 +67,12 @@ const legacyReservationStatusMap: Record<string, ReservationStatus> = {
 export function normalizeReservationStatus(status: unknown): ReservationStatus {
   if (typeof status !== "string") return defaultReservationStatus;
   if (reservationStatuses.includes(status as ReservationStatus)) return status as ReservationStatus;
+  if (status in reservationStatusByDataConnectStatus) return reservationStatusByDataConnectStatus[status as DataConnectReservationStatus];
   return legacyReservationStatusMap[status] ?? defaultReservationStatus;
+}
+
+export function toDataConnectReservationStatus(status: ReservationStatus): DataConnectReservationStatus {
+  return dataConnectReservationStatusMap[status];
 }
 
 export type Reservation = {

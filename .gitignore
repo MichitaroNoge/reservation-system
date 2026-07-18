@@ -4,5 +4,8 @@ node_modules/
 !.env.example
 .firebaserc
 firebase-debug.log
-src/generated/dataconnect/
+dataconnect-debug.log
+pglite-debug.log
+dataconnect/.dataconnect/
+.tmp/
 data/reservation-db.json

@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import { defaultReservationStatus, normalizeReservationStatus, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -11,6 +11,7 @@ type Database = {
 };
 
 const databasePath = path.join(process.cwd(), "data", "reservation-db.json");
+const defaultStartTime = "10:00";
 
 async function readDatabase(): Promise<Database> {
   try {
@@ -58,7 +59,7 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
       ? [{ store: reservation.store, people: reservation.people }]
       : [];
   const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-  return { ...reservation, menuItems, totalAmount, storeAssignments, store };
+  return { ...reservation, startTime: reservation.startTime ?? defaultStartTime, menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status) };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -79,12 +80,14 @@ export class FileReservationRepository implements ReservationRepository {
       customer: input.name,
       email: input.email,
       date: input.date,
+      startTime: input.startTime ?? defaultStartTime,
       people: input.people,
       menuItems,
       totalAmount: calculateTotalAmount(menuItems, database.menus),
       store: null,
       storeAssignments: [],
-      status: input.status ?? "仮予約申請中",
+      status: input.status ? normalizeReservationStatus(input.status) : defaultReservationStatus,
+      policyAgreement: input.policyAgreement,
       confirmationContactedAt: null,
       received: receivedLabel(),
       phone: input.phone,
@@ -99,6 +102,7 @@ export class FileReservationRepository implements ReservationRepository {
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     if (input.date !== undefined) reservation.date = input.date;
+    if (input.startTime !== undefined) reservation.startTime = input.startTime;
     if (input.people !== undefined) reservation.people = input.people;
     if (input.customer !== undefined) reservation.customer = input.customer;
     if (input.email !== undefined) reservation.email = input.email;
@@ -115,7 +119,7 @@ export class FileReservationRepository implements ReservationRepository {
     const database = await readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
-    reservation.status = status;
+    reservation.status = normalizeReservationStatus(status);
     await writeDatabase(database);
     return reservation;
   }
@@ -137,7 +141,7 @@ export class FileReservationRepository implements ReservationRepository {
       .filter((assignment) => assignment.store && assignment.people > 0)
       .map((assignment) => ({ store: assignment.store, people: Number(assignment.people) }));
     const assignedPeople = validAssignments.reduce((total, assignment) => total + assignment.people, 0);
-    if (assignedPeople !== reservation.people) {
+    if (validAssignments.length > 0 && assignedPeople !== reservation.people) {
       throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
     }
     reservation.storeAssignments = validAssignments;

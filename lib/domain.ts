@@ -1,18 +1,49 @@
 export type ReservationStatus =
-  | "仮予約申請中"
-  | "仮予約確定"
-  | "本予約申請中"
-  | "本予約確定"
-  | "来店待ち"
-  | "来店済"
-  | "キャンセル申請中"
-  | "キャンセル確定";
+  | "temporary_requested"
+  | "temporary_confirmed"
+  | "confirmed_requested"
+  | "confirmed"
+  | "waiting_for_visit"
+  | "visited"
+  | "cancellation_requested"
+  | "cancelled";
+
+export const reservationStatuses = [
+  "temporary_requested",
+  "temporary_confirmed",
+  "confirmed_requested",
+  "confirmed",
+  "waiting_for_visit",
+  "visited",
+  "cancellation_requested",
+  "cancelled",
+] as const satisfies readonly ReservationStatus[];
+
+export const defaultReservationStatus: ReservationStatus = "temporary_requested";
+
+const legacyReservationStatusMap: Record<string, ReservationStatus> = {
+  "仮予約申請中": "temporary_requested",
+  "仮予約確定": "temporary_confirmed",
+  "本予約申請中": "confirmed_requested",
+  "本予約確定": "confirmed",
+  "来店待ち": "waiting_for_visit",
+  "来店済": "visited",
+  "キャンセル申請中": "cancellation_requested",
+  "キャンセル確定": "cancelled",
+};
+
+export function normalizeReservationStatus(status: unknown): ReservationStatus {
+  if (typeof status !== "string") return defaultReservationStatus;
+  if (reservationStatuses.includes(status as ReservationStatus)) return status as ReservationStatus;
+  return legacyReservationStatusMap[status] ?? defaultReservationStatus;
+}
 
 export type Reservation = {
   id: string;
   customer: string;
   email?: string;
   date: string;
+  startTime?: string;
   people: number;
   menu?: string;
   menuItems: string[];
@@ -20,9 +51,15 @@ export type Reservation = {
   store: string | null;
   storeAssignments?: StoreAssignment[];
   status: ReservationStatus;
+  policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
   received: string;
   phone: string;
+};
+
+export type PolicyAgreement = {
+  kind: "temporary" | "confirmed";
+  acceptedAt: string;
 };
 
 export type StoreAssignment = {
@@ -65,14 +102,16 @@ export type CreateReservationInput = {
   menu?: string;
   menuItems?: string[];
   status?: ReservationStatus;
+  policyAgreement?: PolicyAgreement;
   date: string;
+  startTime?: string;
   people: number;
   name: string;
   email: string;
   phone: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "people" | "menuItems" | "customer" | "email" | "phone">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];

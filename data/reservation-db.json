@@ -1,0 +1,219 @@
+{
+  "reservations": [
+    {
+      "id": "RSV-1050",
+      "customer": "野毛 道太郎",
+      "email": "noge@example.jp",
+      "date": "2026-08-31",
+      "startTime": "10:00",
+      "people": 2,
+      "menuItems": [
+        "来店後に注文"
+      ],
+      "totalAmount": 0,
+      "store": null,
+      "storeAssignments": [],
+      "status": "temporary_confirmed",
+      "confirmationContactedAt": null,
+      "received": "7/16 16:25",
+      "phone": "090-4099-5532"
+    },
+    {
+      "id": "RSV-1049",
+      "customer": "野毛 道太郎",
+      "email": "noge@example.jp",
+      "date": "2026-07-12",
+      "startTime": "10:00",
+      "people": 2,
+      "menuItems": [
+        "飲み放題プラン",
+        "記念日プレート",
+        "季節のコース",
+        "パスタランチ",
+        "前菜盛り合わせ"
+      ],
+      "totalAmount": 15600,
+      "store": null,
+      "storeAssignments": [],
+      "status": "temporary_confirmed",
+      "policyAgreement": {
+        "kind": "temporary",
+        "acceptedAt": "2026-07-16T05:59:48.032Z"
+      },
+      "confirmationContactedAt": null,
+      "received": "7/16 15:00",
+      "phone": "090-4099-5532"
+    },
+    {
+      "id": "RSV-1048",
+      "customer": "山田 美咲",
+      "email": "misaki@example.jp",
+      "date": "2026-08-20",
+      "startTime": "10:00",
+      "people": 2,
+      "menuItems": [
+        "パスタランチ"
+      ],
+      "totalAmount": 2000,
+      "store": "渋谷店",
+      "storeAssignments": [
+        {
+          "store": "渋谷店",
+          "people": 2
+        }
+      ],
+      "status": "waiting_for_visit",
+      "received": "7月8日 09:42",
+      "phone": "090-1234-5678",
+      "confirmationContactedAt": "2026-07-17T10:28:19.072Z"
+    },
+    {
+      "id": "RSV-1047",
+      "customer": "佐藤 健太",
+      "email": "kenta@example.jp",
+      "date": "2026-07-23",
+      "startTime": "10:00",
+      "people": 1,
+      "menuItems": [
+        "季節のコース"
+      ],
+      "totalAmount": 6600,
+      "store": null,
+      "storeAssignments": [],
+      "status": "confirmed",
+      "received": "7月7日 18:10",
+      "phone": "080-2345-6789"
+    },
+    {
+      "id": "RSV-1046",
+      "customer": "鈴木 由佳",
+      "email": "yuka@example.jp",
+      "date": "2026-07-16",
+      "startTime": "10:00",
+      "people": 3,
+      "menuItems": [
+        "飲み放題プラン",
+        "記念日プレート"
+      ],
+      "totalAmount": 5200,
+      "store": "新宿店",
+      "storeAssignments": [
+        {
+          "store": "新宿店",
+          "people": 3
+        }
+      ],
+      "status": "waiting_for_visit",
+      "received": "7月7日 14:25",
+      "phone": "070-3456-7890",
+      "confirmationContactedAt": "2026-07-16T06:53:55.490Z"
+    },
+    {
+      "id": "RSV-1045",
+      "customer": "高橋 直人",
+      "email": "naoto@example.jp",
+      "date": "2026-07-09",
+      "startTime": "10:00",
+      "people": 2,
+      "menuItems": [
+        "パスタランチ"
+      ],
+      "totalAmount": 4000,
+      "store": "渋谷店",
+      "storeAssignments": [
+        {
+          "store": "渋谷店",
+          "people": 2
+        }
+      ],
+      "status": "cancellation_requested",
+      "received": "7月6日 11:03",
+      "phone": "090-4567-8901"
+    },
+    {
+      "id": "RSV-1044",
+      "customer": "伊藤 結衣",
+      "email": "yui@example.jp",
+      "date": "2026-07-08",
+      "startTime": "10:00",
+      "people": 1,
+      "menuItems": [
+        "前菜盛り合わせ",
+        "記念日プレート"
+      ],
+      "totalAmount": 4200,
+      "store": "横浜店",
+      "storeAssignments": [
+        {
+          "store": "横浜店",
+          "people": 1
+        }
+      ],
+      "status": "visited",
+      "received": "7月5日 16:30",
+      "phone": "080-5678-9012",
+      "confirmationContactedAt": "2026-07-08T01:00:00.000Z"
+    }
+  ],
+  "menus": [
+    {
+      "name": "前菜盛り合わせ",
+      "description": "季節野菜と小皿料理の盛り合わせ",
+      "price": 1800,
+      "duration": "15分"
+    },
+    {
+      "name": "パスタランチ",
+      "description": "本日のパスタ、サラダ、ドリンク付き",
+      "price": 2000,
+      "duration": "45分"
+    },
+    {
+      "name": "季節のコース",
+      "description": "前菜、メイン、デザートまで楽しめるコース",
+      "price": 6600,
+      "duration": "90分"
+    },
+    {
+      "name": "飲み放題プラン",
+      "description": "コースに追加できる90分飲み放題",
+      "price": 2800,
+      "duration": "90分"
+    },
+    {
+      "name": "記念日プレート",
+      "description": "メッセージ付きデザートプレート",
+      "price": 2400,
+      "duration": "10分"
+    },
+    {
+      "name": "来店後に注文",
+      "description": "来店後にメニューを注文します",
+      "price": 0,
+      "duration": "来店後"
+    }
+  ],
+  "stores": [
+    {
+      "name": "渋谷店",
+      "area": "東京都渋谷区",
+      "today": 4,
+      "month": 48,
+      "state": "営業中"
+    },
+    {
+      "name": "新宿店",
+      "area": "東京都新宿区",
+      "today": 3,
+      "month": 41,
+      "state": "営業中"
+    },
+    {
+      "name": "横浜店",
+      "area": "神奈川県横浜市",
+      "today": 1,
+      "month": 35,
+      "state": "営業中"
+    }
+  ]
+}

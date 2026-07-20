@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/api-validation";
-import { getReservationRepository } from "@/lib/repositories";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
-    await requireAdmin(request);
-    const customers = await getReservationRepository().listCustomers();
-    return NextResponse.json({ customers });
+    const admin = await requireAdmin(request);
+    return NextResponse.json({
+      admin: true,
+      email: admin.email ?? null,
+      uid: admin.uid,
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "declaration": false,
+    "incremental": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": ".tmp/test-build",
+    "rootDir": ".",
+    "target": "ES2022"
+  },
+  "include": [
+    "lib/domain.ts",
+    "lib/seed-data.ts",
+    "lib/repositories/file-reservation-repository.ts",
+    "lib/repositories/reservation-repository.ts",
+    "tests/**/*.ts"
+  ]
+}

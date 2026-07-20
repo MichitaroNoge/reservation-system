@@ -9,6 +9,9 @@ export class ApiValidationError extends Error {
 
 export function apiErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "Unexpected error";
+  if (error instanceof Error && "statusCode" in error && typeof error.statusCode === "number") {
+    return Response.json({ error: message }, { status: error.statusCode });
+  }
   if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
   if (/not found/i.test(message)) return Response.json({ error: message }, { status: 404 });
   if (/already exists/i.test(message)) return Response.json({ error: message }, { status: 409 });

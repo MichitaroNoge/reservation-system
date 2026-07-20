@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateReservationStatus } from "@/lib/api-validation";
 import { assertReservationStatusTransition } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
@@ -7,6 +8,7 @@ export const runtime = "nodejs";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    await requireAdmin(request);
     const { id } = await context.params;
     const body = await readJsonObject(request);
     const nextStatus = validateReservationStatus(body.status);
@@ -16,7 +18,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (!current) return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
     assertReservationStatusTransition(current.status, nextStatus, { manual: Boolean(String(manualReason ?? "").trim()) });
     const reservation = await repository.updateReservationStatus(id, nextStatus);
-    return NextResponse.json({ reservation });
+    return NextResponse.json({ reservation: { ...reservation, status: nextStatus } });
   } catch (error) {
     return apiErrorResponse(error);
   }

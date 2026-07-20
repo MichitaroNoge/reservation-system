@@ -10,10 +10,9 @@ type Database = {
   stores: Store[];
 };
 
-const databasePath = path.join(process.cwd(), "data", "reservation-db.json");
 const defaultStartTime = "10:00";
 
-async function readDatabase(): Promise<Database> {
+async function readDatabase(databasePath: string): Promise<Database> {
   try {
     const raw = await readFile(databasePath, "utf8");
     const database = JSON.parse(raw) as Database;
@@ -21,12 +20,12 @@ async function readDatabase(): Promise<Database> {
     return database;
   } catch {
     const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores };
-    await writeDatabase(initial);
+    await writeDatabase(databasePath, initial);
     return initial;
   }
 }
 
-async function writeDatabase(database: Database) {
+async function writeDatabase(databasePath: string, database: Database) {
   await mkdir(path.dirname(databasePath), { recursive: true });
   await writeFile(databasePath, JSON.stringify(database, null, 2), "utf8");
 }
@@ -67,13 +66,27 @@ function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
 }
 
 export class FileReservationRepository implements ReservationRepository {
+  private readonly databasePath: string;
+
+  constructor(databasePath = path.join(process.cwd(), "data", "reservation-db.json")) {
+    this.databasePath = databasePath;
+  }
+
+  private readDatabase() {
+    return readDatabase(this.databasePath);
+  }
+
+  private writeDatabase(database: Database) {
+    return writeDatabase(this.databasePath, database);
+  }
+
   async listReservations() {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     return database.reservations;
   }
 
   async createReservation(input: CreateReservationInput) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];
     const reservation: Reservation = {
       id: nextReservationId(database.reservations),
@@ -93,12 +106,12 @@ export class FileReservationRepository implements ReservationRepository {
       phone: input.phone,
     };
     database.reservations = [reservation, ...database.reservations];
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return reservation;
   }
 
   async updateReservation(id: string, input: UpdateReservationInput) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     if (input.date !== undefined) reservation.date = input.date;
@@ -111,30 +124,30 @@ export class FileReservationRepository implements ReservationRepository {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
     }
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return reservation;
   }
 
   async updateReservationStatus(id: string, status: ReservationStatus) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     reservation.status = normalizeReservationStatus(status);
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return reservation;
   }
 
   async updateConfirmationContact(id: string, contactedAt: string | null) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     reservation.confirmationContactedAt = contactedAt;
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return reservation;
   }
 
   async assignStores(id: string, assignments: StoreAssignment[]) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     const validAssignments = assignments
@@ -146,12 +159,12 @@ export class FileReservationRepository implements ReservationRepository {
     }
     reservation.storeAssignments = validAssignments;
     reservation.store = validAssignments.length === 1 ? validAssignments[0].store : validAssignments.length > 1 ? "複数店舗" : null;
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return reservation;
   }
 
   async listCustomers(): Promise<Customer[]> {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const grouped = new Map<string, Customer>();
     for (const reservation of database.reservations) {
       const current = grouped.get(reservation.customer);
@@ -167,7 +180,7 @@ export class FileReservationRepository implements ReservationRepository {
   }
 
   async updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer> {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     const targets = database.reservations.filter((reservation) => reservation.customer === decodedName);
     if (!targets.length) throw new Error(`Customer not found: ${decodedName}`);
@@ -177,26 +190,26 @@ export class FileReservationRepository implements ReservationRepository {
       email: input.contact,
       phone: input.phone,
     } : reservation);
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     const updated = (await this.listCustomers()).find((customer) => customer.name === input.name);
     if (!updated) throw new Error(`Customer not found after update: ${input.name}`);
     return updated;
   }
 
   async deleteCustomer(name: string): Promise<void> {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     database.reservations = database.reservations.filter((reservation) => reservation.customer !== decodedName);
-    await writeDatabase(database);
+    await this.writeDatabase(database);
   }
 
   async listStores() {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     return database.stores;
   }
 
   async updateStore(name: string, input: SaveStoreInput) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     const index = database.stores.findIndex((store) => store.name === decodedName);
     if (index < 0) throw new Error(`Store not found: ${decodedName}`);
@@ -208,12 +221,12 @@ export class FileReservationRepository implements ReservationRepository {
         return { ...reservation, storeAssignments, store };
       });
     }
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return input;
   }
 
   async deleteStore(name: string) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     database.stores = database.stores.filter((store) => store.name !== decodedName);
     database.reservations = database.reservations.map((reservation) => {
@@ -221,26 +234,26 @@ export class FileReservationRepository implements ReservationRepository {
       const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
       return { ...reservation, storeAssignments, store };
     });
-    await writeDatabase(database);
+    await this.writeDatabase(database);
   }
 
   async listMenus() {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     return database.menus;
   }
 
   async createMenu(input: SaveMenuInput) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     if (database.menus.some((menu) => menu.name === input.name)) {
       throw new Error(`Menu already exists: ${input.name}`);
     }
     database.menus = [...database.menus, input];
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return input;
   }
 
   async updateMenu(name: string, input: SaveMenuInput) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     const index = database.menus.findIndex((menu) => menu.name === name);
     if (index < 0) throw new Error(`Menu not found: ${name}`);
     database.menus[index] = input;
@@ -254,18 +267,18 @@ export class FileReservationRepository implements ReservationRepository {
       ...reservation,
       totalAmount: calculateTotalAmount(reservation.menuItems, database.menus),
     }));
-    await writeDatabase(database);
+    await this.writeDatabase(database);
     return input;
   }
 
   async deleteMenu(name: string) {
-    const database = await readDatabase();
+    const database = await this.readDatabase();
     database.menus = database.menus.filter((menu) => menu.name !== name);
     database.reservations = database.reservations.map((reservation) => ({
       ...reservation,
       menuItems: reservation.menuItems.filter((item) => item !== name),
       totalAmount: calculateTotalAmount(reservation.menuItems.filter((item) => item !== name), database.menus),
     }));
-    await writeDatabase(database);
+    await this.writeDatabase(database);
   }
 }

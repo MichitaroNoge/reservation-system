@@ -129,7 +129,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       id: current.dataConnectId,
       status: toSdkReservationStatus(status),
     });
-    return this.getReservationWithInternalId(id);
+    return { ...current, status };
   }
 
   async updateConfirmationContact(id: string, contactedAt: string | null) {

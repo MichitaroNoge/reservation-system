@@ -1,188 +1,24 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
-  daysUntilVisit as calculateDaysUntilVisit,
   getAutomaticReservationStatus,
   getPendingVisitReadinessActions,
-  isConfirmationContactDue as isConfirmationContactDueByRule,
   isConfirmedReservation,
-  isTemporaryReservationExpired as isTemporaryReservationExpiredByRule,
   isVisitReadyReservation,
   reservationAssignments,
-  reservationDisplayStatusLabel,
-  reservationStatusCodes,
-  reservationStatusLabel,
-  reservationStatuses,
-  type ReservationStatus,
 } from "@/lib/domain";
-
-type Status = ReservationStatus;
-type StoreAssignment = { store: string; people: number };
-type PolicyAgreement = { kind: "temporary" | "confirmed"; acceptedAt: string };
-type Reservation = { id: string; customer: string; email?: string; date: string; startTime?: string; people: number; menu?: string; menuItems?: string[]; totalAmount?: number; store: string | null; storeAssignments?: StoreAssignment[]; status: Status; policyAgreement?: PolicyAgreement; confirmationContactedAt?: string | null; received: string; phone: string };
-type Menu = { name: string; description: string; price: number; duration: string };
-type Customer = { name: string; contact: string; phone: string; count: number; last: string };
-type Store = { name: string; area: string; today: number; month: number; state: string };
-type BookingForm = { menuItems: string[]; date: string; startTime: string; people: number; name: string; email: string; phone: string; status?: Status; policyAgreement?: PolicyAgreement };
-type MenuForm = Menu;
-type CustomerForm = { name: string; contact: string; phone: string };
-type StoreForm = Store;
-type View = "dashboard" | "reservations" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
-type ReservationFilter = "すべて" | "承認待ち" | "仮予約確定" | "仮予約確定（期限切れ）" | "本予約確定" | "本予約確定（メニュー未確定）" | "本予約確定（店舗未割当）" | "本予約確定（未確認連絡）" | "本予約確定（来店待ち）";
-type ReservationSortKey = "status" | "id" | "customer" | "date" | "menu" | "store" | "contact";
-type SortDirection = "asc" | "desc";
-const VISIT_MENU_NAME = "来店後に注文";
-const DEFAULT_START_TIME = "10:00";
-const STATUS = reservationStatusCodes;
-
-const initialReservations: Reservation[] = [
-  { id: "RSV-1048", customer: "山田 美咲", date: "2026-07-12", people: 2, menuItems: ["前菜盛り合わせ", "パスタランチ"], totalAmount: 7600, store: null, status: STATUS.temporaryRequested, received: "7月8日 09:42", phone: "090-1234-5678" },
-  { id: "RSV-1047", customer: "佐藤 健太", date: "2026-07-10", people: 1, menuItems: ["季節のコース"], totalAmount: 6600, store: "渋谷店", status: STATUS.waitingForVisit, received: "7月7日 18:10", phone: "080-2345-6789" },
-  { id: "RSV-1046", customer: "鈴木 由佳", date: "2026-07-15", people: 3, menuItems: ["飲み放題プラン", "記念日プレート"], totalAmount: 16800, store: "新宿店", status: STATUS.confirmed, received: "7月7日 14:25", phone: "070-3456-7890" },
-  { id: "RSV-1045", customer: "高橋 直人", date: "2026-07-09", people: 2, menuItems: ["パスタランチ"], totalAmount: 4000, store: "渋谷店", status: STATUS.cancellationRequested, received: "7月6日 11:03", phone: "090-4567-8901" },
-  { id: "RSV-1044", customer: "伊藤 結衣", date: "2026-07-08", people: 1, menuItems: ["前菜盛り合わせ", "記念日プレート"], totalAmount: 4200, store: "横浜店", status: STATUS.visited, received: "7月5日 16:30", phone: "080-5678-9012" },
-];
-
-const defaultMenus: Menu[] = [
-  { name: "前菜盛り合わせ", description: "季節野菜と小皿料理の盛り合わせ", price: 1800, duration: "15分" },
-  { name: "パスタランチ", description: "本日のパスタ、サラダ、ドリンク付き", price: 2000, duration: "45分" },
-  { name: "季節のコース", description: "前菜、メイン、デザートまで楽しめるコース", price: 6600, duration: "90分" },
-  { name: "飲み放題プラン", description: "コースに追加できる90分飲み放題", price: 2800, duration: "90分" },
-  { name: "記念日プレート", description: "メッセージ付きデザートプレート", price: 2400, duration: "10分" },
-  { name: VISIT_MENU_NAME, description: "来店後にメニューを注文します", price: 0, duration: "来店後" },
-];
-
-const defaultStores: Store[] = [
-  { name:"渋谷店", area:"東京都渋谷区", today:4, month:48, state:"営業中" },
-  { name:"新宿店", area:"東京都新宿区", today:3, month:41, state:"営業中" },
-  { name:"横浜店", area:"神奈川県横浜市", today:1, month:35, state:"営業中" },
-];
-
-const statusClass: Record<Status, string> = {
-  temporary_requested: "amber",
-  temporary_confirmed: "blue",
-  confirmed_requested: "violet",
-  confirmed: "green",
-  waiting_for_visit: "cyan",
-  visited: "gray",
-  cancellation_requested: "red",
-  cancelled: "red",
-};
-const statusOptions: Status[] = [...reservationStatuses];
-const approvalStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested, STATUS.cancellationRequested];
-
-function statusLabel(status: Status) {
-  return reservationStatusLabel(status);
-}
-
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
-  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
-  return response.json() as Promise<T>;
-}
-
-function reservationMenuLabel(reservation: Reservation) {
-  const items = reservation.menuItems?.length ? reservation.menuItems : reservation.menu ? [reservation.menu] : [];
-  return menuSelectionLabel(items);
-}
-
-function policyAgreementLabel(reservation: Reservation) {
-  if (!reservation.policyAgreement) return "未同意";
-  const label = reservation.policyAgreement.kind === "temporary" ? "仮予約の注意事項" : "キャンセルポリシー";
-  return `${label}に同意済み（${new Date(reservation.policyAgreement.acceptedAt).toLocaleString("ja-JP")}）`;
-}
-
-function menuSelectionLabel(menuItems: string[]) {
-  return menuItems.length ? menuItems.join("、") : "メニュー未確定";
-}
-
-function reservationStartTime(reservation: Pick<Reservation, "startTime">) {
-  return reservation.startTime || DEFAULT_START_TIME;
-}
-
-function reservationDateTimeLabel(reservation: Pick<Reservation, "date" | "startTime">) {
-  return `${reservation.date.replaceAll("-", "/")} ${reservationStartTime(reservation)}`;
-}
-
-function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime">) {
-  return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}`;
-}
-
-function daysUntilVisit(date: string) {
-  return calculateDaysUntilVisit(date, todayIso());
-}
-
-function assignmentLabel(reservation: Reservation) {
-  const assignments = reservationAssignments(reservation);
-  return assignments.length ? assignments.map((assignment) => `${assignment.store} ${assignment.people}名`).join(" / ") : "";
-}
-
-function isConfirmationContactDue(reservation: Reservation, windowDays: number) {
-  return isConfirmationContactDueByRule(reservation, windowDays, todayIso());
-}
-
-function isTemporaryReservationExpired(reservation: Reservation) {
-  return isTemporaryReservationExpiredByRule(reservation, todayIso());
-}
-
-function reservationDisplayLabel(reservation: Reservation) {
-  return reservationDisplayStatusLabel(reservation, todayIso());
-}
-
-function todayIso() {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
-}
-
-function monthIso(date: string) {
-  return date.slice(0, 7);
-}
-
-function dateHeadingLabel(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
-}
-
-function selectedMenuTotal(menuItems: string[], menuCatalog: Menu[]) {
-  return menuItems.reduce((total, name) => total + (menuCatalog.find(menu => menu.name === name)?.price ?? 0), 0);
-}
-
-function buildCustomers(reservations: Reservation[]): Customer[] {
-  const grouped = new Map<string, Customer>();
-  reservations.forEach((reservation) => {
-    const current = grouped.get(reservation.customer);
-    grouped.set(reservation.customer, {
-      name: reservation.customer,
-      contact: reservation.email ?? current?.contact ?? "customer@example.jp",
-      phone: reservation.phone,
-      count: (current?.count ?? 0) + 1,
-      last: reservation.date.replaceAll("-", "/"),
-    });
-  });
-  return Array.from(grouped.values());
-}
-
-function Icon({ name }: { name: string }) {
-  const paths: Record<string, React.ReactNode> = {
-    grid: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
-    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>, users: <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></>,
-    store: <><path d="M3 9l2-5h14l2 5"/><path d="M5 13v8h14v-8M9 21v-6h6v6"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/></>,
-    chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></>, bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></>,
-    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
-    arrow: <path d="m9 18 6-6-6-6"/>, check: <path d="m5 12 4 4L19 6"/>, close: <path d="M18 6 6 18M6 6l12 12"/>, plus: <path d="M12 5v14M5 12h14"/>, search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
-  };
-  return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
-}
+import { requestJson } from "./reservations/api-client";
+import { AdminAuthShell, AdminLogin } from "./reservations/components/auth";
+import { Icon, InfoMetric, Stat, Task } from "./reservations/components/common";
+import { DEFAULT_START_TIME, STATUS, VISIT_MENU_NAME, approvalStatuses, defaultMenus, defaultStores, initialReservations, statusClass, statusOptions } from "./reservations/constants";
+import { assignmentLabel, bookingFormDateTimeLabel, buildCustomers, dateHeadingLabel, daysUntilVisit, isConfirmationContactDue, isTemporaryReservationExpired, menuSelectionLabel, monthIso, policyAgreementLabel, reservationDateTimeLabel, reservationDisplayLabel, reservationMenuLabel, reservationStartTime, selectedMenuTotal, statusLabel, todayIso } from "./reservations/formatters";
+import { useAdminSession } from "./reservations/hooks/use-admin-session";
+import type { BookingForm, Customer, CustomerForm, Menu, MenuForm, Reservation, ReservationFilter, ReservationSortKey, SortDirection, Status, Store, StoreAssignment, StoreForm, View } from "./reservations/types";
 
 export default function Home() {
   const [role, setRole] = useState<"admin" | "customer">("admin");
+  const { adminSession, authError, authLoading, getAdminToken, loginAdmin, signOutAdmin } = useAdminSession();
   const [reservations, setReservations] = useState(initialReservations);
   const [filter, setFilter] = useState("すべて");
   const [selected, setSelected] = useState<Reservation | null>(null);
@@ -202,9 +38,6 @@ export default function Home() {
   const [adminForm, setAdminForm] = useState<BookingForm>({ menuItems: [], date: "2026-07-12", startTime: DEFAULT_START_TIME, people: 2, name: "", email: "", phone: "", status: STATUS.confirmed });
 
   useEffect(() => {
-    requestJson<{ reservations: Reservation[] }>("/api/reservations")
-      .then(({ reservations }) => setReservations(reservations))
-      .catch(() => notify("予約データの読み込みに失敗しました"));
     requestJson<{ menus: Menu[] }>("/api/menus")
       .then(({ menus }) => setMenuCatalog(menus))
       .catch(() => notify("メニューデータの読み込みに失敗しました"));
@@ -212,6 +45,13 @@ export default function Home() {
       .then(({ stores }) => setStores(stores))
       .catch(() => notify("店舗データの読み込みに失敗しました"));
   }, []);
+
+  useEffect(() => {
+    if (!adminSession) return;
+    adminRequestJson<{ reservations: Reservation[] }>("/api/reservations")
+      .then(({ reservations }) => setReservations(reservations))
+      .catch(() => notify("予約データの読み込みに失敗しました"));
+  }, [adminSession]);
 
   const visible = useMemo(() => filter === "すべて" ? reservations : reservations.filter(r => r.status.includes(filter)), [filter, reservations]);
   const customers = useMemo(() => buildCustomers(reservations), [reservations]);
@@ -243,6 +83,7 @@ export default function Home() {
       .sort((a, b) => reservationStartTime(a).localeCompare(reservationStartTime(b)));
   }, [reservations]);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2500); };
+  const adminRequestJson = async <T,>(url: string, init?: RequestInit) => requestJson<T>(url, { ...init, authToken: await getAdminToken() });
   const applyAutomaticStatus = async (reservation: Reservation) => {
     const nextStatus = getAutomaticReservationStatus(reservation);
     if (nextStatus === reservation.status) {
@@ -250,7 +91,7 @@ export default function Home() {
       setSelected(s => s?.id === reservation.id ? reservation : s);
       return reservation;
     }
-    const { reservation: transitioned } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${reservation.id}/status`, {
+    const { reservation: transitioned } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${reservation.id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status: nextStatus }),
     });
@@ -262,7 +103,7 @@ export default function Home() {
     setReservations(rs => rs.map(r => r.id === id ? { ...r, status } : r));
     setSelected(s => s?.id === id ? { ...s, status } : s);
     try {
-      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, manualReason: options?.manualReason }) });
+      const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, manualReason: options?.manualReason }) });
       setReservations(rs => rs.map(r => r.id === id ? reservation : r));
       setSelected(s => s?.id === id ? reservation : s);
       notify(`予約を「${statusLabel(status)}」へ更新しました`);
@@ -275,7 +116,7 @@ export default function Home() {
     setReservations(rs => rs.map(r => r.id === id ? { ...r, store, storeAssignments: assignments } : r));
     setSelected(s => s?.id === id ? { ...s, store, storeAssignments: assignments } : s);
     try {
-      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/store`, { method: "PATCH", body: JSON.stringify({ assignments }) });
+      const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}/store`, { method: "PATCH", body: JSON.stringify({ assignments }) });
       const transitioned = await applyAutomaticStatus(reservation);
       if (reservation.status === STATUS.confirmed && transitioned.status === STATUS.waitingForVisit) {
         notify("メニュー・店舗割当・確認連絡が完了したため、本予約確定（来店待ち）にしました");
@@ -291,12 +132,16 @@ export default function Home() {
     }
   };
   const createReservation = async (input: BookingForm) => {
-    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations", { method: "POST", body: JSON.stringify(input) });
+    const publicStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested];
+    const needsAdmin = Boolean(input.status && !publicStatuses.includes(input.status));
+    const { reservation } = needsAdmin
+      ? await adminRequestJson<{ reservation: Reservation }>("/api/reservations", { method: "POST", body: JSON.stringify(input) })
+      : await requestJson<{ reservation: Reservation }>("/api/reservations", { method: "POST", body: JSON.stringify(input) });
     setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
     return reservation;
   };
   const updateReservation = async (id: string, input: BookingForm) => {
-    const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}`, {
+    const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}`, {
       method: "PATCH",
       body: JSON.stringify({
         date: input.date,
@@ -319,7 +164,7 @@ export default function Home() {
     return transitioned;
   };
   const saveConfirmationContact = async (id: string, contactedAt: string | null) => {
-    const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/confirmation-contact`, {
+    const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}/confirmation-contact`, {
       method: "PATCH",
       body: JSON.stringify({ contactedAt }),
     });
@@ -355,31 +200,31 @@ export default function Home() {
   const saveMenu = async (input: MenuForm, originalName?: string) => {
     const url = originalName ? `/api/menus/${encodeURIComponent(originalName)}` : "/api/menus";
     const method = originalName ? "PATCH" : "POST";
-    const { menu } = await requestJson<{ menu: Menu }>(url, { method, body: JSON.stringify(input) });
+    const { menu } = await adminRequestJson<{ menu: Menu }>(url, { method, body: JSON.stringify(input) });
     setMenuCatalog(items => originalName ? items.map(item => item.name === originalName ? menu : item) : [...items, menu]);
     setReservations(rs => originalName && originalName !== menu.name ? rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).map(item => item === originalName ? menu.name : item) })) : rs);
     notify(originalName ? "メニューを更新しました" : "メニューを追加しました");
   };
   const deleteMenu = async (name: string) => {
-    await requestJson<{ ok: boolean }>(`/api/menus/${encodeURIComponent(name)}`, { method: "DELETE" });
+    await adminRequestJson<{ ok: boolean }>(`/api/menus/${encodeURIComponent(name)}`, { method: "DELETE" });
     setMenuCatalog(items => items.filter(item => item.name !== name));
     setReservations(rs => rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).filter(item => item !== name) })));
     notify("メニューを削除しました");
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
-    const { customer } = await requestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
+    const { customer } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
     setReservations(rs => rs.map(r => r.customer === originalName ? { ...r, customer: customer.name, email: customer.contact, phone: customer.phone } : r));
     setSelected(s => s?.customer === originalName ? { ...s, customer: customer.name, email: customer.contact, phone: customer.phone } : s);
     notify(`${customer.name}様の顧客情報を更新しました`);
   };
   const deleteCustomer = async (name: string) => {
-    await requestJson<{ ok: boolean }>(`/api/customers/${encodeURIComponent(name)}`, { method: "DELETE" });
+    await adminRequestJson<{ ok: boolean }>(`/api/customers/${encodeURIComponent(name)}`, { method: "DELETE" });
     setReservations(rs => rs.filter(r => r.customer !== name));
     setSelected(s => s?.customer === name ? null : s);
     notify(`${name}様の顧客情報を削除しました`);
   };
   const saveStore = async (originalName: string, input: StoreForm) => {
-    const { store } = await requestJson<{ store: Store }>(`/api/stores/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
+    const { store } = await adminRequestJson<{ store: Store }>(`/api/stores/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
     setStores(items => items.map(item => item.name === originalName ? store : item));
     setReservations(rs => originalName !== store.name ? rs.map(r => {
       const storeAssignments = reservationAssignments(r).map(assignment => assignment.store === originalName ? { ...assignment, store: store.name } : assignment);
@@ -392,7 +237,7 @@ export default function Home() {
     notify(`${store.name}を更新しました`);
   };
   const deleteStore = async (name: string) => {
-    await requestJson<{ ok: boolean }>(`/api/stores/${encodeURIComponent(name)}`, { method: "DELETE" });
+    await adminRequestJson<{ ok: boolean }>(`/api/stores/${encodeURIComponent(name)}`, { method: "DELETE" });
     setStores(items => items.filter(item => item.name !== name));
     setReservations(rs => rs.map(r => {
       const storeAssignments = reservationAssignments(r).filter(assignment => assignment.store !== name);
@@ -428,12 +273,14 @@ export default function Home() {
   };
 
   if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} menuCatalog={menuCatalog} />;
+  if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
+  if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => setRole("customer")} error={authError} />;
 
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>R</span><strong>Reserve</strong><small>Operations</small></div>
       <nav><p>メニュー</p><button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><Icon name="grid"/>ダッシュボード</button><button className={view === "reservations" ? "active" : ""} onClick={() => openReservations("すべて")}><Icon name="calendar"/>予約管理</button><button className={view === "confirmationContacts" ? "active" : ""} onClick={() => setView("confirmationContacts")}><Icon name="mail"/>確認連絡{taskCounts.preContactDue > 0 && <i>{taskCounts.preContactDue}</i>}</button><button className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><Icon name="users"/>顧客管理</button><button className={view === "stores" ? "active" : ""} onClick={() => setView("stores")}><Icon name="store"/>店舗管理</button><button className={view === "menus" ? "active" : ""} onClick={() => setView("menus")}><Icon name="chart"/>メニュー管理</button><button className={view === "billing" ? "active" : ""} onClick={() => setView("billing")}><Icon name="chart"/>利用実績・請求</button></nav>
-      <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><div className="profile"><span>MN</span><div><strong>野毛 道太郎</strong><small>システム管理者</small></div></div></div>
+      <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
       <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約管理",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div><div className="top-actions"><button className="icon-btn"><Icon name="bell"/><i/></button></div></header>
@@ -457,10 +304,6 @@ export default function Home() {
     {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
   </div>;
 }
-
-function Stat({ icon, label, value, note, color, onClick }: { icon: string; label: string; value: string; note: string; color: string; onClick?: () => void }) { return <button className={`stat ${onClick ? "clickable" : "static"}`} onClick={onClick} disabled={!onClick}><span className={`stat-icon ${color}`}><Icon name={icon}/></span><div><p>{label}</p><strong>{value}<small>件</small></strong>{note && <span className={color === "amber" || color === "violet" ? "attention" : "positive"}>{note}</span>}</div></button> }
-function InfoMetric({ icon, label, value, color }: { icon: string; label: string; value: string; color: string }) { return <div className="info-metric"><span className={`stat-icon ${color}`}><Icon name={icon}/></span><div><p>{label}</p><strong>{value}<small>件</small></strong></div></div> }
-function Task({ color, title, count, text, onClick }: { color: string; title: string; count?: number; text: string; onClick?: () => void }) { return <button className={`task ${count ? "has-count" : ""}`} onClick={onClick}><i className={color}/><div><strong>{title}{count !== undefined && <span className="task-count">{count}件</span>}</strong><small>{text}</small></div><Icon name="arrow"/></button> }
 
 function ManagementPage({ view, reservations, confirmationContactTargets, confirmationContactWindowDays, setConfirmationContactWindowDays, isBulkContacting, onBulkConfirmationContact, customers, stores, menus, reservationFilter, setReservationFilter, reservationDateFromFilter, setReservationDateFromFilter, reservationDateToFilter, setReservationDateToFilter, reservationSearch, setReservationSearch, onSelect, notify, onSaveMenu, onDeleteMenu, onSaveCustomer, onDeleteCustomer, onSaveStore, onDeleteStore, onOpenNewReservation }: { view: Exclude<View,"dashboard">; reservations: Reservation[]; confirmationContactTargets: Reservation[]; confirmationContactWindowDays: number; setConfirmationContactWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; customers: Customer[]; stores: Store[]; menus: Menu[]; reservationFilter: ReservationFilter; setReservationFilter: (filter: ReservationFilter) => void; reservationDateFromFilter: string; setReservationDateFromFilter: (date: string) => void; reservationDateToFilter: string; setReservationDateToFilter: (date: string) => void; reservationSearch: string; setReservationSearch: (search: string) => void; onSelect: (r: Reservation) => void; notify: (s:string) => void; onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>; onDeleteMenu: (name: string) => Promise<void>; onSaveCustomer: (originalName: string, input: CustomerForm) => Promise<void>; onDeleteCustomer: (name: string) => Promise<void>; onSaveStore: (originalName: string, input: StoreForm) => Promise<void>; onDeleteStore: (name: string) => Promise<void>; onOpenNewReservation: () => void }) {
   const [reservationSort, setReservationSort] = useState<{ key: ReservationSortKey; direction: SortDirection }>({ key: "date", direction: "asc" });
@@ -686,7 +529,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   </div></aside></>;
 }
 
-function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; onClose: () => void; onSubmit: () => void; menuCatalog: Menu[] }) {
+function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; onClose: () => void; onSubmit: () => void; menuCatalog: Menu[] }) {
   const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.startTime && form.people);
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
 
@@ -698,7 +541,7 @@ function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }:
   </div></aside></>;
 }
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, menuCatalog }: { form: BookingForm; setForm: React.Dispatch<React.SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm)=>Promise<Reservation>; menuCatalog: Menu[] }) {
+function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm)=>Promise<Reservation>; menuCatalog: Menu[] }) {
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const agreementKind = form.status === STATUS.temporaryRequested ? "temporary" : "confirmed";
   const agreementAccepted = form.policyAgreement?.kind === agreementKind && Boolean(form.policyAgreement.acceptedAt);

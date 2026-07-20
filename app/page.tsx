@@ -1,7 +1,21 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { ReservationStatus } from "@/lib/domain";
+import {
+  daysUntilVisit as calculateDaysUntilVisit,
+  getAutomaticReservationStatus,
+  getPendingVisitReadinessActions,
+  isConfirmationContactDue as isConfirmationContactDueByRule,
+  isConfirmedReservation,
+  isTemporaryReservationExpired as isTemporaryReservationExpiredByRule,
+  isVisitReadyReservation,
+  reservationAssignments,
+  reservationDisplayStatusLabel,
+  reservationStatusCodes,
+  reservationStatusLabel,
+  reservationStatuses,
+  type ReservationStatus,
+} from "@/lib/domain";
 
 type Status = ReservationStatus;
 type StoreAssignment = { store: string; people: number };
@@ -20,27 +34,7 @@ type ReservationSortKey = "status" | "id" | "customer" | "date" | "menu" | "stor
 type SortDirection = "asc" | "desc";
 const VISIT_MENU_NAME = "来店後に注文";
 const DEFAULT_START_TIME = "10:00";
-const STATUS = {
-  temporaryRequested: "temporary_requested",
-  temporaryConfirmed: "temporary_confirmed",
-  confirmedRequested: "confirmed_requested",
-  confirmed: "confirmed",
-  waitingForVisit: "waiting_for_visit",
-  visited: "visited",
-  cancellationRequested: "cancellation_requested",
-  cancelled: "cancelled",
-} as const satisfies Record<string, Status>;
-
-const statusLabels: Record<Status, string> = {
-  temporary_requested: "仮予約申請中",
-  temporary_confirmed: "仮予約確定",
-  confirmed_requested: "本予約申請中",
-  confirmed: "本予約確定",
-  waiting_for_visit: "来店待ち",
-  visited: "来店済",
-  cancellation_requested: "キャンセル申請中",
-  cancelled: "キャンセル確定",
-};
+const STATUS = reservationStatusCodes;
 
 const initialReservations: Reservation[] = [
   { id: "RSV-1048", customer: "山田 美咲", date: "2026-07-12", people: 2, menuItems: ["前菜盛り合わせ", "パスタランチ"], totalAmount: 7600, store: null, status: STATUS.temporaryRequested, received: "7月8日 09:42", phone: "090-1234-5678" },
@@ -75,11 +69,11 @@ const statusClass: Record<Status, string> = {
   cancellation_requested: "red",
   cancelled: "red",
 };
-const statusOptions: Status[] = [STATUS.temporaryRequested, STATUS.temporaryConfirmed, STATUS.confirmedRequested, STATUS.confirmed, STATUS.waitingForVisit, STATUS.visited, STATUS.cancellationRequested, STATUS.cancelled];
+const statusOptions: Status[] = [...reservationStatuses];
 const approvalStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested, STATUS.cancellationRequested];
 
 function statusLabel(status: Status) {
-  return statusLabels[status] ?? status;
+  return reservationStatusLabel(status);
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -121,37 +115,8 @@ function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime">)
   return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}`;
 }
 
-function parseIsoDate(date: string) {
-  return new Date(`${date}T00:00:00`);
-}
-
 function daysUntilVisit(date: string) {
-  const visitDate = parseIsoDate(date);
-  const today = parseIsoDate(todayIso());
-  if (Number.isNaN(visitDate.getTime())) return Number.POSITIVE_INFINITY;
-  return Math.ceil((visitDate.getTime() - today.getTime()) / 86400000);
-}
-
-function addCalendarMonths(date: Date, months: number) {
-  const result = new Date(date);
-  const day = result.getDate();
-  result.setDate(1);
-  result.setMonth(result.getMonth() + months);
-  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-  result.setDate(Math.min(day, lastDay));
-  return result;
-}
-
-function isConfirmedReservation(reservation: Reservation) {
-  return reservation.status === STATUS.confirmed || reservation.status === STATUS.waitingForVisit;
-}
-
-function reservationAssignments(reservation: Reservation): StoreAssignment[] {
-  return reservation.storeAssignments?.length
-    ? reservation.storeAssignments
-    : reservation.store
-      ? [{ store: reservation.store, people: reservation.people }]
-      : [];
+  return calculateDaysUntilVisit(date, todayIso());
 }
 
 function assignmentLabel(reservation: Reservation) {
@@ -159,25 +124,16 @@ function assignmentLabel(reservation: Reservation) {
   return assignments.length ? assignments.map((assignment) => `${assignment.store} ${assignment.people}名`).join(" / ") : "";
 }
 
-function isVisitReadyReservation(reservation: Reservation) {
-  return isConfirmedReservation(reservation) && Boolean(reservation.menuItems?.length) && Boolean(reservationAssignments(reservation).length) && Boolean(reservation.confirmationContactedAt);
-}
-
 function isConfirmationContactDue(reservation: Reservation, windowDays: number) {
-  const days = daysUntilVisit(reservation.date);
-  return reservation.status === STATUS.confirmed && !reservation.confirmationContactedAt && days >= 0 && days < windowDays;
+  return isConfirmationContactDueByRule(reservation, windowDays, todayIso());
 }
 
 function isTemporaryReservationExpired(reservation: Reservation) {
-  if (reservation.status !== STATUS.temporaryConfirmed) return false;
-  const visitDate = parseIsoDate(reservation.date);
-  if (Number.isNaN(visitDate.getTime())) return false;
-  return visitDate < addCalendarMonths(parseIsoDate(todayIso()), 1);
+  return isTemporaryReservationExpiredByRule(reservation, todayIso());
 }
 
-function reservationStatusLabel(reservation: Reservation) {
-  if (isTemporaryReservationExpired(reservation)) return "仮予約確定（期限切れ）";
-  return isVisitReadyReservation(reservation) ? "本予約確定（来店待ち）" : statusLabel(reservation.status);
+function reservationDisplayLabel(reservation: Reservation) {
+  return reservationDisplayStatusLabel(reservation, todayIso());
 }
 
 function todayIso() {
@@ -287,11 +243,26 @@ export default function Home() {
       .sort((a, b) => reservationStartTime(a).localeCompare(reservationStartTime(b)));
   }, [reservations]);
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2500); };
-  const updateStatus = async (id: string, status: Status) => {
+  const applyAutomaticStatus = async (reservation: Reservation) => {
+    const nextStatus = getAutomaticReservationStatus(reservation);
+    if (nextStatus === reservation.status) {
+      setReservations(rs => rs.map(r => r.id === reservation.id ? reservation : r));
+      setSelected(s => s?.id === reservation.id ? reservation : s);
+      return reservation;
+    }
+    const { reservation: transitioned } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${reservation.id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    setReservations(rs => rs.map(r => r.id === reservation.id ? transitioned : r));
+    setSelected(s => s?.id === reservation.id ? transitioned : s);
+    return transitioned;
+  };
+  const updateStatus = async (id: string, status: Status, options?: { manualReason?: string }) => {
     setReservations(rs => rs.map(r => r.id === id ? { ...r, status } : r));
     setSelected(s => s?.id === id ? { ...s, status } : s);
     try {
-      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, manualReason: options?.manualReason }) });
       setReservations(rs => rs.map(r => r.id === id ? reservation : r));
       setSelected(s => s?.id === id ? reservation : s);
       notify(`予約を「${statusLabel(status)}」へ更新しました`);
@@ -305,22 +276,15 @@ export default function Home() {
     setSelected(s => s?.id === id ? { ...s, store, storeAssignments: assignments } : s);
     try {
       const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/store`, { method: "PATCH", body: JSON.stringify({ assignments }) });
-      if (reservation.status === STATUS.confirmed && isVisitReadyReservation(reservation)) {
-        const { reservation: progressed } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: STATUS.waitingForVisit }) });
-        setReservations(rs => rs.map(r => r.id === id ? progressed : r));
-        setSelected(s => s?.id === id ? progressed : s);
+      const transitioned = await applyAutomaticStatus(reservation);
+      if (reservation.status === STATUS.confirmed && transitioned.status === STATUS.waitingForVisit) {
         notify("メニュー・店舗割当・確認連絡が完了したため、本予約確定（来店待ち）にしました");
         return;
       }
-      if (reservation.status === STATUS.waitingForVisit && !isVisitReadyReservation(reservation)) {
-        const { reservation: reverted } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: STATUS.confirmed }) });
-        setReservations(rs => rs.map(r => r.id === id ? reverted : r));
-        setSelected(s => s?.id === id ? reverted : s);
+      if (reservation.status === STATUS.waitingForVisit && transitioned.status === STATUS.confirmed) {
         notify("店舗割当を未割当に戻したため、本予約確定に戻しました");
         return;
       }
-      setReservations(rs => rs.map(r => r.id === id ? reservation : r));
-      setSelected(s => s?.id === id ? reservation : s);
       notify(reservation.status === STATUS.confirmed ? "店舗割当を保存しました。メニュー選択と確認連絡後に本予約確定（来店待ち）へ進みます" : "店舗割当を保存しました");
     } catch {
       notify("店舗割当の保存に失敗しました");
@@ -346,36 +310,20 @@ export default function Home() {
     });
     setReservations(rs => rs.map(r => r.id === id ? reservation : r));
     setSelected(s => s?.id === id ? reservation : s);
-    if (reservation.status === STATUS.confirmed && isVisitReadyReservation(reservation)) {
-      const { reservation: progressed } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: STATUS.waitingForVisit }) });
-      setReservations(rs => rs.map(r => r.id === id ? progressed : r));
-      setSelected(s => s?.id === id ? progressed : s);
+    const transitioned = await applyAutomaticStatus(reservation);
+    if (reservation.status === STATUS.confirmed && transitioned.status === STATUS.waitingForVisit) {
       notify("メニュー・店舗割当・確認連絡が完了したため、本予約確定（来店待ち）にしました");
-      return progressed;
+      return transitioned;
     }
     notify(`予約内容を更新しました（${id}）`);
-    return reservation;
+    return transitioned;
   };
   const saveConfirmationContact = async (id: string, contactedAt: string | null) => {
     const { reservation } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/confirmation-contact`, {
       method: "PATCH",
       body: JSON.stringify({ contactedAt }),
     });
-    if (reservation.status === STATUS.confirmed && isVisitReadyReservation(reservation)) {
-      const { reservation: progressed } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: STATUS.waitingForVisit }) });
-      setReservations(rs => rs.map(r => r.id === id ? progressed : r));
-      setSelected(s => s?.id === id ? progressed : s);
-      return progressed;
-    }
-    if (!contactedAt && reservation.status === STATUS.waitingForVisit) {
-      const { reservation: reverted } = await requestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: STATUS.confirmed }) });
-      setReservations(rs => rs.map(r => r.id === id ? reverted : r));
-      setSelected(s => s?.id === id ? reverted : s);
-      return reverted;
-    }
-    setReservations(rs => rs.map(r => r.id === id ? reservation : r));
-    setSelected(s => s?.id === id ? reservation : s);
-    return reservation;
+    return applyAutomaticStatus(reservation);
   };
   const updateConfirmationContact = async (id: string, contactedAt: string | null) => {
     const reservation = await saveConfirmationContact(id, contactedAt);
@@ -538,7 +486,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
   }), [reservationDateFromFilter, reservationDateToFilter, reservationFilter, reservationSearch, reservations]);
   const sortedReservations = useMemo(() => {
     const valueFor = (reservation: Reservation, key: ReservationSortKey): string | number => {
-      if (key === "status") return reservationStatusLabel(reservation);
+      if (key === "status") return reservationDisplayLabel(reservation);
       if (key === "id") return Number(reservation.id.replace(/\D/g, "")) || reservation.id;
       if (key === "customer") return reservation.customer;
       if (key === "date") return `${reservation.date}T${reservationStartTime(reservation)}`;
@@ -571,7 +519,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
   return <main className="management">
     {view !== "confirmationContacts" && <section className="page-title compact"><span>{pageDescriptions[view]}</span><button onClick={() => view === "reservations" ? onOpenNewReservation() : notify(view === "billing" ? "請求データをCSV出力しました" : view === "menus" ? "下部のフォームからメニューを追加できます" : "新規登録画面を準備しました")}><Icon name={view === "billing" ? "chart" : "plus"}/>{view === "billing" ? "CSV出力" : view === "menus" ? "メニュー追加" : "新規登録"}</button></section>}
     {view === "confirmationContacts" && <ConfirmationContactPage reservations={confirmationContactTargets} windowDays={confirmationContactWindowDays} setWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={onBulkConfirmationContact} onSelect={onSelect} />}
-    {view === "reservations" && <section className="panel management-panel"><div className="management-tools reservation-tools"><div className="reservation-search-row"><label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label><div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>～</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>{(reservationDateFromFilter || reservationDateToFilter) && <button className="clear-filter" onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>}<div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div></div><div className="reservation-filter-row"><div className="segmented">{quickFilters.map(filter => <button key={filter} className={reservationFilter === filter ? "active" : ""} onClick={() => setReservationFilter(filter)}>{filter}</button>)}</div></div></div><div className="table-wrap"><table className="large-table"><thead><tr><th><button className="sort-header" onClick={() => toggleReservationSort("status")}>ステータス<span>{sortLabel("status")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("id")}>予約ID<span>{sortLabel("id")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("customer")}>お客様<span>{sortLabel("customer")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("date")}>利用日時・人数<span>{sortLabel("date")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("menu")}>メニュー<span>{sortLabel("menu")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("store")}>担当店舗<span>{sortLabel("store")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("contact")}>確認連絡<span>{sortLabel("contact")}</span></button></th><th/></tr></thead><tbody>{sortedReservations.map(r=><tr key={r.id} onClick={()=>onSelect(r)}><td><span className={`badge ${statusClass[r.status]}`}><i/>{reservationStatusLabel(r)}</span></td><td><strong>{r.id}</strong><small>{r.received}</small></td><td><strong>{r.customer}</strong><small>{r.phone}</small></td><td><strong>{reservationDateTimeLabel(r)}</strong><small>{r.people}名</small></td><td>{reservationMenuLabel(r)}</td><td>{assignmentLabel(r) ? <strong>{assignmentLabel(r)}</strong> : <span className="unassigned">未割当</span>}</td><td>{r.confirmationContactedAt ? <><strong>連絡済</strong><small>{new Date(r.confirmationContactedAt).toLocaleDateString("ja-JP")}</small></> : <span className="unassigned">未連絡</span>}</td><td><Icon name="arrow"/></td></tr>)}</tbody></table>{!filteredReservations.length && <div className="empty-table">選択した条件の予約はありません。</div>}</div></section>}
+    {view === "reservations" && <section className="panel management-panel"><div className="management-tools reservation-tools"><div className="reservation-search-row"><label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label><div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>～</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>{(reservationDateFromFilter || reservationDateToFilter) && <button className="clear-filter" onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>}<div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div></div><div className="reservation-filter-row"><div className="segmented">{quickFilters.map(filter => <button key={filter} className={reservationFilter === filter ? "active" : ""} onClick={() => setReservationFilter(filter)}>{filter}</button>)}</div></div></div><div className="table-wrap"><table className="large-table"><thead><tr><th><button className="sort-header" onClick={() => toggleReservationSort("status")}>ステータス<span>{sortLabel("status")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("id")}>予約ID<span>{sortLabel("id")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("customer")}>お客様<span>{sortLabel("customer")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("date")}>利用日時・人数<span>{sortLabel("date")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("menu")}>メニュー<span>{sortLabel("menu")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("store")}>担当店舗<span>{sortLabel("store")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("contact")}>確認連絡<span>{sortLabel("contact")}</span></button></th><th/></tr></thead><tbody>{sortedReservations.map(r=><tr key={r.id} onClick={()=>onSelect(r)}><td><span className={`badge ${statusClass[r.status]}`}><i/>{reservationDisplayLabel(r)}</span></td><td><strong>{r.id}</strong><small>{r.received}</small></td><td><strong>{r.customer}</strong><small>{r.phone}</small></td><td><strong>{reservationDateTimeLabel(r)}</strong><small>{r.people}名</small></td><td>{reservationMenuLabel(r)}</td><td>{assignmentLabel(r) ? <strong>{assignmentLabel(r)}</strong> : <span className="unassigned">未割当</span>}</td><td>{r.confirmationContactedAt ? <><strong>連絡済</strong><small>{new Date(r.confirmationContactedAt).toLocaleDateString("ja-JP")}</small></> : <span className="unassigned">未連絡</span>}</td><td><Icon name="arrow"/></td></tr>)}</tbody></table>{!filteredReservations.length && <div className="empty-table">選択した条件の予約はありません。</div>}</div></section>}
     {view === "customers" && <CustomerManagement customers={customers} onSaveCustomer={onSaveCustomer} onDeleteCustomer={onDeleteCustomer} notify={notify} />}
     {view === "stores" && <StoreManagement stores={stores} onSaveStore={onSaveStore} onDeleteStore={onDeleteStore} notify={notify} />}
     {view === "menus" && <MenuManagement menus={menus} onSaveMenu={onSaveMenu} onDeleteMenu={onDeleteMenu} />}
@@ -681,7 +629,7 @@ function MenuManagement({ menus, onSaveMenu, onDeleteMenu }: { menus: Menu[]; on
     <aside className="panel menu-editor"><div className="panel-head"><div><h3>{editingName ? "メニュー編集" : "メニュー追加"}</h3><p>料理、コース、オプションを登録します</p></div></div><div className="drawer-form single"><label>メニュー名<input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}/></label><label>説明<input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}/></label><label>金額<input type="number" value={form.price || ""} onChange={e => setForm({ ...form, price: Number(e.target.value) })}/></label><label>提供目安<input placeholder="例：45分" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}/></label><button className="full-action" disabled={!canSubmit} onClick={submit}>{editingName ? "更新する" : "追加する"}</button>{editingName && <button className="cancel-edit" onClick={() => { setEditingName(undefined); setForm(emptyForm); }}>編集をキャンセル</button>}</div></aside></section>;
 }
 
-function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfirmationContact, assignStores, updateReservation, menuCatalog, stores }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status) => void; updateConfirmationContact: (id: string, contactedAt: string | null) => Promise<void>; assignStores: (id: string, assignments: StoreAssignment[]) => void; updateReservation: (id: string, form: BookingForm) => Promise<Reservation>; menuCatalog: Menu[]; stores: Store[] }) {
+function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfirmationContact, assignStores, updateReservation, menuCatalog, stores }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void; updateConfirmationContact: (id: string, contactedAt: string | null) => Promise<void>; assignStores: (id: string, assignments: StoreAssignment[]) => void; updateReservation: (id: string, form: BookingForm) => Promise<Reservation>; menuCatalog: Menu[]; stores: Store[] }) {
   const [isEditing, setIsEditing] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isManualStatusOpen, setIsManualStatusOpen] = useState(false);
@@ -690,8 +638,6 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   const [editForm, setEditForm] = useState<BookingForm>({ menuItems: r.menuItems ?? [], date: r.date, startTime: reservationStartTime(r), people: r.people, name: r.customer, email: r.email ?? "", phone: r.phone });
   const activeStores = stores.filter(store => store.state === "営業中");
   const canEditAssignments = r.status === STATUS.confirmed || r.status === STATUS.waitingForVisit || r.status === STATUS.visited;
-  const isMenuSelected = Boolean(r.menuItems?.length);
-  const isStoreAssigned = reservationAssignments(r).length > 0;
   const canUpdateConfirmationContact = r.status === STATUS.confirmed || r.status === STATUS.waitingForVisit || r.status === STATUS.visited;
   const [assignmentDraft, setAssignmentDraft] = useState<StoreAssignment[]>(reservationAssignments(r).length ? reservationAssignments(r) : [{ store: "", people: r.people }]);
   const editTotal = selectedMenuTotal(editForm.menuItems, menuCatalog);
@@ -726,18 +672,14 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
     if (!reason || manualStatus === r.status) return;
     const confirmed = window.confirm(`${r.id} のステータスを「${statusLabel(r.status)}」から「${statusLabel(manualStatus)}」へ変更します。\n\n理由: ${reason}\n\nこの操作は例外対応です。`);
     if (!confirmed) return;
-    updateStatus(r.id, manualStatus);
+    updateStatus(r.id, manualStatus, { manualReason: reason });
     setManualStatusReason("");
     setIsManualStatusOpen(false);
   };
-  const pendingConfirmedActions: string[] = [
-    !isMenuSelected && "メニュー確定",
-    !isStoreAssigned && "店舗割り当て",
-    !r.confirmationContactedAt && "確認連絡",
-  ].filter((action): action is string => Boolean(action));
-  const nextAction = <section className="drawer-next-action"><p className="section-label">次のアクション</p>{r.status === STATUS.temporaryRequested && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id, STATUS.temporaryConfirmed)}><Icon name="check"/>承認する</button></div>}{r.status === STATUS.temporaryConfirmed && <p className="optional-note">{isTemporaryReservationExpired(r) ? "仮予約期間を過ぎています。お客様へ本予約申請をご依頼ください。" : "管理側で実行する次のアクションはありません。"}</p>}{r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}>本予約を承認する</button>}{isConfirmedReservation(r) && pendingConfirmedActions.length > 0 && <div className="readiness-card">{pendingConfirmedActions.map(action => <small key={action}>・{action}</small>)}</div>}{isVisitReadyReservation(r) && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.visited)}>来店受付・利用実績を登録</button>}{r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}</section>;
+  const pendingConfirmedActions = getPendingVisitReadinessActions(r);
+  const nextAction = <section className="drawer-next-action"><p className="section-label">次のアクション</p>{r.status === STATUS.temporaryRequested && <div className="drawer-actions"><button className="reject">受付不可</button><button className="approve" onClick={() => updateStatus(r.id, STATUS.temporaryConfirmed)}><Icon name="check"/>承認する</button></div>}{r.status === STATUS.temporaryConfirmed && <p className="optional-note">{isTemporaryReservationExpired(r) ? "仮予約期間を過ぎています。お客様へ本予約申請をご依頼ください。" : "管理側で実行する次のアクションはありません。"}</p>}{r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}>本予約を承認する</button>}{isConfirmedReservation(r) && pendingConfirmedActions.length > 0 && <div className="readiness-card">{pendingConfirmedActions.map(action => <small key={action}>・{action}</small>)}</div>}{r.status === STATUS.waitingForVisit && isVisitReadyReservation(r) && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.visited)}>来店受付・利用実績を登録</button>}{r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}</section>;
 
-  return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{reservationStatusLabel(r)}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><div className="drawer-body">
+  return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={`badge ${statusClass[r.status]}`}><i/>{reservationDisplayLabel(r)}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><div className="drawer-body">
     {!isEditing && !isAssigning ? <>{nextAction}<section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section><section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditing(true)}>予約内容を編集</button></section><section><p className="section-label">店舗割当</p><dl><div><dt>割当状況</dt><dd>{assignmentLabel(r) || "未割当"}</dd></div><div><dt>割当人数</dt><dd>{reservationAssignments(r).reduce((total, assignment) => total + assignment.people, 0)}名 / {r.people}名</dd></div></dl>{canEditAssignments ? <button className="edit-reservation-button" onClick={() => setIsAssigning(true)}>店舗割当を編集</button> : <p className="optional-note">店舗割当は本予約確定後に編集できます。</p>}</section>{canUpdateConfirmationContact && <section><p className="section-label">確認連絡</p><dl><div><dt>連絡状況</dt><dd>{r.confirmationContactedAt ? `連絡済み（${new Date(r.confirmationContactedAt).toLocaleString("ja-JP") }）` : "未連絡"}</dd></div></dl>{r.confirmationContactedAt ? <button className="edit-reservation-button" onClick={() => updateConfirmationContact(r.id, null)}>未連絡に戻す</button> : <button className="full-action" onClick={() => updateConfirmationContact(r.id, new Date().toISOString())}><Icon name="check"/>確認連絡済みにする</button>}<p className="optional-note">将来はメール送信完了時に自動更新します。</p></section>}<section><button className="exception-toggle" onClick={() => setIsManualStatusOpen(open => !open)}><span><strong>例外対応</strong><small>誤操作など特殊なケースでのみ手動変更します</small></span><Icon name="arrow"/></button>{isManualStatusOpen && <div className="manual-status-panel"><p className="optional-note">通常の進行は上部の「次のアクション」から行ってください。手動変更は理由を入力したうえで、確認後に反映します。</p><div className="drawer-form single"><label>現在のステータス<input value={statusLabel(r.status)} disabled readOnly/></label><label>変更先ステータス<select value={manualStatus} onChange={event => setManualStatus(event.target.value as Status)}>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label><label>変更理由<textarea value={manualStatusReason} onChange={event => setManualStatusReason(event.target.value)} placeholder="例：誤って承認したため、電話でキャンセル確認済みのため"/></label></div><button className="full-action danger manual-status-submit" disabled={!manualStatusReason.trim() || manualStatus === r.status} onClick={changeStatusManually}>確認して変更</button></div>}</section></> : isAssigning ?
     <><section className="drawer-primary-action"><p className="section-label">店舗割当を編集</p><p className="optional-note">予約人数 {r.people}名に対して、複数店舗へ人数を分割して割り当てできます。</p><div className="assignment-editor">{assignmentDraft.map((assignment, index) => <div className="assignment-row" key={index}><select value={assignment.store} onChange={event => updateAssignment(index, { store: event.target.value })}><option value="">店舗を選択</option>{activeStores.map(store => <option key={store.name} value={store.name}>{store.name}</option>)}</select><input type="number" min="1" max={r.people} value={assignment.people || ""} onChange={event => updateAssignment(index, { people: Number(event.target.value) })}/><span>名</span><button onClick={() => removeAssignment(index)}>削除</button></div>)}</div><button className="edit-reservation-button" onClick={addAssignment}>割当行を追加</button><div className={assignmentDraft.length === 0 || assignedPeople === r.people ? "assignment-total ok" : "assignment-total warn"}>{assignmentDraft.length === 0 ? "未割当として保存できます" : <>割当合計 {assignedPeople}名 / 予約人数 {r.people}名</>}</div><div className="drawer-actions"><button onClick={() => { setAssignmentDraft(reservationAssignments(r).length ? reservationAssignments(r) : [{ store: "", people: r.people }]); setIsAssigning(false); }}>キャンセル</button><button className="approve" disabled={!canSaveAssignments} onClick={saveAssignments}><Icon name="check"/>保存する</button></div></section></> :
     <><section><p className="section-label">予約内容を編集</p><div className="drawer-form"><label>利用日<input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })}/></label><label>開始時間<input type="time" value={editForm.startTime} onChange={e => setEditForm({ ...editForm, startTime: e.target.value })}/></label><label>人数<select value={editForm.people} onChange={e => setEditForm({ ...editForm, people: Number(e.target.value) })}>{[1,2,3,4,5,6].map(x => <option key={x}>{x}</option>)}</select></label></div></section><section><p className="section-label">お客様情報</p><div className="drawer-form single"><label>お名前<input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })}/></label><label>メールアドレス<input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })}/></label><label>電話番号<input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })}/></label></div></section><section className="drawer-primary-action"><p className="section-label">任意メニュー</p><p className="optional-note">変更連絡に応じて、事前注文メニューを追加・削除できます。未選択でも保存できます。</p><MenuPicker menuCatalog={menuCatalog} selected={editForm.menuItems} onChange={menuItems => setEditForm({ ...editForm, menuItems })}/><div className="reservation-summary"><strong>{menuSelectionLabel(editForm.menuItems)}</strong><span>{bookingFormDateTimeLabel(editForm)}・{editForm.people}名</span><small>{"¥"}{editTotal.toLocaleString()}</small></div><div className="drawer-actions"><button onClick={() => { setEditForm({ menuItems: r.menuItems ?? [], date: r.date, startTime: reservationStartTime(r), people: r.people, name: r.customer, email: r.email ?? "", phone: r.phone }); setIsEditing(false); }}>キャンセル</button><button className="approve" disabled={!canSave} onClick={save}><Icon name="check"/>保存する</button></div></section></>}

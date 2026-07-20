@@ -55,6 +55,24 @@ sequenceDiagram
 - `temporary_requested` -> `temporary_confirmed`
 - `confirmed_requested` -> `confirmed`
 
+## 予約ステータス遷移表
+
+正式な通常遷移は `lib/domain.ts` の `reservationStatusTransitions` で管理します。画面はこの共通定義と関連する判定関数を利用します。
+
+| 現在ステータス | 次ステータス | 契機 | 自動/手動 | 備考 |
+| --- | --- | --- | --- | --- |
+| `temporary_requested` | `temporary_confirmed` | 仮予約承認 | 手動 | 管理者が予約詳細で承認する |
+| `confirmed_requested` | `confirmed` | 本予約承認 | 手動 | 管理者が予約詳細で承認する |
+| `confirmed` | `waiting_for_visit` | 来店待ち条件達成 | 自動 | メニュー、店舗割当、確認連絡がすべて完了 |
+| `waiting_for_visit` | `confirmed` | 来店待ち条件未達に戻る | 自動 | 店舗割当解除、確認連絡取消など |
+| `waiting_for_visit` | `visited` | 来店受付 | 手動 | 来店受付・利用実績登録の入口 |
+| `cancellation_requested` | `cancelled` | キャンセル確定 | 手動 | 管理者がキャンセルを確定する |
+
+例外対応:
+
+- 誤操作など通常遷移表にない変更は、画面の「例外対応」から理由を入力して実行します。
+- API `PATCH /api/reservations/:id/status` は、通常遷移表にない変更を理由なしでは受け付けません。
+
 ## 本予約から来店待ちへの進行
 
 開始条件:

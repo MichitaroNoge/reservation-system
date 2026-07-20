@@ -120,6 +120,14 @@ export interface DeactivateStoreVariables {
   id: UUIDString;
 }
 
+export interface DeleteReservationDetailData {
+  reservationDetail_delete?: ReservationDetail_Key | null;
+}
+
+export interface DeleteReservationDetailVariables {
+  id: UUIDString;
+}
+
 export interface DeleteStoreAssignmentData {
   storeAssignment_delete?: StoreAssignment_Key | null;
 }
@@ -522,6 +530,11 @@ export function createReservation(vars: CreateReservationVariables, options?: Op
 export function addReservationDetail(dc: DataConnect, vars: AddReservationDetailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AddReservationDetailData>>;
 /** Generated Node Admin SDK operation action function for the 'AddReservationDetail' Mutation. Allow users to pass in custom DataConnect instances. */
 export function addReservationDetail(vars: AddReservationDetailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AddReservationDetailData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeleteReservationDetail' Mutation. Allow users to execute without passing in DataConnect. */
+export function deleteReservationDetail(dc: DataConnect, vars: DeleteReservationDetailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteReservationDetailData>>;
+/** Generated Node Admin SDK operation action function for the 'DeleteReservationDetail' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deleteReservationDetail(vars: DeleteReservationDetailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteReservationDetailData>>;
 
 /** Generated Node Admin SDK operation action function for the 'UpdateReservation' Mutation. Allow users to execute without passing in DataConnect. */
 export function updateReservation(dc: DataConnect, vars: UpdateReservationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReservationData>>;

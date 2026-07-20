@@ -1,4 +1,4 @@
-const { createCustomerRef, updateCustomerRef, deactivateCustomerRef, createReservationRef, addReservationDetailRef, updateReservationRef, updateReservationStatusRef, updateConfirmationContactRef, assignStoreRef, deleteStoreAssignmentRef, updateStoreRef, deactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listCustomersRef, getCustomerByNameRef, listStoresRef, getStoreByNameRef, listMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } = require('../index.cjs.js');
+const { createCustomerRef, updateCustomerRef, deactivateCustomerRef, createReservationRef, addReservationDetailRef, deleteReservationDetailRef, updateReservationRef, updateReservationStatusRef, updateConfirmationContactRef, assignStoreRef, deleteStoreAssignmentRef, updateStoreRef, deactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listCustomersRef, getCustomerByNameRef, listStoresRef, getStoreByNameRef, listMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
@@ -38,6 +38,14 @@ exports.useAddReservationDetail = function useAddReservationDetail(dcOrOptions, 
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return addReservationDetailRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useDeleteReservationDetail = function useDeleteReservationDetail(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return deleteReservationDetailRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

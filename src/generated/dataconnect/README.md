@@ -26,6 +26,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*DeactivateCustomer*](#deactivatecustomer)
   - [*CreateReservation*](#createreservation)
   - [*AddReservationDetail*](#addreservationdetail)
+  - [*DeleteReservationDetail*](#deletereservationdetail)
   - [*UpdateReservation*](#updatereservation)
   - [*UpdateReservationStatus*](#updatereservationstatus)
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
@@ -1880,6 +1881,115 @@ console.log(data.reservationDetail_insert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.reservationDetail_insert);
+});
+```
+
+## DeleteReservationDetail
+You can execute the `DeleteReservationDetail` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+deleteReservationDetail(vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+
+interface DeleteReservationDetailRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteReservationDetailVariables): MutationRef<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+}
+export const deleteReservationDetailRef: DeleteReservationDetailRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deleteReservationDetail(dc: DataConnect, vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+
+interface DeleteReservationDetailRef {
+  ...
+  (dc: DataConnect, vars: DeleteReservationDetailVariables): MutationRef<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+}
+export const deleteReservationDetailRef: DeleteReservationDetailRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteReservationDetailRef:
+```typescript
+const name = deleteReservationDetailRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteReservationDetail` mutation requires an argument of type `DeleteReservationDetailVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeleteReservationDetailVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `DeleteReservationDetail` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteReservationDetailData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeleteReservationDetailData {
+  reservationDetail_delete?: ReservationDetail_Key | null;
+}
+```
+### Using `DeleteReservationDetail`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteReservationDetail, DeleteReservationDetailVariables } from '@reservation-system/dataconnect';
+
+// The `DeleteReservationDetail` mutation requires an argument of type `DeleteReservationDetailVariables`:
+const deleteReservationDetailVars: DeleteReservationDetailVariables = {
+  id: ...,
+};
+
+// Call the `deleteReservationDetail()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteReservationDetail(deleteReservationDetailVars);
+// Variables can be defined inline as well.
+const { data } = await deleteReservationDetail({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteReservationDetail(dataConnect, deleteReservationDetailVars);
+
+console.log(data.reservationDetail_delete);
+
+// Or, you can use the `Promise` API.
+deleteReservationDetail(deleteReservationDetailVars).then((response) => {
+  const data = response.data;
+  console.log(data.reservationDetail_delete);
+});
+```
+
+### Using `DeleteReservationDetail`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteReservationDetailRef, DeleteReservationDetailVariables } from '@reservation-system/dataconnect';
+
+// The `DeleteReservationDetail` mutation requires an argument of type `DeleteReservationDetailVariables`:
+const deleteReservationDetailVars: DeleteReservationDetailVariables = {
+  id: ...,
+};
+
+// Call the `deleteReservationDetailRef()` function to get a reference to the mutation.
+const ref = deleteReservationDetailRef(deleteReservationDetailVars);
+// Variables can be defined inline as well.
+const ref = deleteReservationDetailRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteReservationDetailRef(dataConnect, deleteReservationDetailVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.reservationDetail_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservationDetail_delete);
 });
 ```
 

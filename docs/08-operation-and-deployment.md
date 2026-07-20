@@ -33,6 +33,11 @@ RESERVATION_REPOSITORY=file
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID |
 | `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR` | Data Connect Emulator利用フラグ |
+| `FIREBASE_AUTH_ADMIN_EMAILS` | 管理者として許可するメールアドレス一覧 |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Firebase Admin SDKのサービスアカウントJSON |
+| `FIREBASE_DATACONNECT_LOCATION` | Data Connect location |
+| `FIREBASE_DATACONNECT_SERVICE_ID` | Data Connect service ID |
+| `FIREBASE_DATACONNECT_CONNECTOR` | Data Connect connector名 |
 
 値は設計資料に記載しません。
 
@@ -44,7 +49,19 @@ npm run build
 
 ## テスト方法
 
-`package.json` に `test` script はありません。現時点では `npm run build` が主要な静的確認です。
+```bash
+npm test
+```
+
+`npm test` は `tsconfig.test.json` でテスト用にTypeScriptをコンパイルし、Node.js標準test runnerで `tests/*.test.ts` 相当の重要業務テストを実行します。
+
+現時点のテスト対象:
+
+- 予約作成
+- ステータス更新
+- 店舗割当
+- 確認連絡一括更新
+- メニュー削除時の金額再計算
 
 ## Data Connect検証手順
 
@@ -54,7 +71,7 @@ npm run build
 4. スキーマやGraphQL操作を変更した場合は `npx firebase dataconnect:sdk:generate` でSDK再生成
 5. `firebase emulators:start --only dataconnect` でローカル検証
 
-現時点では生成admin SDKを利用して、予約一覧、予約作成、ステータス更新、確認連絡更新、顧客一覧、店舗一覧、メニュー一覧を実装しています。未実装の更新系操作はRepositoryが明示的にエラーを返します。
+現時点では生成admin SDKを利用して、予約一覧、予約作成、予約更新、ステータス更新、確認連絡更新、店舗割当置換、顧客一覧/更新/非活性化、店舗一覧/更新/非活性化、メニュー一覧/作成/更新/非活性化を実装しています。
 
 ## デプロイ方法
 
@@ -82,6 +99,7 @@ Data Connect:
 | 症状 | 確認箇所 |
 | --- | --- |
 | APIがRepositoryエラーになる | `RESERVATION_REPOSITORY`, `lib/repositories/index.ts` |
+| APIが401/403になる | Firebaseログイン状態、Bearer token、`FIREBASE_AUTH_ADMIN_EMAILS`, custom claim |
 | Data Connectで接続できない | Firebase CLI、生成SDK、`.env.local` |
 | ローカルデータが戻る | `data/reservation-db.json`, `lib/seed-data.ts` |
 | 画面表示が崩れる | `app/page.tsx`, `app/globals.css` |

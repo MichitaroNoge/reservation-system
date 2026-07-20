@@ -126,6 +126,14 @@ export interface DeactivateStoreVariables {
   id: UUIDString;
 }
 
+export interface DeleteReservationDetailData {
+  reservationDetail_delete?: ReservationDetail_Key | null;
+}
+
+export interface DeleteReservationDetailVariables {
+  id: UUIDString;
+}
+
 export interface DeleteStoreAssignmentData {
   storeAssignment_delete?: StoreAssignment_Key | null;
 }
@@ -563,6 +571,18 @@ export const addReservationDetailRef: AddReservationDetailRef;
 
 export function addReservationDetail(vars: AddReservationDetailVariables): MutationPromise<AddReservationDetailData, AddReservationDetailVariables>;
 export function addReservationDetail(dc: DataConnect, vars: AddReservationDetailVariables): MutationPromise<AddReservationDetailData, AddReservationDetailVariables>;
+
+interface DeleteReservationDetailRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteReservationDetailVariables): MutationRef<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteReservationDetailVariables): MutationRef<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+  operationName: string;
+}
+export const deleteReservationDetailRef: DeleteReservationDetailRef;
+
+export function deleteReservationDetail(vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
+export function deleteReservationDetail(dc: DataConnect, vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
 
 interface UpdateReservationRef {
   /* Allow users to create refs without passing in DataConnect */

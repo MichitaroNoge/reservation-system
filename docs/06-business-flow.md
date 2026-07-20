@@ -149,4 +149,4 @@ Data Connectでは `StoreAssignment.people` に割当人数を保存します。
 1. 管理者が来店受付操作を行う。
 2. ステータスを `visited` に更新する。
 
-Data Connectでは将来的に `VisitRecord` / `VisitDetail` への登録も行います。
+Data Connectには `VisitRecord` / `VisitDetail` モデルと `RecordVisit` mutationがあります。ただし現行画面/APIの来店受付はステータスを `visited` に更新する処理が中心で、来店明細・請求連動は未実装です。

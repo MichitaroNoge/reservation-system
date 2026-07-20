@@ -1,14 +1,15 @@
-import { getApps, initializeApp } from "firebase/app";
-import { getDataConnect, type DataConnect } from "firebase/data-connect";
+import { getDataConnect, type ConnectorConfig, type DataConnect } from "firebase-admin/data-connect";
 import {
   addReservationDetail,
   assignStore,
+  connectorConfig as generatedConnectorConfig,
   createCustomer,
   createMenu as createDataConnectMenu,
   createReservation,
   deactivateCustomer,
   deactivateMenu,
   deactivateStore,
+  deleteReservationDetail,
   deleteStoreAssignment,
   getCustomerByName,
   getMenuByName,
@@ -33,7 +34,7 @@ import {
   type ListMenusData,
   type ListReservationsData,
   type ListStoresData,
-} from "@reservation-system/dataconnect";
+} from "@reservation-system/dataconnect-admin";
 import {
   normalizeReservationStatus,
   toDataConnectReservationStatus,
@@ -50,26 +51,26 @@ import {
   type StoreAssignment,
   type UpdateReservationInput,
 } from "../domain";
+import { getFirebaseAdminApp } from "../auth";
 import type { ReservationRepository } from "./reservation-repository";
 
 type DataConnectReservation = ListReservationsData["reservations"][number] | GetReservationByCodeData["reservations"][number];
 type DataConnectCustomer = ListCustomersData["customers"][number] | GetCustomerByNameData["customers"][number];
 type DataConnectMenu = ListMenusData["menus"][number] | GetMenuByNameData["menus"][number];
 type DataConnectStore = ListStoresData["stores"][number] | GetStoreByNameData["stores"][number];
-
-const connectorConfig = {
-  location: process.env.FIREBASE_DATACONNECT_LOCATION ?? "asia-northeast1",
-  service: process.env.FIREBASE_DATACONNECT_SERVICE_ID ?? "reservation-system",
-  connector: process.env.FIREBASE_DATACONNECT_CONNECTOR ?? "reservation",
+type ReservationWithDataConnectIds = Reservation & {
+  dataConnectId: string;
+  dataConnectCustomerId: string;
+  dataConnectReservationDetails: { id: string }[];
+  dataConnectStoreAssignments: { id: string }[];
+  email: string;
 };
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+const connectorConfig: ConnectorConfig = {
+  ...generatedConnectorConfig,
+  location: process.env.FIREBASE_DATACONNECT_LOCATION ?? "asia-northeast1",
+  serviceId: process.env.FIREBASE_DATACONNECT_SERVICE_ID ?? "reservation-system",
+  connector: process.env.FIREBASE_DATACONNECT_CONNECTOR ?? "reservation",
 };
 
 export class FirebaseSqlConnectReservationRepository implements ReservationRepository {
@@ -110,16 +111,24 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   async updateReservation(id: string, input: UpdateReservationInput) {
-    if (input.customer || input.email || input.phone || input.menuItems) {
-      throw new Error("Data Connect reservation update currently supports date, startTime, and people only.");
-    }
     const current = await this.getReservationWithInternalId(id);
+    if (input.customer !== undefined || input.email !== undefined || input.phone !== undefined) {
+      await updateCustomer(this.connection(), {
+        id: current.dataConnectCustomerId,
+        name: input.customer ?? current.customer,
+        phone: input.phone ?? current.phone,
+        email: input.email ?? current.email,
+      });
+    }
     await updateReservation(this.connection(), {
       id: current.dataConnectId,
       usageDate: input.date ?? current.date,
       usageTime: input.startTime ?? current.startTime ?? "10:00",
       expectedPeople: input.people ?? current.people,
     });
+    if (input.menuItems !== undefined) {
+      await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
+    }
     return this.getReservationWithInternalId(id);
   }
 
@@ -243,18 +252,20 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   private connection() {
-    const app = getApps()[0] ?? initializeApp(firebaseConfig);
-    this.dataConnect ??= getDataConnect(app, connectorConfig);
+    this.dataConnect ??= getDataConnect(connectorConfig, getFirebaseAdminApp());
     return this.dataConnect;
   }
 
-  private async getReservationWithInternalId(reservationCode: string) {
+  private async getReservationWithInternalId(reservationCode: string): Promise<ReservationWithDataConnectIds> {
     const { data } = await getReservationByCode(this.connection(), { reservationCode });
     const reservation = data.reservations[0];
     if (!reservation) throw new Error(`Reservation not found: ${reservationCode}`);
     return {
       ...toReservation(reservation),
+      email: reservation.customer.email,
       dataConnectId: reservation.id,
+      dataConnectCustomerId: reservation.customer.id,
+      dataConnectReservationDetails: reservation.reservationDetails_on_reservation.map((detail) => ({ id: detail.id })),
       dataConnectStoreAssignments: reservation.storeAssignments_on_reservation.map((assignment) => ({ id: assignment.id })),
     };
   }
@@ -291,6 +302,23 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const menu = await this.findDataConnectMenuByName(name);
     if (!menu) throw new Error(`Menu not found: ${name}`);
     return menu;
+  }
+
+  private async replaceReservationDetails(reservationId: string, currentDetails: { id: string }[], menuItems: string[]) {
+    for (const detail of currentDetails) {
+      await deleteReservationDetail(this.connection(), { id: detail.id });
+    }
+    const menus = await this.listDataConnectMenus();
+    for (const menuName of menuItems) {
+      const menu = menus.find((item) => item.name === menuName);
+      if (!menu) throw new Error(`Menu not found: ${menuName}`);
+      await addReservationDetail(this.connection(), {
+        reservationId,
+        menuId: menu.id,
+        quantity: 1,
+        unitPrice: menu.standardPrice,
+      });
+    }
   }
 
   private async listDataConnectMenus() {

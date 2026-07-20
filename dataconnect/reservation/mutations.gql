@@ -1,5 +1,5 @@
 mutation CreateCustomer($name: String!, $phone: String!, $email: String!)
-@auth(level: PUBLIC, insecureReason: "Guest customers can submit a reservation request.") {
+@auth(level: NO_ACCESS) {
   customer_insert(data: {
     name: $name
     phone: $phone
@@ -8,7 +8,7 @@ mutation CreateCustomer($name: String!, $phone: String!, $email: String!)
 }
 
 mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     name: $name
     phone: $phone
@@ -18,7 +18,7 @@ mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: Str
 }
 
 mutation DeactivateCustomer($id: UUID!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     active: false
     updatedAt_expr: "request.time"
@@ -35,7 +35,7 @@ mutation CreateReservation(
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
 )
-@auth(level: PUBLIC, insecureReason: "Guest customers can submit a reservation request.") {
+@auth(level: NO_ACCESS) {
   reservation_insert(data: {
     reservationCode: $reservationCode
     customerId: $customerId
@@ -49,7 +49,7 @@ mutation CreateReservation(
 }
 
 mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: Int!, $unitPrice: Int!)
-@auth(level: PUBLIC, insecureReason: "Used while submitting a guest reservation request.") {
+@auth(level: NO_ACCESS) {
   reservationDetail_insert(data: {
     reservationId: $reservationId
     menuId: $menuId
@@ -58,13 +58,18 @@ mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: 
   })
 }
 
+mutation DeleteReservationDetail($id: UUID!)
+@auth(level: NO_ACCESS) {
+  reservationDetail_delete(key: {id: $id})
+}
+
 mutation UpdateReservation(
   $id: UUID!
   $usageDate: Date!
   $usageTime: String!
   $expectedPeople: Int!
 )
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     usageDate: $usageDate
     usageTime: $usageTime
@@ -74,7 +79,7 @@ mutation UpdateReservation(
 }
 
 mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     status: $status
     updatedAt_expr: "request.time"
@@ -82,7 +87,7 @@ mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!)
 }
 
 mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timestamp)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     confirmationContactedAt: $confirmationContactedAt
     updatedAt_expr: "request.time"
@@ -90,7 +95,7 @@ mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timesta
 }
 
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   storeAssignment_insert(data: {
     reservationId: $reservationId
     storeId: $storeId
@@ -100,12 +105,12 @@ mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!)
 }
 
 mutation DeleteStoreAssignment($id: UUID!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   storeAssignment_delete(key: {id: $id})
 }
 
 mutation UpdateStore($id: UUID!, $name: String!, $address: String, $active: Boolean!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   store_update(key: {id: $id}, data: {
     name: $name
     address: $address
@@ -115,7 +120,7 @@ mutation UpdateStore($id: UUID!, $name: String!, $address: String, $active: Bool
 }
 
 mutation DeactivateStore($id: UUID!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   store_update(key: {id: $id}, data: {
     active: false
     updatedAt_expr: "request.time"
@@ -123,7 +128,7 @@ mutation DeactivateStore($id: UUID!)
 }
 
 mutation CreateMenu($name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $active: Boolean!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   menu_insert(data: {
     name: $name
     description: $description
@@ -134,7 +139,7 @@ mutation CreateMenu($name: String!, $description: String, $standardPrice: Int!, 
 }
 
 mutation UpdateMenu($id: UUID!, $name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $active: Boolean!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   menu_update(key: {id: $id}, data: {
     name: $name
     description: $description
@@ -146,7 +151,7 @@ mutation UpdateMenu($id: UUID!, $name: String!, $description: String, $standardP
 }
 
 mutation DeactivateMenu($id: UUID!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.") {
+@auth(level: NO_ACCESS) {
   menu_update(key: {id: $id}, data: {
     active: false
     updatedAt_expr: "request.time"
@@ -154,7 +159,7 @@ mutation DeactivateMenu($id: UUID!)
 }
 
 mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!)
-@auth(level: PUBLIC, insecureReason: "Prototype access until role-based Firebase Authentication is integrated.")
+@auth(level: NO_ACCESS)
 @transaction {
   visitRecord_insert(data: {
     reservationId: $reservationId

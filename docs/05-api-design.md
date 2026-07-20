@@ -27,8 +27,9 @@
 - Runtime: Node.js
 - 入力: JSON
 - 出力: JSON
-- 認証・認可: 未実装
-- バリデーション: 限定的。型・必須・形式検証は今後強化が必要
+- 認証・認可: 管理APIは `requireAdmin` でFirebase IDトークンを検証。顧客予約申請は公開申請ステータスに限り未ログイン可
+- バリデーション: `lib/api-validation.ts` で日付、時刻、人数、メール、電話、ステータス、店舗割当人数、メニュー金額などを検証
+- エラー応答: 入力不正は400、認証なしは401、管理権限なしは403、その他は500のJSONエラーを返す
 - Repository: `getReservationRepository()` 経由
 
 ## Repository切替
@@ -58,7 +59,7 @@
 
 現時点の制約:
 
-- 予約更新では顧客情報とメニュー明細の更新は未対応です。
+- 予約更新では、予約日・時刻・人数に加えて、顧客情報とメニュー明細の置換に対応しています。
 - 顧客・店舗・メニューの削除は物理削除ではなく `active=false` の非活性化です。
 
 ## Server Actions
@@ -67,12 +68,14 @@
 
 ## エラー処理
 
-API RouteではRepository例外を十分に分類していません。今後、以下を整理する必要があります。
+API Routeは `apiErrorResponse` で共通のJSONエラーを返します。
 
-- 404: 対象なし
-- 400: 入力不正
-- 409: 業務制約違反
+- 400: `ApiValidationError` または入力・業務制約違反
+- 401: 認証なし
+- 403: 管理者権限なし
 - 500: 予期しないエラー
+
+404や409など、より細かい業務エラー分類は未実装です。
 
 ## Data Connect操作定義
 
@@ -98,3 +101,10 @@ Data Connect移行先のGraphQL操作は以下にあります。
 - `CreateMenu`
 - `UpdateMenu`
 - `DeactivateMenu`
+
+認可:
+
+- 予約・顧客・請求など個人情報を含むqueryは `@auth(level: NO_ACCESS)`。
+- 更新系mutationはすべて `@auth(level: NO_ACCESS)`。
+- 店舗・メニューの公開参照queryのみ `@auth(level: PUBLIC)`。
+- Next.js APIは生成Admin SDK `@reservation-system/dataconnect-admin` 経由でData Connectを呼び出す。

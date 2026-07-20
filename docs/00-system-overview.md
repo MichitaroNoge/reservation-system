@@ -7,7 +7,7 @@
 ## システム化の対象
 
 - 顧客による仮予約・本予約申請
-- 管理者による予約確認、承認、ステータス変更
+- Firebase Authenticationでログインした管理者による予約確認、承認、ステータス変更
 - 食事日前の確認連絡
 - 店舗割当
 - 顧客、店舗、メニュー管理
@@ -25,10 +25,12 @@
 - 未確認連絡、未割当、メニュー未確定などの対応漏れを減らす
 - 顧客・店舗・メニュー情報を画面から保守する
 - 本番DBを Firebase Data Connect / PostgreSQL に寄せ、JSONファイル運用から卒業する
+- 管理画面と管理APIを認証済み管理者に限定する
 
 ## 主要機能
 
 - 顧客向け予約申請
+- 管理者ログイン
 - 予約一覧・検索・絞り込み
 - 予約詳細編集
 - ステータス更新
@@ -43,29 +45,30 @@
 ```mermaid
 flowchart LR
   Customer["顧客"] --> UI["Next.js画面"]
+  FirebaseAuth["Firebase Authentication"]
   Admin["管理者"] --> UI
+  UI --> FirebaseAuth
   UI --> API["Next.js API Routes"]
+  API --> FirebaseAuth
   API --> Repo["ReservationRepository"]
-  Repo --> DataConnect["Firebase Data Connect"]
+  Repo --> DataConnect["Firebase Data Connect<br/>Admin SDK"]
   DataConnect --> Postgres["Cloud SQL for PostgreSQL"]
   Repo -. local fallback .-> FileDb["data/reservation-db.json"]
 ```
 
-本番方針では Data Connect / PostgreSQL を利用します。`data/reservation-db.json` は `RESERVATION_REPOSITORY=file` のローカルフォールバックのみです。
+現在の標準Repositoryは Data Connect / PostgreSQL です。`data/reservation-db.json` は `RESERVATION_REPOSITORY=file` を明示した場合のローカルフォールバックのみです。
 
 ## 対象外の機能
 
 現時点で未実装または未確認の機能:
 
-- Firebase Authentication
-- ロールベース認可
 - メール送信
 - 請求書発行
 - 決済
 - Cron、バッチ、非同期ジョブ
 - CI/CD
 - 監査ログ
-- 自動テスト
+- 店舗担当者・顧客ごとの細かな権限分離
 
 ## 用語集
 
@@ -79,3 +82,4 @@ flowchart LR
 | 来店済 | 来店受付・利用実績登録済みの状態 |
 | 確認連絡 | 食事日前に顧客へ予約内容を確認する業務。現時点では日時更新のみ |
 | Data Connect | Firebase Data Connect。PostgreSQLをGraphQL経由で扱う仕組み |
+| 管理者 | Firebase Authenticationでログインし、管理操作を実行できる利用者。現状はIDトークンのcustom claimまたは許可メールアドレスで判定 |

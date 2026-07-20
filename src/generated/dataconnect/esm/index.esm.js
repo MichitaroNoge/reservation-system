@@ -94,6 +94,18 @@ export function addReservationDetail(dcOrVars, vars) {
   return executeMutation(addReservationDetailRef(dcInstance, inputVars));
 }
 
+export const deleteReservationDetailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteReservationDetail', inputVars);
+}
+deleteReservationDetailRef.operationName = 'DeleteReservationDetail';
+
+export function deleteReservationDetail(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteReservationDetailRef(dcInstance, inputVars));
+}
+
 export const updateReservationRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

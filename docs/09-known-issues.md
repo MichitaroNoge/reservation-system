@@ -2,21 +2,21 @@
 
 ## 未実装機能
 
-- Firebase Authentication
-- ロールベース認可
 - メール送信
 - 請求書発行
 - 決済
 - Cron、バッチ、非同期ジョブ
-- 自動テスト
 - CI/CD
 - 監査ログ
+- 顧客ロール、店舗担当者ロールによる細かな権限分離
+- E2Eテスト
 
 ## 暫定実装
 
 - `RESERVATION_REPOSITORY=file` によるローカルファイルDBは緊急退避用に残しています。
 - 確認連絡はメール送信ではなく `confirmationContactedAt` 更新のみです。
-- 管理画面と顧客画面の切替は画面内 state による暫定実装です。
+- 管理者判定はFirebase Auth custom claimに加えて `FIREBASE_AUTH_ADMIN_EMAILS` のメール許可リストにも対応しています。本番ではcustom claim中心の運用へ寄せることを推奨します。
+- 手動ステータス変更理由は画面上では必須ですが、現時点では永続化していません。
 
 ## Data Connect Repositoryの対応状況
 
@@ -34,47 +34,58 @@
 
 残っている制約:
 
-- 予約内容更新のうち、顧客情報・メニュー明細更新は未対応です。
 - 顧客・店舗・メニュー削除は履歴保全のため物理削除ではなく非活性化です。
+- Data Connectの本番環境に対する統合テストは未整備です。
 
 ## サンプルデータ
 
 - `lib/seed-data.ts`
-- `app/page.tsx` 内の `initialReservations`, `defaultMenus`, `defaultStores`
 - `dataconnect/seed_data.gql`
+
+`data/reservation-db.json` は `RESERVATION_REPOSITORY=file` のときに使うローカルフォールバックで、Git管理対象外です。
 
 ## 技術的負債
 
-- `app/page.tsx` に画面、状態管理、業務ロジックが集中している。
-- API Routeの入力値検証が限定的。
-- ステータス遷移ルールが画面側ロジックに分散している。
-- Data Connect emulator を使った自動テストがない。
+- `app/page.tsx` にはまだ画面状態と業務フローの一部が残っています。画面コンポーネント、hooks、domainロジックへの分割は継続課題です。
+- APIエラーは400/401/403/500中心で、404や409などの業務エラー分類は未整備です。
+- Data Connect emulator を使った自動テストがありません。
+- 生成SDKの再生成は手動実行です。`npx firebase dataconnect:sdk:generate` のCI組み込みは未実装です。
 
 ## セキュリティ上の懸念
 
-- 管理画面に認証なしでアクセス可能。
-- APIに認証・認可チェックがない。
-- Data Connect定義が `@auth(level: PUBLIC)` のプロトタイプ状態。
-- 個人情報の保存・閲覧権限設計が未確定。
+- メール許可リストによる管理者判定を本番で使い続ける場合、運用ミスの影響が大きくなります。
+- 監査ログがないため、管理操作の追跡ができません。
+- 店舗・メニューの公開参照queryは `@auth(level: PUBLIC)` です。公開予約フォームで必要な情報に限定されていますが、公開範囲は本番前に確認が必要です。
+- 個人情報の保存期間、削除依頼対応、バックアップからの削除方針は未確認です。
 
 ## テスト不足
 
-- `package.json` に `test` scriptなし。
-- 単体テストなし。
-- APIテストなし。
-- E2Eテストなし。
+実装済み:
+
+- `npm test`
+- `tests/reservation-workflows.test.ts`
+- 予約作成、ステータス更新、店舗割当、確認連絡一括更新、メニュー削除時の金額再計算
+
+不足:
+
+- API Routeテスト
+- Firebase Authentication連携テスト
+- Data Connect emulatorまたは検証環境での統合テスト
+- ブラウザE2Eテスト
+- 権限エラー、入力エラーの網羅テスト
 
 ## 実装と仕様が一致していない可能性がある箇所
 
 - Data Connect側には請求・来店詳細モデルがあるが、画面は一部静的表示です。
 - 確認連絡メールの送信仕様が未確定です。
 - キャンセルポリシー、請求、減員時ルールの正式仕様が未確認です。
+- 予約詳細編集のメニュー明細置換は複数mutationで実行されるため、途中失敗時のロールバック方針は未整備です。
 
 ## 今後確認が必要な事項
 
-- Firebase Authentication の方式
+- Firebase Auth custom claimの正式運用方法
 - 管理者ロール、店舗担当者ロール、顧客ロールの権限
 - Cloud SQLのバックアップ、監視、ログ方針
 - 本番デプロイ先
-- Data Connectの本番認可ルール
+- 店舗・メニュー公開参照queryの公開可否
 - `npm install` 後に報告された依存関係脆弱性の対応方針

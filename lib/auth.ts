@@ -12,7 +12,7 @@ export async function requireAdmin(request: Request) {
   const token = bearerToken(request);
   if (!token) throw new ApiAuthError("Authentication required.", 401);
 
-  const decoded = await getAuth(adminApp()).verifyIdToken(token);
+  const decoded = await getAuth(getFirebaseAdminApp()).verifyIdToken(token);
   if (!isAdminToken(decoded)) throw new ApiAuthError("Admin permission required.", 403);
   return decoded;
 }
@@ -32,7 +32,7 @@ function isAdminToken(decoded: DecodedIdToken) {
   return Boolean(decoded.email && adminEmails.includes(decoded.email.toLowerCase()));
 }
 
-function adminApp() {
+export function getFirebaseAdminApp() {
   const app = getApps()[0];
   if (app) return app;
 

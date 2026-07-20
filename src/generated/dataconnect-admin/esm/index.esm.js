@@ -59,6 +59,12 @@ export function addReservationDetail(dcOrVarsOrOptions, varsOrOptions, options) 
   return dcInstance.executeMutation('AddReservationDetail', inputVars, inputOpts);
 }
 
+export function deleteReservationDetail(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('DeleteReservationDetail', inputVars, inputOpts);
+}
+
 export function updateReservation(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);

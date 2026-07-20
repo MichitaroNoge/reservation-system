@@ -1,4 +1,4 @@
-query ListReservations @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query ListReservations @auth(level: NO_ACCESS) {
   reservations(orderBy: {receivedAt: DESC}) {
     id
     reservationCode
@@ -27,7 +27,7 @@ query ListReservations @auth(level: PUBLIC, insecureReason: "Prototype access un
   }
 }
 
-query GetReservation($id: UUID!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
   reservation(key: {id: $id}) {
     id
     reservationCode
@@ -58,7 +58,7 @@ query GetReservation($id: UUID!) @auth(level: PUBLIC, insecureReason: "Prototype
   }
 }
 
-query GetReservationByCode($reservationCode: String!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
   reservations(where: {reservationCode: {eq: $reservationCode}}, limit: 1) {
     id
     reservationCode
@@ -87,7 +87,7 @@ query GetReservationByCode($reservationCode: String!) @auth(level: PUBLIC, insec
   }
 }
 
-query ListCustomers @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query ListCustomers @auth(level: NO_ACCESS) {
   customers(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
     id
     name
@@ -100,7 +100,7 @@ query ListCustomers @auth(level: PUBLIC, insecureReason: "Prototype access until
   }
 }
 
-query GetCustomerByName($name: String!) @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query GetCustomerByName($name: String!) @auth(level: NO_ACCESS) {
   customers(where: {name: {eq: $name}, active: {eq: true}}, limit: 1) {
     id
     name
@@ -150,7 +150,7 @@ query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus 
   }
 }
 
-query ListBillingRecords @auth(level: PUBLIC, insecureReason: "Prototype access until Firebase Authentication is integrated.") {
+query ListBillingRecords @auth(level: NO_ACCESS) {
   billings(orderBy: {billingDate: DESC}) {
     id
     billingType

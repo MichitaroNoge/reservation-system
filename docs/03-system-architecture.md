@@ -10,7 +10,10 @@
 flowchart TD
   Browser["ブラウザ"]
   Page["app/page.tsx<br/>画面・状態管理"]
+  AuthUi["app/reservations/components/auth.tsx<br/>ログインUI"]
+  FirebaseAuth["Firebase Authentication"]
   Api["app/api/**/route.ts<br/>Next.js Route Handlers"]
+  ApiAuth["lib/auth.ts<br/>IDトークン検証"]
   Repo["ReservationRepository"]
   DataConnectRepo["FirebaseSqlConnectReservationRepository"]
   FileRepo["FileReservationRepository<br/>ローカルフォールバック"]
@@ -20,10 +23,14 @@ flowchart TD
   Seed["lib/seed-data.ts"]
 
   Browser --> Page
+  Page --> AuthUi
+  AuthUi --> FirebaseAuth
   Page --> Api
+  Api --> ApiAuth
+  ApiAuth --> FirebaseAuth
   Api --> Repo
   Repo --> DataConnectRepo
-  DataConnectRepo --> DataConnect
+  DataConnectRepo -->|"Admin SDK"| DataConnect
   DataConnect --> Postgres
   Repo -. RESERVATION_REPOSITORY=file .-> FileRepo
   FileRepo -. 初回生成 .-> Seed
@@ -65,9 +72,12 @@ flowchart TD
 
 ## 認証
 
-現時点ではアプリ/APIともに認証・認可は未実装です。
+Firebase Authentication を利用します。
 
-Data Connect のGraphQL定義もプロトタイプ用に `@auth(level: PUBLIC)` を含みます。本番公開前に Firebase Authentication とロールベース認可へ変更が必要です。
+- 画面: `app/reservations/components/auth.tsx` と `useAdminSession` でログイン状態を扱います。
+- API: `lib/auth.ts` の `requireAdmin` がBearer IDトークンを検証します。
+- 管理者判定: IDトークンの `admin=true`、`role=admin`、または `FIREBASE_AUTH_ADMIN_EMAILS` に含まれるメールアドレスで判定します。
+- 顧客予約申請: `POST /api/reservations` は公開申請ステータスに限り未ログインでも受け付けます。
 
 ## 外部サービス
 
@@ -75,6 +85,7 @@ Data Connect のGraphQL定義もプロトタイプ用に `@auth(level: PUBLIC)` 
 | --- | --- | --- |
 | Firebase Data Connect | GraphQL経由のDBアクセス | `dataconnect/**` |
 | Cloud SQL for PostgreSQL | 本番DB | `dataconnect/dataconnect.yaml` |
+| Firebase Authentication | 管理者ログイン、API認証 | `lib/firebase-config.ts`, `lib/auth.ts` |
 | Firebase Web App | Firebase接続設定 | `.env.example`, `lib/firebase-config.ts` |
 
 ## メール送信
@@ -101,3 +112,14 @@ Data Connect のGraphQL定義もプロトタイプ用に `@auth(level: PUBLIC)` 
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID |
 | `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR` | Data Connect Emulator利用フラグ |
+| `FIREBASE_AUTH_ADMIN_EMAILS` | 管理者として許可するメールアドレス一覧 |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Firebase Admin SDKのサービスアカウントJSON |
+| `FIREBASE_DATACONNECT_LOCATION` | Data Connect location |
+| `FIREBASE_DATACONNECT_SERVICE_ID` | Data Connect service ID |
+| `FIREBASE_DATACONNECT_CONNECTOR` | Data Connect connector名 |
+
+## Data Connect認可
+
+個人情報を含む予約・顧客・請求の参照、および全更新系mutationは `@auth(level: NO_ACCESS)` とし、Next.js APIから生成Admin SDK経由で実行します。
+
+店舗・メニューの公開参照queryのみ、顧客予約フォームの選択肢として使える情報のため `@auth(level: PUBLIC)` のままです。

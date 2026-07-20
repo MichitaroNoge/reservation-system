@@ -2,69 +2,65 @@
 
 ## 認証方式
 
-現時点では未実装です。
+Firebase Authentication を利用します。
 
-画面上は `role` state によって顧客画面と管理画面を切り替えていますが、これは認証ではありません。
+- フロントエンドは Firebase Web SDK でメールアドレス/パスワード認証を行います。
+- API呼び出し時はFirebase IDトークンをBearer tokenとして送信します。
+- API側は `lib/auth.ts` の `requireAdmin` でIDトークンを検証します。
 
 根拠:
 
-- `app/page.tsx`
-- `app/api/**/route.ts`
+- `app/reservations/components/auth.tsx`
+- `app/reservations/hooks/use-admin-session.ts`
+- `app/reservations/firebase-client.ts`
+- `app/api/auth/session/route.ts`
+- `lib/auth.ts`
 
 ## 権限の種類
 
-未実装です。
+現在実装済みの権限は管理者のみです。
 
-将来的には少なくとも以下の権限が必要です。
+| 権限 | 判定方法 | 実行可能な操作 |
+| --- | --- | --- |
+| 未ログイン利用者 | IDトークンなし | 顧客予約申請のうち公開申請ステータスのみ |
+| 管理者 | `admin=true`、`role=admin`、または `FIREBASE_AUTH_ADMIN_EMAILS` のメール一致 | 予約管理、確認連絡、店舗割当、顧客/店舗/メニュー管理 |
 
-| 権限 | 想定操作 |
-| --- | --- |
-| 顧客 | 予約申請、自分の予約確認 |
-| 管理者 | 予約管理、確認連絡、店舗割当、マスタ管理 |
-| 店舗担当者 | 自店舗の予約確認、来店受付 |
+顧客ロール、店舗担当者ロールは未実装です。
 
 ## 認可チェックの実装箇所
 
-現時点では未実装です。
+- Next.js API: `app/api/**/route.ts` で `requireAdmin` を呼び出します。
+- Data Connect: 個人情報を含むqueryと更新系mutationは `@auth(level: NO_ACCESS)` です。
+- Data Connect Repository: `FirebaseSqlConnectReservationRepository` は生成Admin SDK `@reservation-system/dataconnect-admin` を使用します。
 
-本番化時には以下でチェックします。
+例外:
 
-- Next.js API Route
-- Firebase Data Connect `@auth`
-- Firebase Authentication のカスタムクレームまたはロール管理
-
-## Data Connect認可
-
-現在のGraphQL定義にはプロトタイプ用の `@auth(level: PUBLIC)` が含まれます。
-
-本番公開前に、管理操作と個人情報取得はPUBLICから外す必要があります。
+- `POST /api/reservations` は、`temporary_requested` または `confirmed_requested` の顧客申請に限り未ログインで利用可能です。
+- 店舗・メニューの公開参照queryは、予約フォームの選択肢として使えるため `@auth(level: PUBLIC)` のままです。
 
 根拠:
 
+- `app/api/reservations/route.ts`
+- `app/api/customers/**`
+- `app/api/stores/**`
+- `app/api/menus/**`
+- `app/api/reservations/[id]/**`
 - `dataconnect/reservation/queries.gql`
 - `dataconnect/reservation/mutations.gql`
 
 ## 入力値検証
 
-画面側:
+API側では `lib/api-validation.ts` で以下を検証します。
 
-- 必須項目チェック
-- 確認連絡の抽出日数を1から60に制限
-- 店舗割当人数の合計チェック
-
-サーバー側:
-
-- Repositoryで一部業務制約を確認
-- API Routeのスキーマ検証は不足
-
-今後必要な検証:
-
-- メール形式
+- JSON bodyがオブジェクトであること
+- 日付形式、時刻形式
+- 人数、店舗割当人数、金額、提供時間
+- メールアドレス形式
 - 電話番号形式
-- 日付形式
-- ステータス値の許可リスト
-- API入力スキーマ
-- CSRF対策
+- 予約ステータスの許可リスト
+- 店舗状態、確認連絡日時
+
+ステータス遷移は `lib/domain.ts` の `assertReservationStatusTransition` で検証します。
 
 ## 個人情報の扱い
 
@@ -73,24 +69,26 @@
 - 氏名
 - メールアドレス
 - 電話番号
+- 食事日、人数、メニュー、店舗割当
 
-本番方針では Data Connect / PostgreSQL に保存します。アクセス権限、監査ログ、バックアップ、削除方針を決める必要があります。
+標準Repositoryでは Firebase Data Connect / Cloud SQL for PostgreSQL に保存します。
 
 ローカルフォールバックでは `data/reservation-db.json` に保存されます。このファイルはGit管理対象外です。
 
 ## 秘密情報の管理方法
 
 - `.env*` は `.gitignore` 対象です。
-- `.env.example` は変数名とサンプル値のみを置きます。
 - 設計資料には秘密情報の値を記載しません。
+- `FIREBASE_SERVICE_ACCOUNT_KEY` を利用する場合も値は設計資料に記載しません。
+- 管理者メール一覧は `FIREBASE_AUTH_ADMIN_EMAILS` で管理します。
 
 ## 現在確認できるリスク
 
 | リスク | 影響 | 対応案 |
 | --- | --- | --- |
-| 認証なし | 誰でも管理操作可能 | Firebase Authentication導入 |
-| 認可なし | 権限分離できない | API RouteとData Connectでロール認可 |
-| PUBLIC Data Connect | 個人情報・管理操作の露出 | 本番用 `@auth` へ変更 |
-| API入力検証不足 | 不正データ混入 | Zod等で検証 |
-| 監査ログなし | 操作追跡不可 | 操作ログ保存 |
+| メール許可リスト依存 | custom claim未設定でもメール一致で管理者扱いになる | 本番ではFirebase Auth custom claim `admin=true` に寄せる |
+| 顧客・店舗担当者ロール未実装 | 権限分離が管理者中心になる | 顧客/店舗担当者ロールとAPI認可を追加 |
+| 監査ログなし | 誰が変更したか追跡しにくい | 操作ログ保存 |
 | メール未実装 | 確認連絡の実送信証跡なし | メール送信基盤と送信ログ |
+| 404/409の細分化不足 | API利用者が原因を判別しづらい | 業務エラー型を追加 |
+| Data Connect emulatorテストなし | 本番Data Connect特有の不具合を検出しづらい | emulatorまたは検証環境での統合テストを追加 |

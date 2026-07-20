@@ -8,3 +8,7 @@ generate:
     clientCache:
       maxAge: 30s
       storage: memory
+  adminNodeSdk:
+    outputDir: ../../src/generated/dataconnect-admin
+    package: "@reservation-system/dataconnect-admin"
+    packageJsonDir: ../..

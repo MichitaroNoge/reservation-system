@@ -6,46 +6,33 @@
 
 - 顧客が予約フォームを開く。
 
-利用者:
-
-- 顧客。
-
-処理の流れ:
+流れ:
 
 1. 予約種別を選択する。
-2. 仮予約または本予約に応じた注意事項へ同意する。
-3. 利用日、開始時間、人数を入力する。
-4. 氏名、メール、電話番号を入力する。
-5. メニューを選択する。
-6. 最終確認後に申請する。
-7. `POST /api/reservations` で予約を作成する。
+2. 仮予約または本予約に応じた同意事項を確認する。
+3. 食事日、開始時刻、人数を入力する。
+4. 氏名、メールアドレス、電話番号を入力する。
+5. 任意でメニューを選択する。
+6. `POST /api/reservations` で予約を作成する。
 
-ステータスの変化:
+ステータス:
 
-- フォームの `status` により `仮予約申請中` または `本予約申請中` として作成される。
-
-メールや通知:
-
-- メール送信は未実装。
-- 画面上のトースト通知のみ。
-
-異常時:
-
-- 予約保存に失敗した場合、トースト表示。
+- 仮予約: `temporary_requested`
+- 本予約: `confirmed_requested`
 
 ```mermaid
 sequenceDiagram
   actor Customer as 顧客
-  participant UI as 顧客画面
+  participant UI as 予約フォーム
   participant API as POST /api/reservations
-  participant Repo as FileReservationRepository
-  participant DB as reservation-db.json
+  participant Repo as ReservationRepository
+  participant DB as Data Connect or file fallback
 
-  Customer->>UI: 予約情報入力
+  Customer->>UI: 予約情報を入力
   UI->>API: 予約作成
   API->>Repo: createReservation
-  Repo->>DB: reservationsへ追加
-  DB-->>Repo: 保存完了
+  Repo->>DB: 保存
+  DB-->>Repo: reservation
   Repo-->>API: reservation
   API-->>UI: reservation
   UI-->>Customer: 受付完了
@@ -55,160 +42,111 @@ sequenceDiagram
 
 開始条件:
 
-- 予約が `仮予約申請中` または `本予約申請中`。
+- 予約が `temporary_requested` または `confirmed_requested`。
 
-利用者:
+流れ:
 
-- 管理者。
+1. 管理者が予約詳細を開く。
+2. 承認操作を行う。
+3. `PATCH /api/reservations/:id/status` でステータス更新する。
 
-処理の流れ:
+ステータス:
 
-1. 予約管理またはダッシュボードタスクから予約を選ぶ。
-2. 予約詳細ドロワーを開く。
-3. 承認ボタンを押す。
-4. `PATCH /api/reservations/:id/status` でステータス更新。
+- `temporary_requested` -> `temporary_confirmed`
+- `confirmed_requested` -> `confirmed`
 
-ステータスの変化:
+## 予約ステータス遷移表
 
-- `仮予約申請中` -> `仮予約確定`
-- `本予約申請中` -> `本予約確定`
+正式な通常遷移は `lib/domain.ts` の `reservationStatusTransitions` で管理します。画面はこの共通定義と関連する判定関数を利用します。
 
-異常時:
+| 現在ステータス | 次ステータス | 契機 | 自動/手動 | 備考 |
+| --- | --- | --- | --- | --- |
+| `temporary_requested` | `temporary_confirmed` | 仮予約承認 | 手動 | 管理者が予約詳細で承認する |
+| `confirmed_requested` | `confirmed` | 本予約承認 | 手動 | 管理者が予約詳細で承認する |
+| `confirmed` | `waiting_for_visit` | 来店待ち条件達成 | 自動 | メニュー、店舗割当、確認連絡がすべて完了 |
+| `waiting_for_visit` | `confirmed` | 来店待ち条件未達に戻る | 自動 | 店舗割当解除、確認連絡取消など |
+| `waiting_for_visit` | `visited` | 来店受付 | 手動 | 来店受付・利用実績登録の入口 |
+| `cancellation_requested` | `cancelled` | キャンセル確定 | 手動 | 管理者がキャンセルを確定する |
 
-- 保存失敗時にトースト表示。
+例外対応:
 
-## 本予約の来店待ち化
+- 誤操作など通常遷移表にない変更は、画面の「例外対応」から理由を入力して実行します。
+- API `PATCH /api/reservations/:id/status` は、通常遷移表にない変更を理由なしでは受け付けません。
+
+## 本予約から来店待ちへの進行
 
 開始条件:
 
-- 予約が `本予約確定`。
+- 予約が `confirmed`。
 
-利用者:
+来店待ちになる条件:
 
-- 管理者。
+- メニューが選択済み。
+- 店舗割当がある。
+- 確認連絡済み。
 
-処理の流れ:
+ステータス:
 
-1. メニューが確定している。
-2. 店舗割当がある。
-3. 確認連絡済みである。
-4. 上記が揃うと、画面処理内で `来店待ち` へ更新される。
+- `confirmed` -> `waiting_for_visit`
 
-ステータスの変化:
+## 確認連絡
 
-- `本予約確定` -> `来店待ち`
+開始条件:
 
-根拠:
+- 予約が `confirmed`。
+- `confirmationContactedAt` が未設定。
+- 食事日までの残日数が指定日数未満。
 
-- `isVisitReadyReservation`
-- `assignStores`
-- `updateReservation`
-- `saveConfirmationContact`
+流れ:
+
+1. 管理者が確認連絡画面を開く。
+2. 抽出期間を確認または変更する。
+3. 対象予約を一括更新する。
+4. `PATCH /api/reservations/:id/confirmation-contact` を対象分実行する。
+
+メールや通知:
+
+- 現時点ではメール送信なし。
+- `confirmationContactedAt` の更新のみ。
 
 ```mermaid
 flowchart TD
-  A["本予約確定"] --> B{"メニューあり?"}
-  B -- No --> Wait1["本予約確定のまま"]
-  B -- Yes --> C{"店舗割当あり?"}
-  C -- No --> Wait2["本予約確定のまま"]
-  C -- Yes --> D{"確認連絡済み?"}
-  D -- No --> Wait3["本予約確定のまま"]
-  D -- Yes --> E["来店待ちへ更新"]
+  Start["確認連絡画面を開く"]
+  Filter["confirmed かつ未連絡かつ食事日が期間内"]
+  Bulk["一括で確認連絡済みにする"]
+  Update["confirmationContactedAt を更新"]
+  Ready{"メニュー・店舗割当も完了？"}
+  Visit["waiting_for_visit に更新"]
+  End["完了"]
+
+  Start --> Filter --> Bulk --> Update --> Ready
+  Ready -- yes --> Visit --> End
+  Ready -- no --> End
 ```
 
 ## 店舗割当
 
 開始条件:
 
-- 本予約確定または来店待ちの予約。
+- 予約が `confirmed` または `waiting_for_visit` または `visited`。
 
-処理の流れ:
+流れ:
 
-1. 予約詳細で店舗割当編集を開く。
-2. 店舗と人数を入力する。
-3. 割当人数合計が予約人数と一致する場合に保存する。
-4. 保存後、来店待ち条件が揃っていればステータスを進める。
+1. 管理者が予約詳細で店舗割当を編集する。
+2. 割当人数合計が予約人数と一致するか確認する。
+3. `PATCH /api/reservations/:id/store` で保存する。
 
-異常時:
-
-- 割当人数が一致しない場合は保存できない。
-- Repositoryでも人数不一致時に例外。
-
-## 確認連絡
-
-開始条件:
-
-- `本予約確定`
-- `confirmationContactedAt` が未設定
-- 食事日までの日数が画面指定値未満
-
-利用者:
-
-- 管理者。
-
-処理の流れ:
-
-1. 確認連絡画面を開く。
-2. 食事日までの日数条件を指定する。
-3. 対象予約一覧を確認する。
-4. 一括更新を実行する。
-5. 各予約に `confirmationContactedAt` を設定する。
-6. 条件が揃った予約は `来店待ち` へ進む。
-
-メールや通知:
-
-- メール送信は未実装。
-- 画面通知のみ。
-
-```mermaid
-sequenceDiagram
-  actor Admin as 管理者
-  participant UI as 確認連絡画面
-  participant API as confirmation-contact API
-  participant StatusAPI as status API
-  participant DB as reservation-db.json
-
-  Admin->>UI: 日数条件を指定
-  UI->>UI: 本予約確定・未確認連絡を抽出
-  Admin->>UI: 一括更新
-  loop 対象予約ごと
-    UI->>API: confirmationContactedAt更新
-    API->>DB: 保存
-    alt 来店待ち条件が揃う
-      UI->>StatusAPI: 来店待ちへ更新
-      StatusAPI->>DB: status保存
-    end
-  end
-```
-
-## キャンセル確定
-
-開始条件:
-
-- 予約が `キャンセル申請中`。
-
-処理の流れ:
-
-1. 予約詳細を開く。
-2. キャンセル確定ボタンを押す。
-3. ステータスを `キャンセル確定` に更新する。
-
-メールや通知:
-
-- メール送信は未実装。
+Data Connectでは `StoreAssignment.people` に割当人数を保存します。
 
 ## 来店受付
 
 開始条件:
 
-- 予約が `来店待ち` または来店準備完了状態。
+- 予約が `waiting_for_visit`。
 
-処理の流れ:
+流れ:
 
-1. 予約詳細から来店受付・利用実績登録ボタンを押す。
-2. ステータスを `来店済` に更新する。
+1. 管理者が来店受付操作を行う。
+2. ステータスを `visited` に更新する。
 
-注意:
-
-- 利用実績の詳細データ保存は現行コードでは確認できません。
-
+Data Connectでは将来的に `VisitRecord` / `VisitDetail` への登録も行います。

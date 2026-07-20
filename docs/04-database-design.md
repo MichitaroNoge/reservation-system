@@ -1,170 +1,96 @@
 # データベース設計
 
-## 現行データストア
+## 方針
 
-現行実装ではRDBではなく、`data/reservation-db.json` をファイルDBとして使用しています。
+本番DBは Firebase Data Connect / Cloud SQL for PostgreSQL に寄せます。
 
-根拠:
+`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては Data Connect の `dataconnect/schema/schema.gql` を正とします。
 
-- `lib/repositories/file-reservation-repository.ts`
-- `data/reservation-db.json`
-- `.gitignore`
+## テーブル一覧
 
-## JSON DB コレクション一覧
+| テーブル | 役割 | 主キー |
+| --- | --- | --- |
+| `Customer` | 顧客情報 | `id` |
+| `Store` | 店舗情報 | `id` |
+| `Menu` | メニュー情報 | `id` |
+| `Reservation` | 予約本体 | `id` |
+| `ReservationDetail` | 予約メニュー明細 | `id` |
+| `StoreAssignment` | 予約の店舗割当 | `id` |
+| `VisitRecord` | 来店実績 | `id` |
+| `VisitDetail` | 来店時の利用明細 | `id` |
+| `Billing` | 請求情報 | `id` |
+| `Invoice` | 請求書情報 | `id` |
 
-| コレクション | 役割 | 主キー相当 | 根拠 |
-| --- | --- | --- | --- |
-| `reservations` | 予約情報 | `id` | `Reservation` in `lib/domain.ts` |
-| `menus` | メニュー情報 | `name` | `Menu` in `lib/domain.ts` |
-| `stores` | 店舗情報 | `name` | `Store` in `lib/domain.ts` |
+## 主なカラム
 
-### reservations
+### `Reservation`
 
-主な項目:
-
-- `id`
-- `customer`
-- `email`
-- `date`
-- `startTime`
-- `people`
-- `menuItems`
-- `totalAmount`
-- `store`
-- `storeAssignments`
-- `status`
-- `policyAgreement`
-- `confirmationContactedAt`
-- `received`
-- `phone`
-
-制約:
-
-- `assignStores` では割当人数合計が予約人数と一致する必要がある。
-- `nextReservationId` は既存IDの数値部分から次IDを採番する。
-- API側のスキーマバリデーションは未確認。
-
-削除時の扱い:
-
-- 顧客削除時、該当顧客名の予約も削除される。
-- 店舗削除時、予約の該当店舗割当は削除され、店舗未割当に戻る。
-- メニュー削除時、予約の `menuItems` から該当メニューが削除され、金額再計算される。
-
-根拠: `FileReservationRepository.deleteCustomer`, `deleteStore`, `deleteMenu`。
-
-### menus
-
-主な項目:
-
-- `name`
-- `description`
-- `price`
-- `duration`
-
-制約:
-
-- `createMenu` は同名メニューが存在すると例外。
-- `updateMenu` は名称変更時に予約内の `menuItems` を更新。
-
-### stores
-
-主な項目:
-
-- `name`
-- `area`
-- `today`
-- `month`
-- `state`
-
-制約:
-
-- `updateStore` は名称変更時に予約内の店舗割当名を更新。
-
-## Data Connect定義
-
-`dataconnect/schema/schema.gql` にはPostgreSQL向けのテーブル定義があります。ただし現行実行系はファイルDBです。
-
-| テーブル | 役割 |
+| カラム | 内容 |
 | --- | --- |
-| `Customer` | 顧客 |
-| `Store` | 店舗 |
-| `Menu` | メニュー |
-| `Reservation` | 予約 |
-| `ReservationDetail` | 予約明細 |
-| `StoreAssignment` | 店舗割当 |
-| `VisitRecord` | 来店記録 |
-| `VisitDetail` | 来店明細 |
-| `Billing` | 請求 |
-| `Invoice` | 請求書 |
+| `reservationCode` | 画面表示用予約ID。例: `RSV-1047` |
+| `customer` | 顧客への参照 |
+| `usageDate` | 食事日 |
+| `usageTime` | 開始時刻 |
+| `status` | 予約ステータス |
+| `expectedPeople` | 予定人数 |
+| `policyAgreementKind` | 同意種別。`temporary` または `confirmed` |
+| `policyAgreementAcceptedAt` | 同意日時 |
+| `confirmationContactedAt` | 確認連絡済み日時 |
+| `receivedAt` | 受付日時 |
+| `updatedAt` | 更新日時 |
 
-Data Connect側には `Billing`, `Invoice` など、現行JSON DBにないモデルがあります。
+### `StoreAssignment`
 
-## インデックス
+複数店舗割当を許容するため、`reservation` に `@unique` は付けません。
 
-現行JSON DBにはインデックスはありません。
+| カラム | 内容 |
+| --- | --- |
+| `reservation` | 予約への参照 |
+| `store` | 店舗への参照 |
+| `people` | 割当人数 |
+| `assignedAt` | 割当日時 |
 
-Data Connect定義では `@unique` による一意制約が確認できます。
+## ステータス
 
-- `Customer.firebaseUid`
-- `Reservation.reservationCode`
-- `StoreAssignment.reservation`
-- `VisitRecord.reservation`
-- `Invoice.billing`
-- `Invoice.invoiceNumber`
+Data Connect enum:
 
-根拠: `dataconnect/schema/schema.gql`。
+| DB値 | アプリ内部値 | 表示ラベル |
+| --- | --- | --- |
+| `TEMPORARY_REQUESTED` | `temporary_requested` | 仮予約申請中 |
+| `TEMPORARY_CONFIRMED` | `temporary_confirmed` | 仮予約確定 |
+| `CONFIRMED_REQUESTED` | `confirmed_requested` | 本予約申請中 |
+| `CONFIRMED` | `confirmed` | 本予約確定 |
+| `WAITING_FOR_VISIT` | `waiting_for_visit` | 来店待ち |
+| `VISITED` | `visited` | 来店済 |
+| `CANCELLATION_REQUESTED` | `cancellation_requested` | キャンセル申請中 |
+| `CANCELLED` | `cancelled` | キャンセル確定 |
 
-## Mermaid ER図
+## 制約・インデックス
 
-現行JSON DBの概念図:
+`dataconnect/schema/schema.gql` で確認できる主な制約:
 
-```mermaid
-erDiagram
-  RESERVATION {
-    string id PK
-    string customer
-    string email
-    string date
-    string startTime
-    int people
-    string status
-    string phone
-    string confirmationContactedAt
-  }
+- `Customer.firebaseUid`: `@unique`
+- `Reservation.reservationCode`: `@unique`
+- `VisitRecord.reservation`: `@unique`
+- `Invoice.billing`: `@unique`
+- `Invoice.invoiceNumber`: `@unique`
 
-  MENU {
-    string name PK
-    string description
-    int price
-    string duration
-  }
+PostgreSQLの追加インデックスは未確認です。
 
-  STORE {
-    string name PK
-    string area
-    int today
-    int month
-    string state
-  }
+## 削除時の扱い
 
-  STORE_ASSIGNMENT {
-    string store
-    int people
-  }
+Data Connect側の削除ポリシーは未確認です。
 
-  RESERVATION ||--o{ STORE_ASSIGNMENT : has
-  STORE ||--o{ STORE_ASSIGNMENT : assigned_to
-  RESERVATION }o--o{ MENU : menuItems_by_name
-```
+現在のローカルフォールバックRepositoryでは、顧客・店舗・メニュー削除時に関連予約データも画面整合性を保つよう更新しています。Data Connect移行時には同等の削除・非活性化方針を決める必要があります。
 
-Data Connect定義の概念図:
+## ER図
 
 ```mermaid
 erDiagram
   CUSTOMER ||--o{ RESERVATION : makes
   RESERVATION ||--o{ RESERVATION_DETAIL : has
   MENU ||--o{ RESERVATION_DETAIL : selected
-  RESERVATION ||--o| STORE_ASSIGNMENT : assigned
+  RESERVATION ||--o{ STORE_ASSIGNMENT : assigned
   STORE ||--o{ STORE_ASSIGNMENT : receives
   RESERVATION ||--o| VISIT_RECORD : creates
   VISIT_RECORD ||--o{ VISIT_DETAIL : has
@@ -174,3 +100,9 @@ erDiagram
   BILLING ||--o| INVOICE : issued
 ```
 
+## 根拠
+
+- `dataconnect/schema/schema.gql`
+- `dataconnect/reservation/queries.gql`
+- `dataconnect/reservation/mutations.gql`
+- `lib/domain.ts`

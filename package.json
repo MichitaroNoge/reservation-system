@@ -6,9 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "tsc -p tsconfig.test.json && node --test .tmp/test-build/tests/*.test.js",
     "lint": "next lint"
   },
   "dependencies": {
+    "@reservation-system/dataconnect": "file:src/generated/dataconnect",
+    "@reservation-system/dataconnect-admin": "file:src/generated/dataconnect-admin",
+    "firebase": "^12.16.0",
+    "firebase-admin": "^14.2.0",
     "next": "15.4.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -17,6 +22,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "firebase-tools": "^15.24.0",
     "typescript": "^5.7.0"
   }
 }

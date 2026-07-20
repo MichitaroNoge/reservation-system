@@ -7,41 +7,34 @@ npm install
 npm run dev
 ```
 
-PowerShell環境で `npm.ps1` の実行ポリシーにより失敗する場合は、以下を使用します。
+ローカルでファイルDBを使う場合:
 
-```bash
-npm.cmd run dev
+```env
+RESERVATION_REPOSITORY=file
 ```
 
-アクセス先:
-
-- `http://localhost:3000`
-
-根拠: `README.md`, `package.json`。
+この場合、`data/reservation-db.json` は初回APIアクセス時に `lib/seed-data.ts` から自動生成されます。Git管理対象外です。
 
 ## 必要なソフトウェア
 
 - Node.js
 - npm
-- Firebase CLI: Data Connectを利用する場合のみ。現行ファイルDB実行では必須ではありません。
+- Firebase CLI: Data Connectを利用する場合
 
-バージョン固定は未確認です。
+## 環境変数
 
-## 環境変数一覧
+| 変数名 | 用途 |
+| --- | --- |
+| `RESERVATION_REPOSITORY` | `file` または `dataconnect` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web App設定 |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage Bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID |
+| `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR` | Data Connect Emulator利用フラグ |
 
-値は記載しません。
-
-| 変数名 | 用途 | 必須性 |
-| --- | --- | --- |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web App設定 | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Auth Domain | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Project ID | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage Bucket | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Messaging Sender ID | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID | Data Connect/Firebase利用時 |
-| `NEXT_PUBLIC_USE_DATACONNECT_EMULATOR` | Data Connect Emulator利用フラグと思われる | 現行コードで参照未確認 |
-
-現行RepositoryはファイルDB固定のため、画面/API実行だけならFirebase環境変数は使われていない可能性があります。
+値は設計資料に記載しません。
 
 ## ビルド方法
 
@@ -49,80 +42,54 @@ npm.cmd run dev
 npm run build
 ```
 
-PowerShellで失敗する場合:
-
-```bash
-npm.cmd run build
-```
-
 ## テスト方法
 
-未確認です。
+`package.json` に `test` script はありません。現時点では `npm run build` が主要な静的確認です。
 
-- `package.json` に `test` script はありません。
-- Jest/Vitest/Playwright等の設定ファイルは確認できません。
+## Data Connect検証手順
 
-現時点で実行可能な確認:
+1. `.firebaserc.example` を `.firebaserc` にコピー
+2. `.env.example` を `.env.local` にコピー
+3. `RESERVATION_REPOSITORY=dataconnect` を設定
+4. スキーマやGraphQL操作を変更した場合は `npx firebase dataconnect:sdk:generate` でSDK再生成
+5. `firebase emulators:start --only dataconnect` でローカル検証
 
-```bash
-npm.cmd run build
-```
+現時点では生成admin SDKを利用して、予約一覧、予約作成、ステータス更新、確認連絡更新、顧客一覧、店舗一覧、メニュー一覧を実装しています。未実装の更新系操作はRepositoryが明示的にエラーを返します。
 
 ## デプロイ方法
 
 未確認です。
 
-確認できる設定:
-
-- `firebase.json` はData Connect Emulator設定を含む。
-- Next.jsのデプロイ先設定は確認できません。
-- `.openai/hosting.json`, Vercel設定、GitHub Actionsは確認できません。
-
 ## CI/CD
 
-未確認です。`.github/workflows` は確認できません。
+未確認です。
 
-## データベースの更新方法
-
-現行:
-
-- API経由で `data/reservation-db.json` を更新。
-- ファイルがない場合は `lib/seed-data.ts` から生成。
+## データベース更新方法
 
 Data Connect:
 
-- `dataconnect/schema/schema.gql`
-- `dataconnect/reservation/*.gql`
-- `firebase dataconnect:sdk:generate` によりSDK生成する想定。ただし現行Repositoryでは未接続。
+- スキーマ: `dataconnect/schema/schema.gql`
+- 操作定義: `dataconnect/reservation/*.gql`
+- シード: `dataconnect/seed_data.gql`
+
+ローカルフォールバック:
+
+- `lib/seed-data.ts` を更新
+- `data/reservation-db.json` を削除すると次回APIアクセス時に再生成
 
 ## 障害時の確認箇所
 
 | 症状 | 確認箇所 |
 | --- | --- |
-| 画面が起動しない | `npm.cmd run dev`, `npm.cmd run build` の出力 |
-| APIが失敗する | `app/api/**/route.ts`, Repository例外 |
-| データが消えた/戻った | `data/reservation-db.json`, `lib/seed-data.ts` |
-| 店舗割当保存失敗 | 割当人数合計と予約人数 |
-| メニュー金額がおかしい | `calculateTotalAmount`, `menus` |
-| 文字化け | `lib/domain.ts`, `lib/seed-data.ts`, `data/reservation-db.json`, `README.md` |
+| APIがRepositoryエラーになる | `RESERVATION_REPOSITORY`, `lib/repositories/index.ts` |
+| Data Connectで接続できない | Firebase CLI、生成SDK、`.env.local` |
+| ローカルデータが戻る | `data/reservation-db.json`, `lib/seed-data.ts` |
+| 画面表示が崩れる | `app/page.tsx`, `app/globals.css` |
 
 ## ログの確認方法
 
 未確認です。
 
-現行コードに専用ログ出力、監視、外部ログ基盤は確認できません。Next.js開発サーバー/実行環境の標準出力を確認します。
-
 ## バックアップ・リストア方法
 
-未確認です。
-
-現行ファイルDBの場合の暫定案:
-
-- バックアップ: `data/reservation-db.json` を安全な場所へコピー。
-- リストア: アプリ停止後に同ファイルを戻す。
-
-注意:
-
-- 個人情報を含むため、バックアップファイルの保管先・権限管理が必要です。
-- 本番運用手順は未確認です。
-
+Data Connect / Cloud SQL for PostgreSQL のバックアップ方針は未確認です。Cloud SQLの自動バックアップ、ポイントインタイムリカバリ、手動エクスポートの採用を検討してください。

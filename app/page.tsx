@@ -228,8 +228,7 @@ export default function Home() {
   const deleteMenu = async (name: string) => {
     await adminRequestJson<{ ok: boolean }>(`/api/menus/${encodeURIComponent(name)}`, { method: "DELETE" });
     setMenuCatalog(items => items.filter(item => item.name !== name));
-    setReservations(rs => rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).filter(item => item !== name) })));
-    notify("メニューを削除しました");
+    notify("メニューを新規選択肢から削除しました。既存予約の履歴は保持されます");
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
     const { customer } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
@@ -302,15 +301,7 @@ export default function Home() {
       if (deleted) setInactiveStoreList(inactive => [deleted, ...inactive.filter(item => item.id !== deleted.id)]);
       return items.filter(item => item.name !== name);
     });
-    setReservations(rs => rs.map(r => {
-      const storeAssignments = reservationAssignments(r).filter(assignment => assignment.store !== name);
-      return { ...r, storeAssignments, store: storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null };
-    }));
-    setSelected(s => s ? (() => {
-      const storeAssignments = reservationAssignments(s).filter(assignment => assignment.store !== name);
-      return { ...s, storeAssignments, store: storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null };
-    })() : s);
-    notify(`${name}を削除し、関連予約を未割当に戻しました`);
+    notify(`${name}を新規選択肢から削除しました。既存予約の履歴は保持されます`);
   };
   const submitAdminReservation = async () => {
     try {

@@ -304,11 +304,6 @@ export class FileReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     database.stores = database.stores.filter((store) => store.name !== decodedName);
-    database.reservations = database.reservations.map((reservation) => {
-      const storeAssignments = (reservation.storeAssignments ?? []).filter((assignment) => assignment.store !== decodedName);
-      const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-      return { ...reservation, storeAssignments, store };
-    });
     await this.writeDatabase(database);
   }
 
@@ -353,11 +348,6 @@ export class FileReservationRepository implements ReservationRepository {
   async deleteMenu(name: string) {
     const database = await this.readDatabase();
     database.menus = database.menus.filter((menu) => menu.name !== name);
-    database.reservations = database.reservations.map((reservation) => ({
-      ...reservation,
-      menuItems: reservation.menuItems.filter((item) => item !== name),
-      totalAmount: calculateTotalAmount(reservation.menuItems.filter((item) => item !== name), database.menus),
-    }));
     await this.writeDatabase(database);
   }
 }

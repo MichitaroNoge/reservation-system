@@ -98,6 +98,21 @@ test("important reservation workflows", async (t) => {
     );
   });
 
+  await t.test("deleting a store keeps existing reservation assignments", async () => {
+    await repository.deleteStore("渋谷店");
+    const stores = await repository.listStores();
+    const reservations = await repository.listReservations();
+    const target = reservations.find((reservation) => reservation.id === "RSV-1047");
+
+    assert.deepEqual(stores.map((store) => store.name), ["新宿店"]);
+    assert.ok(target);
+    assert.equal(target.store, "複数店舗");
+    assert.deepEqual(target.storeAssignments, [
+      { store: "渋谷店", people: 2 },
+      { store: "新宿店", people: 1 },
+    ]);
+  });
+
   await t.test("bulk marks confirmation contacts", async () => {
     const contactedAt = "2026-07-20T10:00:00.000Z";
     const updated = await Promise.all(
@@ -107,14 +122,16 @@ test("important reservation workflows", async (t) => {
     assert.deepEqual(updated.map((reservation) => reservation.confirmationContactedAt), [contactedAt, contactedAt]);
   });
 
-  await t.test("deleting a menu removes it from reservations and recalculates totals", async () => {
+  await t.test("deleting a menu keeps existing reservation history", async () => {
     await repository.deleteMenu("記念日プレート");
+    const menus = await repository.listMenus();
     const reservations = await repository.listReservations();
     const target = reservations.find((reservation) => reservation.id === "RSV-1047");
 
+    assert.ok(!menus.some((menu) => menu.name === "記念日プレート"));
     assert.ok(target);
-    assert.deepEqual(target.menuItems, ["季節のコース"]);
-    assert.equal(target.totalAmount, 6600);
+    assert.deepEqual(target.menuItems, ["季節のコース", "記念日プレート"]);
+    assert.equal(target.totalAmount, 9000);
   });
 });
 

@@ -507,16 +507,23 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   const [editForm, setEditForm] = useState<BookingForm>(initialEditForm);
   const [isSavingReservation, setIsSavingReservation] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isManualStatusOpen, setIsManualStatusOpen] = useState(false);
+  const [manualStatus, setManualStatus] = useState<Status>(r.status);
+  const [manualStatusReason, setManualStatusReason] = useState("");
   const [assignmentDraft, setAssignmentDraft] = useState<StoreAssignment[]>(reservationAssignments(r).length ? reservationAssignments(r) : [{ store: "", people: r.people }]);
   const assignedPeople = assignmentDraft.reduce((total, assignment) => total + Number(assignment.people || 0), 0);
   const canSaveAssignments = assignmentDraft.length === 0 || (assignedPeople === r.people && assignmentDraft.every(assignment => assignment.store && assignment.people > 0));
   const canSaveReservation = Boolean(editForm.name && editForm.email && editForm.phone && editForm.date && editForm.startTime && editForm.people) && !isSavingReservation;
+  const canSaveManualStatus = manualStatus !== r.status && manualStatusReason.trim().length > 0;
   const canUpdateConfirmationContact = r.status === STATUS.confirmed || r.status === STATUS.waitingForVisit || r.status === STATUS.visited;
   useEffect(() => {
     setEditForm(initialEditForm());
     setIsEditingReservation(false);
     setIsAssigning(false);
-  }, [r.id]);
+    setIsManualStatusOpen(false);
+    setManualStatus(r.status);
+    setManualStatusReason("");
+  }, [r.id, r.status]);
   const updateAssignment = (index: number, patch: Partial<StoreAssignment>) => setAssignmentDraft(items => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   const removeAssignment = (index: number) => setAssignmentDraft(items => items.filter((_, itemIndex) => itemIndex !== index));
   const addAssignment = () => setAssignmentDraft(items => [...items, { store: "", people: Math.max(r.people - assignedPeople, 1) }]);
@@ -539,6 +546,12 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
     assignStores(r.id, assignmentDraft);
     setIsAssigning(false);
   };
+  const saveManualStatus = () => {
+    if (!canSaveManualStatus) return;
+    updateStatus(r.id, manualStatus, { manualReason: manualStatusReason.trim() });
+    setIsManualStatusOpen(false);
+    setManualStatusReason("");
+  };
 
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={"badge " + statusClass[r.status]}><i/>{reservationDisplayLabel(r)}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><div className="drawer-body">
     {isEditingReservation ? <section className="drawer-primary-action"><p className="section-label">予約内容を編集</p><div className="drawer-form single"><label>お名前<input value={editForm.name} onChange={event => setEditForm({ ...editForm, name: event.target.value })}/></label><label>メールアドレス<input type="email" value={editForm.email} onChange={event => setEditForm({ ...editForm, email: event.target.value })}/></label><label>電話番号<input value={editForm.phone} onChange={event => setEditForm({ ...editForm, phone: event.target.value })}/></label></div><div className="drawer-form"><label>利用日<input type="date" value={editForm.date} onChange={event => setEditForm({ ...editForm, date: event.target.value })}/></label><label>開始時間<input type="time" value={editForm.startTime} onChange={event => setEditForm({ ...editForm, startTime: event.target.value })}/></label><label>人数<select value={editForm.people} onChange={event => setEditForm({ ...editForm, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={editForm.menuItems} onChange={menuItems => setEditForm({ ...editForm, menuItems })}/><div className="reservation-summary"><strong>{menuSelectionLabel(editForm.menuItems)}</strong><span>{bookingFormDateTimeLabel(editForm)}・{editForm.people}名</span><small>{"¥"}{selectedMenuTotal(editForm.menuItems, menuCatalog).toLocaleString()}</small></div><div className="drawer-actions"><button onClick={cancelReservationEdit} disabled={isSavingReservation}>キャンセル</button><button className="approve" disabled={!canSaveReservation} onClick={saveReservationEdit}><Icon name="check"/>{isSavingReservation ? "保存中" : "保存する"}</button></div></section> : !isAssigning ? <>
@@ -547,6 +560,8 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
         {r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}><Icon name="check"/>本予約を承認する</button>}
         {r.status === STATUS.waitingForVisit && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.visited)}><Icon name="check"/>来店済みにする</button>}
         {r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}
+        <button className="exception-toggle" type="button" onClick={() => setIsManualStatusOpen(current => !current)}><span><strong>任意のステータスに変更</strong><small>管理者判断で通常の遷移以外にも変更できます</small></span><Icon name="arrow"/></button>
+        {isManualStatusOpen && <div className="manual-status-panel drawer-form"><label>変更先ステータス<select value={manualStatus} onChange={event => setManualStatus(event.target.value as Status)}>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label><label>変更理由<textarea value={manualStatusReason} onChange={event => setManualStatusReason(event.target.value)} placeholder="例: お客様から電話で変更依頼があったため"/></label><button className="full-action manual-status-submit" disabled={!canSaveManualStatus} onClick={saveManualStatus}><Icon name="check"/>ステータスを変更する</button></div>}
       </section>
       <section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section>
       <section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditingReservation(true)}>予約内容を編集</button></section>

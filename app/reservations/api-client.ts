@@ -10,6 +10,15 @@ export async function requestJson<T>(url: string, init?: ApiRequestInit): Promis
       ...headers,
     },
   });
-  if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+  if (!response.ok) {
+    let message = `API request failed: ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && typeof body.error === "string") message = body.error;
+    } catch {
+      // Keep the status-based fallback when the response is not JSON.
+    }
+    throw new Error(message);
+  }
   return response.json() as Promise<T>;
 }

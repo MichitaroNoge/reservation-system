@@ -171,6 +171,7 @@ export type StoreAssignment = {
 };
 
 export type Customer = {
+  id?: string;
   name: string;
   contact: string;
   phone: string;
@@ -179,17 +180,17 @@ export type Customer = {
 };
 
 export type SaveCustomerInput = {
+  id?: string;
   name: string;
   contact: string;
   phone: string;
+  originalContact?: string;
 };
 
 export type Store = {
+  id?: string;
   name: string;
-  area: string;
-  today: number;
-  month: number;
-  state: string;
+  displayOrder: number;
 };
 
 export type SaveStoreInput = Store;
@@ -199,6 +200,7 @@ export type Menu = {
   description: string;
   price: number;
   duration: string;
+  displayOrder: number;
 };
 
 export type CreateReservationInput = {
@@ -206,6 +208,8 @@ export type CreateReservationInput = {
   menuItems?: string[];
   status?: ReservationStatus;
   policyAgreement?: PolicyAgreement;
+  customerFirebaseUid?: string;
+  customerAccountMode?: "account" | "guest" | "admin";
   date: string;
   startTime?: string;
   people: number;

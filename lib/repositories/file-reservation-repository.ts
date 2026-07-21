@@ -8,6 +8,7 @@ type Database = {
   reservations: Reservation[];
   menus: Menu[];
   stores: Store[];
+  customers?: Customer[];
 };
 
 const defaultStartTime = "10:00";
@@ -16,10 +17,11 @@ async function readDatabase(databasePath: string): Promise<Database> {
   try {
     const raw = await readFile(databasePath, "utf8");
     const database = JSON.parse(raw) as Database;
+    database.customers ??= [];
     database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
     return database;
   } catch {
-    const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores };
+    const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores, customers: [] };
     await writeDatabase(databasePath, initial);
     return initial;
   }
@@ -63,6 +65,18 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
   return menuItems.reduce((total, name) => total + (menus.find((menu) => menu.name === name)?.price ?? 0), 0);
+}
+
+function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: string }>(items: T[]) {
+  return [...items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.name.localeCompare(b.name, "ja-JP", { numeric: true }));
+}
+
+function normalizeMenu(menu: Menu): Menu {
+  return { ...menu, displayOrder: menu.displayOrder ?? 0 };
+}
+
+function normalizeStore(store: Store): Store {
+  return { ...store, displayOrder: store.displayOrder ?? 0 };
 }
 
 export class FileReservationRepository implements ReservationRepository {
@@ -166,9 +180,14 @@ export class FileReservationRepository implements ReservationRepository {
   async listCustomers(): Promise<Customer[]> {
     const database = await this.readDatabase();
     const grouped = new Map<string, Customer>();
+    for (const customer of database.customers ?? []) {
+      grouped.set(customer.contact.toLowerCase(), customer);
+    }
     for (const reservation of database.reservations) {
-      const current = grouped.get(reservation.customer);
-      grouped.set(reservation.customer, {
+      const key = (reservation.email ?? reservation.customer).toLowerCase();
+      const current = grouped.get(key);
+      grouped.set(key, {
+        id: current?.id,
         name: reservation.customer,
         contact: reservation.email ?? "customer@example.jp",
         phone: reservation.phone,
@@ -179,12 +198,50 @@ export class FileReservationRepository implements ReservationRepository {
     return Array.from(grouped.values());
   }
 
+  async listInactiveCustomers(): Promise<Customer[]> {
+    return [];
+  }
+
+  async findCustomerForReservationAccount(_firebaseUid: string, email: string): Promise<Customer | null> {
+    const customers = await this.listCustomers();
+    return customers.find((customer) => customer.contact.toLowerCase() === email.toLowerCase()) ?? null;
+  }
+
+  async createCustomer(input: SaveCustomerInput): Promise<Customer> {
+    const database = await this.readDatabase();
+    database.customers ??= [];
+    if (database.customers.some((customer) => customer.contact.toLowerCase() === input.contact.toLowerCase())) {
+      throw new Error(`Customer already exists: ${input.contact}`);
+    }
+    const customer = {
+      id: `file-customer-${Date.now()}`,
+      name: input.name,
+      contact: input.contact,
+      phone: input.phone,
+      count: 0,
+      last: "-",
+    };
+    database.customers.push(customer);
+    await this.writeDatabase(database);
+    return customer;
+  }
+
   async updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer> {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
-    const targets = database.reservations.filter((reservation) => reservation.customer === decodedName);
-    if (!targets.length) throw new Error(`Customer not found: ${decodedName}`);
-    database.reservations = database.reservations.map((reservation) => reservation.customer === decodedName ? {
+    database.customers ??= [];
+    const customerIndex = database.customers.findIndex((customer) => customer.id === input.id || customer.name === decodedName || customer.contact === input.originalContact);
+    if (customerIndex >= 0) {
+      database.customers[customerIndex] = {
+        ...database.customers[customerIndex],
+        name: input.name,
+        contact: input.contact,
+        phone: input.phone,
+      };
+    }
+    const targets = database.reservations.filter((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact);
+    if (!targets.length && customerIndex < 0) throw new Error(`Customer not found: ${decodedName}`);
+    database.reservations = database.reservations.map((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact ? {
       ...reservation,
       customer: input.name,
       email: input.contact,
@@ -199,13 +256,31 @@ export class FileReservationRepository implements ReservationRepository {
   async deleteCustomer(name: string): Promise<void> {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
-    database.reservations = database.reservations.filter((reservation) => reservation.customer !== decodedName);
+    database.customers = (database.customers ?? []).filter((customer) => customer.name !== decodedName);
     await this.writeDatabase(database);
+  }
+
+  async reactivateCustomer(id: string): Promise<Customer> {
+    throw new Error(`Customer not found: ${id}`);
   }
 
   async listStores() {
     const database = await this.readDatabase();
-    return database.stores;
+    return sortByDisplayOrderThenName(database.stores.map(normalizeStore));
+  }
+
+  async listInactiveStores(): Promise<Store[]> {
+    return [];
+  }
+
+  async createStore(input: SaveStoreInput) {
+    const database = await this.readDatabase();
+    if (database.stores.some((store) => store.name === input.name)) {
+      throw new Error(`Store already exists: ${input.name}`);
+    }
+    database.stores.push(normalizeStore(input));
+    await this.writeDatabase(database);
+    return normalizeStore(input);
   }
 
   async updateStore(name: string, input: SaveStoreInput) {
@@ -213,7 +288,7 @@ export class FileReservationRepository implements ReservationRepository {
     const decodedName = decodeURIComponent(name);
     const index = database.stores.findIndex((store) => store.name === decodedName);
     if (index < 0) throw new Error(`Store not found: ${decodedName}`);
-    database.stores[index] = input;
+    database.stores[index] = normalizeStore(input);
     if (decodedName !== input.name) {
       database.reservations = database.reservations.map((reservation) => {
         const storeAssignments = (reservation.storeAssignments ?? []).map((assignment) => assignment.store === decodedName ? { ...assignment, store: input.name } : assignment);
@@ -222,7 +297,7 @@ export class FileReservationRepository implements ReservationRepository {
       });
     }
     await this.writeDatabase(database);
-    return input;
+    return normalizeStore(input);
   }
 
   async deleteStore(name: string) {
@@ -237,9 +312,13 @@ export class FileReservationRepository implements ReservationRepository {
     await this.writeDatabase(database);
   }
 
+  async reactivateStore(id: string): Promise<Store> {
+    throw new Error(`Store not found: ${id}`);
+  }
+
   async listMenus() {
     const database = await this.readDatabase();
-    return database.menus;
+    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu));
   }
 
   async createMenu(input: SaveMenuInput) {
@@ -247,16 +326,16 @@ export class FileReservationRepository implements ReservationRepository {
     if (database.menus.some((menu) => menu.name === input.name)) {
       throw new Error(`Menu already exists: ${input.name}`);
     }
-    database.menus = [...database.menus, input];
+    database.menus = [...database.menus, normalizeMenu(input)];
     await this.writeDatabase(database);
-    return input;
+    return normalizeMenu(input);
   }
 
   async updateMenu(name: string, input: SaveMenuInput) {
     const database = await this.readDatabase();
     const index = database.menus.findIndex((menu) => menu.name === name);
     if (index < 0) throw new Error(`Menu not found: ${name}`);
-    database.menus[index] = input;
+    database.menus[index] = normalizeMenu(input);
     if (name !== input.name) {
       database.reservations = database.reservations.map((reservation) => ({
         ...reservation,
@@ -268,7 +347,7 @@ export class FileReservationRepository implements ReservationRepository {
       totalAmount: calculateTotalAmount(reservation.menuItems, database.menus),
     }));
     await this.writeDatabase(database);
-    return input;
+    return normalizeMenu(input);
   }
 
   async deleteMenu(name: string) {

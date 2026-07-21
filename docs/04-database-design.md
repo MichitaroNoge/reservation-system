@@ -23,6 +23,16 @@
 
 ## 主なカラム
 
+### `Customer`
+
+| カラム | 内容 |
+| --- | --- |
+| `firebaseUid` | Firebase Authenticationユーザーへの紐付け。ログイン済み顧客の場合に設定する |
+| `name` | 顧客名 |
+| `phone` | 電話番号 |
+| `email` | メールアドレス。未ログイン予約では既存Customer再利用の検索キーとして使う |
+| `active` | 非活性化フラグ |
+
 ### `Reservation`
 
 | カラム | 内容 |
@@ -76,6 +86,8 @@ Data Connect enum:
 - `Invoice.invoiceNumber`: `@unique`
 
 PostgreSQLの追加インデックスは未確認です。
+
+`Customer.email` は現在 `@unique` ではありません。代理予約や家族共有メールの可能性を考慮し、DB制約では縛らず、アプリ側でactiveな同一メール顧客を優先的に再利用します。
 
 ## 削除時の扱い
 

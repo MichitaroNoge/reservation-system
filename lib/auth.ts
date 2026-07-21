@@ -17,13 +17,23 @@ export async function requireAdmin(request: Request) {
   return decoded;
 }
 
+export async function verifyOptionalFirebaseUser(request: Request) {
+  const token = bearerToken(request);
+  if (!token) return null;
+  try {
+    return await getAuth(getFirebaseAdminApp()).verifyIdToken(token);
+  } catch {
+    throw new ApiAuthError("Invalid authentication token.", 401);
+  }
+}
+
 function bearerToken(request: Request) {
   const authorization = request.headers.get("authorization") ?? "";
   const match = authorization.match(/^Bearer\s+(.+)$/i);
   return match?.[1] ?? "";
 }
 
-function isAdminToken(decoded: DecodedIdToken) {
+export function isAdminToken(decoded: DecodedIdToken) {
   if (decoded.admin === true || decoded.role === "admin") return true;
   const adminEmails = (process.env.FIREBASE_AUTH_ADMIN_EMAILS ?? "")
     .split(",")

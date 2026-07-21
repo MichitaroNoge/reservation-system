@@ -68,6 +68,20 @@ exports.updateCustomer = function updateCustomer(dcOrVars, vars) {
 }
 ;
 
+const updateCustomerIdentityRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateCustomerIdentity', inputVars);
+}
+updateCustomerIdentityRef.operationName = 'UpdateCustomerIdentity';
+exports.updateCustomerIdentityRef = updateCustomerIdentityRef;
+
+exports.updateCustomerIdentity = function updateCustomerIdentity(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateCustomerIdentityRef(dcInstance, inputVars));
+}
+;
+
 const deactivateCustomerRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -79,6 +93,20 @@ exports.deactivateCustomerRef = deactivateCustomerRef;
 exports.deactivateCustomer = function deactivateCustomer(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(deactivateCustomerRef(dcInstance, inputVars));
+}
+;
+
+const reactivateCustomerRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ReactivateCustomer', inputVars);
+}
+reactivateCustomerRef.operationName = 'ReactivateCustomer';
+exports.reactivateCustomerRef = reactivateCustomerRef;
+
+exports.reactivateCustomer = function reactivateCustomer(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(reactivateCustomerRef(dcInstance, inputVars));
 }
 ;
 
@@ -194,6 +222,20 @@ exports.deleteStoreAssignment = function deleteStoreAssignment(dcOrVars, vars) {
 }
 ;
 
+const createStoreRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateStore', inputVars);
+}
+createStoreRef.operationName = 'CreateStore';
+exports.createStoreRef = createStoreRef;
+
+exports.createStore = function createStore(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createStoreRef(dcInstance, inputVars));
+}
+;
+
 const updateStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -219,6 +261,20 @@ exports.deactivateStoreRef = deactivateStoreRef;
 exports.deactivateStore = function deactivateStore(dcOrVars, vars) {
   const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
   return executeMutation(deactivateStoreRef(dcInstance, inputVars));
+}
+;
+
+const reactivateStoreRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ReactivateStore', inputVars);
+}
+reactivateStoreRef.operationName = 'ReactivateStore';
+exports.reactivateStoreRef = reactivateStoreRef;
+
+exports.reactivateStore = function reactivateStore(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(reactivateStoreRef(dcInstance, inputVars));
 }
 ;
 
@@ -338,6 +394,21 @@ exports.listCustomers = function listCustomers(dcOrOptions, options) {
 }
 ;
 
+const listInactiveCustomersRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInactiveCustomers');
+}
+listInactiveCustomersRef.operationName = 'ListInactiveCustomers';
+exports.listInactiveCustomersRef = listInactiveCustomersRef;
+
+exports.listInactiveCustomers = function listInactiveCustomers(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listInactiveCustomersRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const getCustomerByNameRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -350,6 +421,51 @@ exports.getCustomerByName = function getCustomerByName(dcOrVars, varsOrOptions, 
 
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getCustomerByNameRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCustomerByIdRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCustomerById', inputVars);
+}
+getCustomerByIdRef.operationName = 'GetCustomerById';
+exports.getCustomerByIdRef = getCustomerByIdRef;
+
+exports.getCustomerById = function getCustomerById(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getCustomerByIdRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCustomerByFirebaseUidRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCustomerByFirebaseUid', inputVars);
+}
+getCustomerByFirebaseUidRef.operationName = 'GetCustomerByFirebaseUid';
+exports.getCustomerByFirebaseUidRef = getCustomerByFirebaseUidRef;
+
+exports.getCustomerByFirebaseUid = function getCustomerByFirebaseUid(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getCustomerByFirebaseUidRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getCustomerByEmailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetCustomerByEmail', inputVars);
+}
+getCustomerByEmailRef.operationName = 'GetCustomerByEmail';
+exports.getCustomerByEmailRef = getCustomerByEmailRef;
+
+exports.getCustomerByEmail = function getCustomerByEmail(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getCustomerByEmailRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 
@@ -368,6 +484,21 @@ exports.listStores = function listStores(dcOrOptions, options) {
 }
 ;
 
+const listInactiveStoresRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInactiveStores');
+}
+listInactiveStoresRef.operationName = 'ListInactiveStores';
+exports.listInactiveStoresRef = listInactiveStoresRef;
+
+exports.listInactiveStores = function listInactiveStores(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listInactiveStoresRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const getStoreByNameRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -380,6 +511,21 @@ exports.getStoreByName = function getStoreByName(dcOrVars, varsOrOptions, option
 
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getStoreByNameRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getStoreByIdRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetStoreById', inputVars);
+}
+getStoreByIdRef.operationName = 'GetStoreById';
+exports.getStoreByIdRef = getStoreByIdRef;
+
+exports.getStoreById = function getStoreById(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getStoreByIdRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

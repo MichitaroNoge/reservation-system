@@ -1,9 +1,10 @@
-import { getDataConnect, type ConnectorConfig, type DataConnect } from "firebase-admin/data-connect";
+﻿import { getDataConnect, type ConnectorConfig, type DataConnect } from "firebase-admin/data-connect";
 import {
   addReservationDetail,
   assignStore,
   connectorConfig as generatedConnectorConfig,
   createCustomer,
+  createStore as createDataConnectStore,
   createMenu as createDataConnectMenu,
   createReservation,
   deactivateCustomer,
@@ -11,26 +12,41 @@ import {
   deactivateStore,
   deleteReservationDetail,
   deleteStoreAssignment,
+  getCustomerByEmail,
+  getCustomerByFirebaseUid,
+  getCustomerById,
   getCustomerByName,
   getMenuByName,
   getReservationByCode,
+  getStoreById,
   getStoreByName,
   listCustomers,
+  listInactiveCustomers,
+  listInactiveStores,
   listMenus,
   listReservations,
   listStores,
   updateConfirmationContact,
   updateCustomer,
+  updateCustomerIdentity,
+  reactivateCustomer as reactivateDataConnectCustomer,
+  reactivateStore as reactivateDataConnectStore,
   updateMenu as updateDataConnectMenu,
   updateReservation,
   updateReservationStatus,
   updateStore,
   ReservationStatus as DataConnectSdkReservationStatus,
   type GetCustomerByNameData,
+  type GetCustomerByEmailData,
+  type GetCustomerByFirebaseUidData,
+  type GetCustomerByIdData,
   type GetMenuByNameData,
   type GetReservationByCodeData,
+  type GetStoreByIdData,
   type GetStoreByNameData,
   type ListCustomersData,
+  type ListInactiveCustomersData,
+  type ListInactiveStoresData,
   type ListMenusData,
   type ListReservationsData,
   type ListStoresData,
@@ -55,9 +71,9 @@ import { getFirebaseAdminApp } from "../auth";
 import type { ReservationRepository } from "./reservation-repository";
 
 type DataConnectReservation = ListReservationsData["reservations"][number] | GetReservationByCodeData["reservations"][number];
-type DataConnectCustomer = ListCustomersData["customers"][number] | GetCustomerByNameData["customers"][number];
+type DataConnectCustomer = ListCustomersData["customers"][number] | ListInactiveCustomersData["customers"][number] | NonNullable<GetCustomerByIdData["customer"]> | GetCustomerByNameData["customers"][number] | GetCustomerByEmailData["customers"][number] | GetCustomerByFirebaseUidData["customers"][number];
 type DataConnectMenu = ListMenusData["menus"][number] | GetMenuByNameData["menus"][number];
-type DataConnectStore = ListStoresData["stores"][number] | GetStoreByNameData["stores"][number];
+type DataConnectStore = ListStoresData["stores"][number] | ListInactiveStoresData["stores"][number] | NonNullable<GetStoreByIdData["store"]> | GetStoreByNameData["stores"][number];
 type ReservationWithDataConnectIds = Reservation & {
   dataConnectId: string;
   dataConnectCustomerId: string;
@@ -84,7 +100,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   async createReservation(input: CreateReservationInput) {
     const menuItems = input.menuItems ?? (input.menu ? [input.menu] : []);
     const reservationCode = await this.nextReservationCode();
-    const customer = await this.createDataConnectCustomer(input);
+    const customer = await this.resolveDataConnectCustomer(input);
     const status = toSdkReservationStatus(normalizeReservationStatus(input.status));
     const { data } = await createReservation(this.connection(), {
       reservationCode,
@@ -178,15 +194,55 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return data.customers.map(toCustomer);
   }
 
+  async listInactiveCustomers() {
+    const { data } = await listInactiveCustomers(this.connection());
+    return data.customers.map(toCustomer);
+  }
+
+  async findCustomerForReservationAccount(firebaseUid: string, email: string) {
+    const customerByUid = await this.findDataConnectCustomerByFirebaseUid(firebaseUid);
+    const customer = customerByUid ?? await this.findDataConnectCustomerByEmail(email);
+    return customer ? toCustomer(customer) : null;
+  }
+
+  async createCustomer(input: SaveCustomerInput) {
+    const existing = await this.findDataConnectCustomerByEmail(input.contact);
+    if (existing) throw new Error(`Customer already exists: ${input.contact}`);
+
+    const inactive = (await this.listInactiveCustomers())
+      .find((customer) => customer.contact.toLowerCase() === input.contact.toLowerCase());
+    if (inactive?.id) {
+      await updateCustomer(this.connection(), {
+        id: inactive.id,
+        name: input.name,
+        phone: input.phone,
+        email: input.contact,
+      });
+      await reactivateDataConnectCustomer(this.connection(), { id: inactive.id });
+      const restored = await this.getDataConnectCustomerById(inactive.id);
+      return toCustomer(restored);
+    }
+
+    const { data } = await createCustomer(this.connection(), {
+      name: input.name,
+      phone: input.phone,
+      email: input.contact,
+      firebaseUid: null,
+    });
+    return { id: data.customer_insert.id, name: input.name, contact: input.contact, phone: input.phone, count: 0, last: "-" };
+  }
+
   async updateCustomer(name: string, input: SaveCustomerInput) {
-    const customer = await this.getDataConnectCustomerByName(name);
+    const customer = input.id ? { id: input.id } : input.originalContact
+      ? await this.findDataConnectCustomerByEmail(input.originalContact) ?? await this.getDataConnectCustomerByName(name)
+      : await this.getDataConnectCustomerByName(name);
     await updateCustomer(this.connection(), {
       id: customer.id,
       name: input.name,
       phone: input.phone,
       email: input.contact,
     });
-    return { name: input.name, contact: input.contact, phone: input.phone, count: 0, last: "-" };
+    return { id: customer.id, name: input.name, contact: input.contact, phone: input.phone, count: 0, last: "-" };
   }
 
   async deleteCustomer(name: string) {
@@ -194,9 +250,42 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     await deactivateCustomer(this.connection(), { id: customer.id });
   }
 
+  async reactivateCustomer(id: string) {
+    await reactivateDataConnectCustomer(this.connection(), { id });
+    const customer = await this.getDataConnectCustomerById(id);
+    return toCustomer(customer);
+  }
+
   async listStores() {
     const { data } = await listStores(this.connection());
-    return data.stores.map(toStore);
+    return sortByDisplayOrderThenName(data.stores.map(toStore));
+  }
+
+  async listInactiveStores() {
+    const { data } = await listInactiveStores(this.connection());
+    return sortByDisplayOrderThenName(data.stores.map(toStore));
+  }
+
+  async createStore(input: SaveStoreInput) {
+    const existing = await this.findDataConnectStoreByName(input.name);
+    if (existing?.active) throw new Error(`Store already exists: ${input.name}`);
+    if (existing) {
+      await updateStore(this.connection(), {
+        id: existing.id,
+        name: input.name,
+        displayOrder: input.displayOrder,
+        active: true,
+      });
+      await reactivateDataConnectStore(this.connection(), { id: existing.id });
+      const restored = await this.getDataConnectStoreById(existing.id);
+      return toStore(restored);
+    }
+    await createDataConnectStore(this.connection(), {
+      name: input.name,
+      displayOrder: input.displayOrder,
+      active: true,
+    });
+    return input;
   }
 
   async updateStore(name: string, input: SaveStoreInput) {
@@ -204,10 +293,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     await updateStore(this.connection(), {
       id: store.id,
       name: input.name,
-      address: input.area,
-      active: input.state === "営業中",
+      displayOrder: input.displayOrder,
+      active: true,
     });
-    return input;
+    return { ...input, id: store.id };
   }
 
   async deleteStore(name: string) {
@@ -215,9 +304,15 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     await deactivateStore(this.connection(), { id: store.id });
   }
 
+  async reactivateStore(id: string) {
+    await reactivateDataConnectStore(this.connection(), { id });
+    const store = await this.getDataConnectStoreById(id);
+    return toStore(store);
+  }
+
   async listMenus() {
     const menus = await this.listDataConnectMenus();
-    return menus.map(toMenu);
+    return sortByDisplayOrderThenName(menus.map(toMenu));
   }
 
   async createMenu(input: SaveMenuInput) {
@@ -228,6 +323,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       description: input.description,
       standardPrice: input.price,
       durationMinutes: durationToMinutes(input.duration),
+      displayOrder: input.displayOrder,
       active: true,
     });
     return input;
@@ -241,6 +337,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       description: input.description,
       standardPrice: input.price,
       durationMinutes: durationToMinutes(input.duration),
+      displayOrder: input.displayOrder,
       active: true,
     });
     return input;
@@ -275,8 +372,72 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.email,
+      firebaseUid: input.customerFirebaseUid ?? null,
     });
     return data.customer_insert;
+  }
+
+  private async resolveDataConnectCustomer(input: CreateReservationInput) {
+    if (input.customerFirebaseUid) {
+      const customerByUid = await this.findDataConnectCustomerByFirebaseUid(input.customerFirebaseUid);
+      if (customerByUid) return this.updateDataConnectCustomerIdentity(customerByUid.id, input);
+
+      const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
+      if (customerByEmail?.firebaseUid && customerByEmail.firebaseUid !== input.customerFirebaseUid) {
+        throw new Error("Customer email is already linked to another account.");
+      }
+      if (customerByEmail) return this.updateDataConnectCustomerIdentity(customerByEmail.id, input);
+
+      return this.createDataConnectCustomer(input);
+    }
+
+    if (input.customerAccountMode === "guest") {
+      const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
+      if (customerByEmail) return { id: customerByEmail.id };
+      return this.createDataConnectCustomer(input);
+    }
+
+    const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
+    if (customerByEmail) return this.updateDataConnectCustomerProfile(customerByEmail.id, input);
+
+    return this.createDataConnectCustomer(input);
+  }
+
+  private async updateDataConnectCustomerIdentity(customerId: string, input: CreateReservationInput) {
+    await updateCustomerIdentity(this.connection(), {
+      id: customerId,
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+      firebaseUid: input.customerFirebaseUid,
+    });
+    return { id: customerId };
+  }
+
+  private async updateDataConnectCustomerProfile(customerId: string, input: CreateReservationInput) {
+    await updateCustomer(this.connection(), {
+      id: customerId,
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+    });
+    return { id: customerId };
+  }
+
+  private async findDataConnectCustomerByFirebaseUid(firebaseUid: string) {
+    const { data } = await getCustomerByFirebaseUid(this.connection(), { firebaseUid });
+    return data.customers[0];
+  }
+
+  private async findDataConnectCustomerByEmail(email: string) {
+    const { data } = await getCustomerByEmail(this.connection(), { email });
+    return data.customers[0];
+  }
+
+  private async getDataConnectCustomerById(id: string) {
+    const { data } = await getCustomerById(this.connection(), { id });
+    if (!data.customer) throw new Error(`Customer not found: ${id}`);
+    return data.customer;
   }
 
   private async getDataConnectCustomerByName(name: string) {
@@ -287,10 +448,20 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   private async getDataConnectStoreByName(name: string) {
-    const { data } = await getStoreByName(this.connection(), { name });
-    const store = data.stores[0];
+    const store = await this.findDataConnectStoreByName(name);
     if (!store) throw new Error(`Store not found: ${name}`);
     return store;
+  }
+
+  private async getDataConnectStoreById(id: string) {
+    const { data } = await getStoreById(this.connection(), { id });
+    if (!data.store) throw new Error(`Store not found: ${id}`);
+    return data.store;
+  }
+
+  private async findDataConnectStoreByName(name: string) {
+    const { data } = await getStoreByName(this.connection(), { name });
+    return data.stores[0];
   }
 
   private async findDataConnectMenuByName(name: string) {
@@ -372,6 +543,7 @@ function toReservation(reservation: DataConnectReservation): Reservation {
 function toCustomer(customer: DataConnectCustomer): Customer {
   const reservations = "reservations_on_customer" in customer ? customer.reservations_on_customer ?? [] : [];
   return {
+    id: customer.id,
     name: customer.name,
     contact: customer.email,
     phone: customer.phone,
@@ -382,11 +554,9 @@ function toCustomer(customer: DataConnectCustomer): Customer {
 
 function toStore(store: DataConnectStore): Store {
   return {
+    id: store.id,
     name: store.name,
-    area: store.address ?? "",
-    today: 0,
-    month: 0,
-    state: store.active === false ? "休業中" : "営業中",
+    displayOrder: store.displayOrder ?? 0,
   };
 }
 
@@ -396,7 +566,12 @@ function toMenu(menu: DataConnectMenu): Menu {
     description: menu.description ?? "",
     price: menu.standardPrice,
     duration: menu.durationMinutes > 0 ? `${menu.durationMinutes}分` : "来店後",
+    displayOrder: menu.displayOrder ?? 0,
   };
+}
+
+function sortByDisplayOrderThenName<T extends { displayOrder: number; name: string }>(items: T[]) {
+  return [...items].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name, "ja-JP", { numeric: true }));
 }
 
 function durationToMinutes(duration: string) {

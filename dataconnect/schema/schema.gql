@@ -26,7 +26,7 @@ type Customer @table {
 type Store @table {
   id: UUID! @default(expr: "uuidV4()")
   name: String! @col(dataType: "varchar(100)")
-  address: String @col(dataType: "varchar(255)")
+  displayOrder: Int! @default(value: 0)
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -38,6 +38,7 @@ type Menu @table {
   description: String
   standardPrice: Int!
   durationMinutes: Int!
+  displayOrder: Int! @default(value: 0)
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

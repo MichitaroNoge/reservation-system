@@ -3,19 +3,19 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { FileReservationRepository } from "../lib/repositories/file-reservation-repository";
 import { reservationStatusCodes } from "../lib/domain";
+import { FileReservationRepository } from "../lib/repositories/file-reservation-repository";
 import type { Menu, Reservation, Store } from "../lib/domain";
 
 const menus: Menu[] = [
-  { name: "季節のコース", description: "コース", price: 6600, duration: "90分" },
-  { name: "記念日プレート", description: "デザート", price: 2400, duration: "10分" },
-  { name: "来店後に注文", description: "当日注文", price: 0, duration: "来店後" },
+  { name: "季節のコース", description: "コース", price: 6600, duration: "90分", displayOrder: 10 },
+  { name: "記念日プレート", description: "デザート", price: 2400, duration: "10分", displayOrder: 20 },
+  { name: "来店後に注文", description: "当日注文", price: 0, duration: "来店後", displayOrder: 999 },
 ];
 
 const stores: Store[] = [
-  { name: "渋谷店", area: "東京都渋谷区", today: 0, month: 0, state: "営業中" },
-  { name: "新宿店", area: "東京都新宿区", today: 0, month: 0, state: "営業中" },
+  { name: "渋谷店", displayOrder: 10 },
+  { name: "新宿店", displayOrder: 20 },
 ];
 
 const baseReservations: Reservation[] = [

@@ -25,12 +25,12 @@
 
 - 目的: 顧客が仮予約または本予約を申し込む。
 - 利用者: 顧客。
-- 入力: 予約種別、同意チェック、利用日、開始時間、人数、氏名、メールアドレス、電話番号、メニュー。
-- 処理内容: フォーム入力を `POST /api/reservations` へ送信し、API側で入力検証後、Repositoryで予約を追加する。
+- 入力: 予約種別、同意チェック、利用日、開始時間、人数、氏名、メールアドレス、電話番号、メニュー。任意でFirebase Authenticationの顧客アカウントにログインまたは新規登録できる。
+- 処理内容: フォーム入力を `POST /api/reservations` へ送信し、API側で入力検証後、Repositoryで予約を追加する。ログイン済み顧客はFirebase IDトークンから `firebaseUid` を取得し、既存Customerを再利用する。ログイン時は `/api/customers/me` で既存Customerを取得し、名前・電話番号の初期値に使う。未ログイン顧客はメールアドレスで既存Customerを再利用し、存在しない場合は新規作成する。
 - 出力: 受付完了画面、トースト通知。
 - エラー時の動作: API失敗時に「予約申請の保存に失敗しました」を表示。
 - 関連データモデル: `Reservation`, `PolicyAgreement`, `Menu`。
-- 根拠: `CustomerPortal` in `app/page.tsx`, `app/api/reservations/route.ts`, `lib/api-validation.ts`, `FileReservationRepository.createReservation`, `FirebaseSqlConnectReservationRepository.createReservation`。
+- 根拠: `CustomerPortal` in `app/page.tsx`, `app/reservations/hooks/use-customer-session.ts`, `app/api/reservations/route.ts`, `lib/api-validation.ts`, `FileReservationRepository.createReservation`, `FirebaseSqlConnectReservationRepository.createReservation`。
 
 ### 予約一覧・検索・フィルタ
 

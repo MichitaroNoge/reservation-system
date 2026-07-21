@@ -1,15 +1,15 @@
 mutation SeedStoresAndMenus @auth(level: NO_ACCESS) {
   store_insertMany(data: [
-    { name: "渋谷店", address: "東京都渋谷区", active: true }
-    { name: "新宿店", address: "東京都新宿区", active: true }
-    { name: "横浜店", address: "神奈川県横浜市", active: true }
+    { name: "渋谷店", displayOrder: 10, active: true }
+    { name: "新宿店", displayOrder: 20, active: true }
+    { name: "横浜店", displayOrder: 30, active: true }
   ])
   menu_insertMany(data: [
-    { name: "前菜盛り合わせ", description: "季節野菜と小皿料理の盛り合わせ", standardPrice: 1800, durationMinutes: 15, active: true }
-    { name: "パスタランチ", description: "本日のパスタ、サラダ、ドリンク付き", standardPrice: 2000, durationMinutes: 45, active: true }
-    { name: "季節のコース", description: "前菜、メイン、デザートまで楽しめるコース", standardPrice: 6600, durationMinutes: 90, active: true }
-    { name: "飲み放題プラン", description: "コースに追加できる90分飲み放題", standardPrice: 2800, durationMinutes: 90, active: true }
-    { name: "記念日プレート", description: "メッセージ付きデザートプレート", standardPrice: 2400, durationMinutes: 10, active: true }
-    { name: "来店後に注文", description: "来店後にメニューを注文します", standardPrice: 0, durationMinutes: 0, active: true }
+    { name: "前菜盛り合わせ", description: "季節野菜と小皿料理の盛り合わせ", standardPrice: 1800, durationMinutes: 15, displayOrder: 10, active: true }
+    { name: "パスタランチ", description: "本日のパスタ、サラダ、ドリンク付き", standardPrice: 2000, durationMinutes: 45, displayOrder: 20, active: true }
+    { name: "季節のコース", description: "前菜、メイン、デザートまで楽しめるコース", standardPrice: 6600, durationMinutes: 90, displayOrder: 30, active: true }
+    { name: "飲み放題プラン", description: "コースに追加できる90分飲み放題", standardPrice: 2800, durationMinutes: 90, displayOrder: 40, active: true }
+    { name: "記念日プレート", description: "メッセージ付きデザートプレート", standardPrice: 2400, durationMinutes: 10, displayOrder: 50, active: true }
+    { name: "来店後に注文", description: "来店後にメニューを注文します", standardPrice: 0, durationMinutes: 0, displayOrder: 999, active: true }
   ])
 }

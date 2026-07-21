@@ -23,9 +23,10 @@ Firebase Authentication を利用します。
 | 権限 | 判定方法 | 実行可能な操作 |
 | --- | --- | --- |
 | 未ログイン利用者 | IDトークンなし | 顧客予約申請のうち公開申請ステータスのみ |
+| ログイン済み顧客 | Firebase IDトークンあり、管理者ではない | 顧客予約申請。Customerは `firebaseUid` で紐付く |
 | 管理者 | `admin=true`、`role=admin`、または `FIREBASE_AUTH_ADMIN_EMAILS` のメール一致 | 予約管理、確認連絡、店舗割当、顧客/店舗/メニュー管理 |
 
-顧客ロール、店舗担当者ロールは未実装です。
+顧客ログインは予約申請時のCustomer紐付けに利用します。顧客本人の予約一覧、変更、キャンセルなどのマイページ機能は未実装です。店舗担当者ロールも未実装です。
 
 ## 認可チェックの実装箇所
 
@@ -36,6 +37,7 @@ Firebase Authentication を利用します。
 例外:
 
 - `POST /api/reservations` は、`temporary_requested` または `confirmed_requested` の顧客申請に限り未ログインで利用可能です。
+- 顧客ログイン済みの場合、`POST /api/reservations` は任意のBearer IDトークンを検証し、管理者でないユーザーの `uid` を `Customer.firebaseUid` として利用します。
 - 店舗・メニューの公開参照queryは、予約フォームの選択肢として使えるため `@auth(level: PUBLIC)` のままです。
 
 根拠:

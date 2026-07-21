@@ -62,6 +62,7 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  firebaseUid?: string | null;
 }
 
 export interface CreateMenuData {
@@ -73,6 +74,7 @@ export interface CreateMenuVariables {
   description?: string | null;
   standardPrice: number;
   durationMinutes: number;
+  displayOrder?: number | null;
   active: boolean;
 }
 
@@ -89,6 +91,16 @@ export interface CreateReservationVariables {
   status: ReservationStatus;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
+}
+
+export interface CreateStoreData {
+  store_insert: Store_Key;
+}
+
+export interface CreateStoreVariables {
+  name: string;
+  displayOrder?: number | null;
+  active: boolean;
 }
 
 export interface Customer_Key {
@@ -136,6 +148,50 @@ export interface DeleteStoreAssignmentVariables {
   id: UUIDString;
 }
 
+export interface GetCustomerByEmailData {
+  customers: ({
+    id: UUIDString;
+    name: string;
+    phone: string;
+    email: string;
+    firebaseUid?: string | null;
+    active: boolean;
+  } & Customer_Key)[];
+}
+
+export interface GetCustomerByEmailVariables {
+  email: string;
+}
+
+export interface GetCustomerByFirebaseUidData {
+  customers: ({
+    id: UUIDString;
+    name: string;
+    phone: string;
+    email: string;
+    firebaseUid?: string | null;
+    active: boolean;
+  } & Customer_Key)[];
+}
+
+export interface GetCustomerByFirebaseUidVariables {
+  firebaseUid: string;
+}
+
+export interface GetCustomerByIdData {
+  customer?: {
+    id: UUIDString;
+    name: string;
+    phone: string;
+    email: string;
+    active: boolean;
+  } & Customer_Key;
+}
+
+export interface GetCustomerByIdVariables {
+  id: UUIDString;
+}
+
 export interface GetCustomerByNameData {
   customers: ({
     id: UUIDString;
@@ -157,6 +213,7 @@ export interface GetMenuByNameData {
     description?: string | null;
     standardPrice: number;
     durationMinutes: number;
+    displayOrder: number;
     active: boolean;
   } & Menu_Key)[];
 }
@@ -194,6 +251,7 @@ export interface GetReservationByCodeData {
         description?: string | null;
         standardPrice: number;
         durationMinutes: number;
+        displayOrder: number;
       } & Menu_Key;
     } & ReservationDetail_Key)[];
     storeAssignments_on_reservation: ({
@@ -203,7 +261,7 @@ export interface GetReservationByCodeData {
       store: {
         id: UUIDString;
         name: string;
-        address?: string | null;
+        displayOrder: number;
       } & Store_Key;
     } & StoreAssignment_Key)[];
   } & Reservation_Key)[];
@@ -242,6 +300,7 @@ export interface GetReservationData {
         description?: string | null;
         standardPrice: number;
         durationMinutes: number;
+        displayOrder: number;
       } & Menu_Key;
     } & ReservationDetail_Key)[];
     storeAssignments_on_reservation: ({
@@ -251,7 +310,7 @@ export interface GetReservationData {
       store: {
         id: UUIDString;
         name: string;
-        address?: string | null;
+        displayOrder: number;
       } & Store_Key;
     } & StoreAssignment_Key)[];
     visitRecord_on_reservation?: {
@@ -273,11 +332,24 @@ export interface GetReservationVariables {
   id: UUIDString;
 }
 
+export interface GetStoreByIdData {
+  store?: {
+    id: UUIDString;
+    name: string;
+    displayOrder: number;
+    active: boolean;
+  } & Store_Key;
+}
+
+export interface GetStoreByIdVariables {
+  id: UUIDString;
+}
+
 export interface GetStoreByNameData {
   stores: ({
     id: UUIDString;
     name: string;
-    address?: string | null;
+    displayOrder: number;
     active: boolean;
   } & Store_Key)[];
 }
@@ -332,6 +404,33 @@ export interface ListCustomersData {
   } & Customer_Key)[];
 }
 
+export interface ListInactiveCustomersData {
+  customers: ({
+    id: UUIDString;
+    name: string;
+    phone: string;
+    email: string;
+    firebaseUid?: string | null;
+    active: boolean;
+    createdAt: TimestampString;
+    reservations_on_customer: ({
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      status: ReservationStatus;
+    } & Reservation_Key)[];
+  } & Customer_Key)[];
+}
+
+export interface ListInactiveStoresData {
+  stores: ({
+    id: UUIDString;
+    name: string;
+    displayOrder: number;
+    active: boolean;
+  } & Store_Key)[];
+}
+
 export interface ListMenusData {
   menus: ({
     id: UUIDString;
@@ -339,6 +438,7 @@ export interface ListMenusData {
     description?: string | null;
     standardPrice: number;
     durationMinutes: number;
+    displayOrder: number;
     active: boolean;
   } & Menu_Key)[];
 }
@@ -372,6 +472,7 @@ export interface ListReservationsData {
         description?: string | null;
         standardPrice: number;
         durationMinutes: number;
+        displayOrder: number;
       } & Menu_Key;
     } & ReservationDetail_Key)[];
     storeAssignments_on_reservation: ({
@@ -381,7 +482,7 @@ export interface ListReservationsData {
       store: {
         id: UUIDString;
         name: string;
-        address?: string | null;
+        displayOrder: number;
       } & Store_Key;
     } & StoreAssignment_Key)[];
   } & Reservation_Key)[];
@@ -391,7 +492,7 @@ export interface ListStoresData {
   stores: ({
     id: UUIDString;
     name: string;
-    address?: string | null;
+    displayOrder: number;
     active: boolean;
   } & Store_Key)[];
 }
@@ -399,6 +500,22 @@ export interface ListStoresData {
 export interface Menu_Key {
   id: UUIDString;
   __typename?: 'Menu_Key';
+}
+
+export interface ReactivateCustomerData {
+  customer_update?: Customer_Key | null;
+}
+
+export interface ReactivateCustomerVariables {
+  id: UUIDString;
+}
+
+export interface ReactivateStoreData {
+  store_update?: Store_Key | null;
+}
+
+export interface ReactivateStoreVariables {
+  id: UUIDString;
 }
 
 export interface RecordVisitData {
@@ -445,6 +562,18 @@ export interface UpdateCustomerData {
   customer_update?: Customer_Key | null;
 }
 
+export interface UpdateCustomerIdentityData {
+  customer_update?: Customer_Key | null;
+}
+
+export interface UpdateCustomerIdentityVariables {
+  id: UUIDString;
+  name: string;
+  phone: string;
+  email: string;
+  firebaseUid?: string | null;
+}
+
 export interface UpdateCustomerVariables {
   id: UUIDString;
   name: string;
@@ -462,6 +591,7 @@ export interface UpdateMenuVariables {
   description?: string | null;
   standardPrice: number;
   durationMinutes: number;
+  displayOrder?: number | null;
   active: boolean;
 }
 
@@ -492,7 +622,7 @@ export interface UpdateStoreData {
 export interface UpdateStoreVariables {
   id: UUIDString;
   name: string;
-  address?: string | null;
+  displayOrder?: number | null;
   active: boolean;
 }
 
@@ -516,10 +646,20 @@ export function updateCustomer(dc: DataConnect, vars: UpdateCustomerVariables, o
 /** Generated Node Admin SDK operation action function for the 'UpdateCustomer' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateCustomer(vars: UpdateCustomerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateCustomerData>>;
 
+/** Generated Node Admin SDK operation action function for the 'UpdateCustomerIdentity' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateCustomerIdentity(dc: DataConnect, vars: UpdateCustomerIdentityVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateCustomerIdentityData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateCustomerIdentity' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateCustomerIdentity(vars: UpdateCustomerIdentityVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateCustomerIdentityData>>;
+
 /** Generated Node Admin SDK operation action function for the 'DeactivateCustomer' Mutation. Allow users to execute without passing in DataConnect. */
 export function deactivateCustomer(dc: DataConnect, vars: DeactivateCustomerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateCustomerData>>;
 /** Generated Node Admin SDK operation action function for the 'DeactivateCustomer' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deactivateCustomer(vars: DeactivateCustomerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateCustomerData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ReactivateCustomer' Mutation. Allow users to execute without passing in DataConnect. */
+export function reactivateCustomer(dc: DataConnect, vars: ReactivateCustomerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateCustomerData>>;
+/** Generated Node Admin SDK operation action function for the 'ReactivateCustomer' Mutation. Allow users to pass in custom DataConnect instances. */
+export function reactivateCustomer(vars: ReactivateCustomerVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateCustomerData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateReservation' Mutation. Allow users to execute without passing in DataConnect. */
 export function createReservation(dc: DataConnect, vars: CreateReservationVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateReservationData>>;
@@ -561,6 +701,11 @@ export function deleteStoreAssignment(dc: DataConnect, vars: DeleteStoreAssignme
 /** Generated Node Admin SDK operation action function for the 'DeleteStoreAssignment' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deleteStoreAssignment(vars: DeleteStoreAssignmentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteStoreAssignmentData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateStore' Mutation. Allow users to execute without passing in DataConnect. */
+export function createStore(dc: DataConnect, vars: CreateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateStoreData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateStore' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createStore(vars: CreateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateStoreData>>;
+
 /** Generated Node Admin SDK operation action function for the 'UpdateStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function updateStore(dc: DataConnect, vars: UpdateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'UpdateStore' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -570,6 +715,11 @@ export function updateStore(vars: UpdateStoreVariables, options?: OperationOptio
 export function deactivateStore(dc: DataConnect, vars: DeactivateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'DeactivateStore' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deactivateStore(vars: DeactivateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateStoreData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ReactivateStore' Mutation. Allow users to execute without passing in DataConnect. */
+export function reactivateStore(dc: DataConnect, vars: ReactivateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateStoreData>>;
+/** Generated Node Admin SDK operation action function for the 'ReactivateStore' Mutation. Allow users to pass in custom DataConnect instances. */
+export function reactivateStore(vars: ReactivateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateStoreData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateMenu' Mutation. Allow users to execute without passing in DataConnect. */
 export function createMenu(dc: DataConnect, vars: CreateMenuVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateMenuData>>;
@@ -611,20 +761,50 @@ export function listCustomers(dc: DataConnect, options?: OperationOptions): Prom
 /** Generated Node Admin SDK operation action function for the 'ListCustomers' Query. Allow users to pass in custom DataConnect instances. */
 export function listCustomers(options?: OperationOptions): Promise<ExecuteOperationResponse<ListCustomersData>>;
 
+/** Generated Node Admin SDK operation action function for the 'ListInactiveCustomers' Query. Allow users to execute without passing in DataConnect. */
+export function listInactiveCustomers(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveCustomersData>>;
+/** Generated Node Admin SDK operation action function for the 'ListInactiveCustomers' Query. Allow users to pass in custom DataConnect instances. */
+export function listInactiveCustomers(options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveCustomersData>>;
+
 /** Generated Node Admin SDK operation action function for the 'GetCustomerByName' Query. Allow users to execute without passing in DataConnect. */
 export function getCustomerByName(dc: DataConnect, vars: GetCustomerByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByNameData>>;
 /** Generated Node Admin SDK operation action function for the 'GetCustomerByName' Query. Allow users to pass in custom DataConnect instances. */
 export function getCustomerByName(vars: GetCustomerByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByNameData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetCustomerById' Query. Allow users to execute without passing in DataConnect. */
+export function getCustomerById(dc: DataConnect, vars: GetCustomerByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByIdData>>;
+/** Generated Node Admin SDK operation action function for the 'GetCustomerById' Query. Allow users to pass in custom DataConnect instances. */
+export function getCustomerById(vars: GetCustomerByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByIdData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetCustomerByFirebaseUid' Query. Allow users to execute without passing in DataConnect. */
+export function getCustomerByFirebaseUid(dc: DataConnect, vars: GetCustomerByFirebaseUidVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByFirebaseUidData>>;
+/** Generated Node Admin SDK operation action function for the 'GetCustomerByFirebaseUid' Query. Allow users to pass in custom DataConnect instances. */
+export function getCustomerByFirebaseUid(vars: GetCustomerByFirebaseUidVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByFirebaseUidData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetCustomerByEmail' Query. Allow users to execute without passing in DataConnect. */
+export function getCustomerByEmail(dc: DataConnect, vars: GetCustomerByEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByEmailData>>;
+/** Generated Node Admin SDK operation action function for the 'GetCustomerByEmail' Query. Allow users to pass in custom DataConnect instances. */
+export function getCustomerByEmail(vars: GetCustomerByEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetCustomerByEmailData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListStores' Query. Allow users to execute without passing in DataConnect. */
 export function listStores(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListStoresData>>;
 /** Generated Node Admin SDK operation action function for the 'ListStores' Query. Allow users to pass in custom DataConnect instances. */
 export function listStores(options?: OperationOptions): Promise<ExecuteOperationResponse<ListStoresData>>;
 
+/** Generated Node Admin SDK operation action function for the 'ListInactiveStores' Query. Allow users to execute without passing in DataConnect. */
+export function listInactiveStores(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveStoresData>>;
+/** Generated Node Admin SDK operation action function for the 'ListInactiveStores' Query. Allow users to pass in custom DataConnect instances. */
+export function listInactiveStores(options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveStoresData>>;
+
 /** Generated Node Admin SDK operation action function for the 'GetStoreByName' Query. Allow users to execute without passing in DataConnect. */
 export function getStoreByName(dc: DataConnect, vars: GetStoreByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetStoreByNameData>>;
 /** Generated Node Admin SDK operation action function for the 'GetStoreByName' Query. Allow users to pass in custom DataConnect instances. */
 export function getStoreByName(vars: GetStoreByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetStoreByNameData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetStoreById' Query. Allow users to execute without passing in DataConnect. */
+export function getStoreById(dc: DataConnect, vars: GetStoreByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetStoreByIdData>>;
+/** Generated Node Admin SDK operation action function for the 'GetStoreById' Query. Allow users to pass in custom DataConnect instances. */
+export function getStoreById(vars: GetStoreByIdVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetStoreByIdData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListMenus' Query. Allow users to execute without passing in DataConnect. */
 export function listMenus(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListMenusData>>;

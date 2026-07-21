@@ -502,14 +502,38 @@ function MenuPicker({ menuCatalog, selected, onChange }: { menuCatalog: Menu[]; 
 }
 
 function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfirmationContact, assignStores, updateReservation, menuCatalog, stores }: { reservation: Reservation; onClose: () => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void; updateConfirmationContact: (id: string, contactedAt: string | null) => Promise<void>; assignStores: (id: string, assignments: StoreAssignment[]) => void; updateReservation: (id: string, form: BookingForm) => Promise<Reservation>; menuCatalog: Menu[]; stores: Store[] }) {
+  const initialEditForm = (): BookingForm => ({ menuItems: r.menuItems ?? (r.menu ? [r.menu] : []), date: r.date, startTime: r.startTime ?? DEFAULT_START_TIME, people: r.people, name: r.customer, email: r.email ?? "", phone: r.phone, status: r.status });
+  const [isEditingReservation, setIsEditingReservation] = useState(false);
+  const [editForm, setEditForm] = useState<BookingForm>(initialEditForm);
+  const [isSavingReservation, setIsSavingReservation] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignmentDraft, setAssignmentDraft] = useState<StoreAssignment[]>(reservationAssignments(r).length ? reservationAssignments(r) : [{ store: "", people: r.people }]);
   const assignedPeople = assignmentDraft.reduce((total, assignment) => total + Number(assignment.people || 0), 0);
   const canSaveAssignments = assignmentDraft.length === 0 || (assignedPeople === r.people && assignmentDraft.every(assignment => assignment.store && assignment.people > 0));
+  const canSaveReservation = Boolean(editForm.name && editForm.email && editForm.phone && editForm.date && editForm.startTime && editForm.people) && !isSavingReservation;
   const canUpdateConfirmationContact = r.status === STATUS.confirmed || r.status === STATUS.waitingForVisit || r.status === STATUS.visited;
+  useEffect(() => {
+    setEditForm(initialEditForm());
+    setIsEditingReservation(false);
+    setIsAssigning(false);
+  }, [r.id]);
   const updateAssignment = (index: number, patch: Partial<StoreAssignment>) => setAssignmentDraft(items => items.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   const removeAssignment = (index: number) => setAssignmentDraft(items => items.filter((_, itemIndex) => itemIndex !== index));
   const addAssignment = () => setAssignmentDraft(items => [...items, { store: "", people: Math.max(r.people - assignedPeople, 1) }]);
+  const cancelReservationEdit = () => {
+    setEditForm(initialEditForm());
+    setIsEditingReservation(false);
+  };
+  const saveReservationEdit = async () => {
+    if (!canSaveReservation) return;
+    setIsSavingReservation(true);
+    try {
+      await updateReservation(r.id, editForm);
+      setIsEditingReservation(false);
+    } finally {
+      setIsSavingReservation(false);
+    }
+  };
   const saveAssignments = () => {
     if (!canSaveAssignments) return;
     assignStores(r.id, assignmentDraft);
@@ -517,7 +541,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   };
 
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={"badge " + statusClass[r.status]}><i/>{reservationDisplayLabel(r)}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><div className="drawer-body">
-    {!isAssigning ? <>
+    {isEditingReservation ? <section className="drawer-primary-action"><p className="section-label">予約内容を編集</p><div className="drawer-form single"><label>お名前<input value={editForm.name} onChange={event => setEditForm({ ...editForm, name: event.target.value })}/></label><label>メールアドレス<input type="email" value={editForm.email} onChange={event => setEditForm({ ...editForm, email: event.target.value })}/></label><label>電話番号<input value={editForm.phone} onChange={event => setEditForm({ ...editForm, phone: event.target.value })}/></label></div><div className="drawer-form"><label>利用日<input type="date" value={editForm.date} onChange={event => setEditForm({ ...editForm, date: event.target.value })}/></label><label>開始時間<input type="time" value={editForm.startTime} onChange={event => setEditForm({ ...editForm, startTime: event.target.value })}/></label><label>人数<select value={editForm.people} onChange={event => setEditForm({ ...editForm, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={editForm.menuItems} onChange={menuItems => setEditForm({ ...editForm, menuItems })}/><div className="reservation-summary"><strong>{menuSelectionLabel(editForm.menuItems)}</strong><span>{bookingFormDateTimeLabel(editForm)}・{editForm.people}名</span><small>{"¥"}{selectedMenuTotal(editForm.menuItems, menuCatalog).toLocaleString()}</small></div><div className="drawer-actions"><button onClick={cancelReservationEdit} disabled={isSavingReservation}>キャンセル</button><button className="approve" disabled={!canSaveReservation} onClick={saveReservationEdit}><Icon name="check"/>{isSavingReservation ? "保存中" : "保存する"}</button></div></section> : !isAssigning ? <>
       <section className="drawer-next-action"><p className="section-label">次のアクション</p>
         {r.status === STATUS.temporaryRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.temporaryConfirmed)}><Icon name="check"/>仮予約を承認する</button>}
         {r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}><Icon name="check"/>本予約を承認する</button>}
@@ -525,7 +549,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
         {r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}
       </section>
       <section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section>
-      <section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl></section>
+      <section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditingReservation(true)}>予約内容を編集</button></section>
       <section><p className="section-label">店舗割当</p><dl><div><dt>割当状況</dt><dd>{assignmentLabel(r) || "未割当"}</dd></div><div><dt>割当人数</dt><dd>{reservationAssignments(r).reduce((total, assignment) => total + assignment.people, 0)}名 / {r.people}名</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsAssigning(true)}>店舗割当を編集</button></section>
       {canUpdateConfirmationContact && <section><p className="section-label">確認連絡</p><dl><div><dt>連絡状況</dt><dd>{r.confirmationContactedAt ? "連絡済み" : "未連絡"}</dd></div></dl>{r.confirmationContactedAt ? <button className="edit-reservation-button" onClick={() => updateConfirmationContact(r.id, null)}>未連絡に戻す</button> : <button className="full-action" onClick={() => updateConfirmationContact(r.id, new Date().toISOString())}><Icon name="check"/>確認連絡済みにする</button>}</section>}
     </> : <section className="drawer-primary-action"><p className="section-label">店舗割当を編集</p><div className="assignment-editor">{assignmentDraft.map((assignment, index) => <div className="assignment-row" key={index}><select value={assignment.store} onChange={event => updateAssignment(index, { store: event.target.value })}><option value="">店舗を選択</option>{stores.map(store => <option key={store.name} value={store.name}>{store.name}</option>)}</select><input type="number" min="1" max={r.people} value={assignment.people || ""} onChange={event => updateAssignment(index, { people: Number(event.target.value) })}/><span>名</span><button onClick={() => removeAssignment(index)}>削除</button></div>)}</div><button className="edit-reservation-button" onClick={addAssignment}>割当行を追加</button><div className={assignmentDraft.length === 0 || assignedPeople === r.people ? "assignment-total ok" : "assignment-total warn"}>{assignmentDraft.length === 0 ? "未割当として保存できます" : <>割当合計 {assignedPeople}名 / 予約人数 {r.people}名</>}</div><div className="drawer-actions"><button onClick={() => setIsAssigning(false)}>キャンセル</button><button className="approve" disabled={!canSaveAssignments} onClick={saveAssignments}><Icon name="check"/>保存する</button></div></section>}

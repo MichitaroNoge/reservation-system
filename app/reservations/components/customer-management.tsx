@@ -195,7 +195,6 @@ export function CustomerManagement({
                   <td>{customer.last}</td>
                   <td>
                     <div className="row-actions">
-                      <button type="button" onClick={() => notify(`${customer.name}様の利用履歴を表示しました`)}>利用履歴</button>
                       <button type="button" onClick={() => startEdit(customer)}>編集</button>
                       <button type="button" className="danger" onClick={() => remove(customer)}>削除</button>
                     </div>

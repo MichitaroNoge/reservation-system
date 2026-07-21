@@ -408,7 +408,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
   const pageDescriptions: Record<Exclude<View, "dashboard">, string> = {
     reservations: "",
     confirmationContacts: "",
-    customers: "予約者の連絡先と利用履歴を確認できます。",
+    customers: "予約者の連絡先を確認できます。",
     stores: "店舗ごとの割当状況を確認できます。",
     menus: "予約フォームで選択できる料理・コースを管理します。",
     billing: "来店実績、売上、請求書の発行状況を管理します。",

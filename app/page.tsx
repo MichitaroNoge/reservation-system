@@ -516,6 +516,11 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   const canSaveReservation = Boolean(editForm.name && editForm.email && editForm.phone && editForm.date && editForm.startTime && editForm.people) && !isSavingReservation;
   const canSaveManualStatus = manualStatus !== r.status && manualStatusReason.trim().length > 0;
   const canUpdateConfirmationContact = r.status === STATUS.confirmed || r.status === STATUS.waitingForVisit || r.status === STATUS.visited;
+  const nextActionComments = isConfirmedReservation(r) ? [
+    !r.menuItems?.length && { title: "メニュー未確定", text: "予約内容を編集してメニューを確定してください。" },
+    !reservationAssignments(r).length && { title: "店舗未割当", text: "店舗割当を編集して担当店舗を割り当ててください。" },
+    !r.confirmationContactedAt && { title: "未確認連絡", text: "お客様へ確認連絡を行い、連絡済みにしてください。" },
+  ].filter(Boolean) as { title: string; text: string }[] : [];
   useEffect(() => {
     setEditForm(initialEditForm());
     setIsEditingReservation(false);
@@ -560,6 +565,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
         {r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}><Icon name="check"/>本予約を承認する</button>}
         {r.status === STATUS.waitingForVisit && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.visited)}><Icon name="check"/>来店済みにする</button>}
         {r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}
+        {nextActionComments.length > 0 && <div className="next-action-notes">{nextActionComments.map(comment => <div className="next-action-note" key={comment.title}><strong>{comment.title}</strong><span>{comment.text}</span></div>)}</div>}
       </section>
       <section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section>
       <section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditingReservation(true)}>予約内容を編集</button></section>

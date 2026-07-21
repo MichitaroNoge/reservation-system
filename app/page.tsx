@@ -50,26 +50,26 @@ export default function Home() {
   useEffect(() => {
     requestJson<{ menus: Menu[] }>("/api/menus")
       .then(({ menus }) => setMenuCatalog(sortByDisplayOrderThenName(menus)))
-      .catch(() => notify("繝｡繝九Η繝ｼ繝・・繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("メニューデータの読み込みに失敗しました"));
     requestJson<{ stores: Store[] }>("/api/stores")
       .then(({ stores }) => setStores(sortByDisplayOrderThenName(stores)))
-      .catch(() => notify("蠎苓・繝・・繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("店舗データの読み込みに失敗しました"));
   }, []);
 
   useEffect(() => {
     if (!adminSession) return;
     adminRequestJson<{ reservations: Reservation[] }>("/api/reservations")
       .then(({ reservations }) => setReservations(reservations))
-      .catch(() => notify("莠育ｴ・ョ繝ｼ繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("予約データの読み込みに失敗しました"));
     adminRequestJson<{ customers: Customer[] }>("/api/customers")
       .then(({ customers }) => setCustomerList(customers))
-      .catch(() => notify("鬘ｧ螳｢繝・・繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("顧客データの読み込みに失敗しました"));
     adminRequestJson<{ customers: Customer[] }>("/api/customers/inactive")
       .then(({ customers }) => setInactiveCustomerList(customers))
-      .catch(() => notify("蜑企勁貂医∩鬘ｧ螳｢繝・・繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("削除済み顧客データの読み込みに失敗しました"));
     adminRequestJson<{ stores: Store[] }>("/api/stores/inactive")
       .then(({ stores }) => setInactiveStoreList(sortByDisplayOrderThenName(stores)))
-      .catch(() => notify("蜑企勁貂医∩蠎苓・繝・・繧ｿ縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆"));
+      .catch(() => notify("削除済み店舗データの読み込みに失敗しました"));
   }, [adminSession]);
 
   const visible = useMemo(() => filter === "すべて" ? reservations : reservations.filter(r => r.status.includes(filter)), [filter, reservations]);
@@ -126,9 +126,9 @@ export default function Home() {
       const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, manualReason: options?.manualReason }) });
       setReservations(rs => rs.map(r => r.id === id ? reservation : r));
       setSelected(s => s?.id === id ? reservation : s);
-      notify(`莠育ｴ・ｒ縲・{statusLabel(status)}縲阪∈譖ｴ譁ｰ縺励∪縺励◆`);
+      notify(`予約を「${statusLabel(status)}」へ更新しました`);
     } catch {
-      notify("繧ｹ繝・・繧ｿ繧ｹ譖ｴ譁ｰ縺ｮ菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆");
+      notify("ステータス更新の保存に失敗しました");
     }
   };
   const assignStores = async (id: string, assignments: StoreAssignment[]) => {
@@ -139,16 +139,16 @@ export default function Home() {
       const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}/store`, { method: "PATCH", body: JSON.stringify({ assignments }) });
       const transitioned = await applyAutomaticStatus(reservation);
       if (reservation.status === STATUS.confirmed && transitioned.status === STATUS.waitingForVisit) {
-        notify("繝｡繝九Η繝ｼ繝ｻ蠎苓・蜑ｲ蠖薙・遒ｺ隱埼｣邨｡縺悟ｮ御ｺ・＠縺溘◆繧√∵悽莠育ｴ・｢ｺ螳夲ｼ域擂蠎怜ｾ・■・峨↓縺励∪縺励◆");
+        notify("メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました");
         return;
       }
       if (reservation.status === STATUS.waitingForVisit && transitioned.status === STATUS.confirmed) {
-        notify("蠎苓・蜑ｲ蠖薙ｒ譛ｪ蜑ｲ蠖薙↓謌ｻ縺励◆縺溘ａ縲∵悽莠育ｴ・｢ｺ螳壹↓謌ｻ縺励∪縺励◆");
+        notify("店舗割当を未割当に戻したため、本予約確定に戻しました");
         return;
       }
       notify(reservation.status === STATUS.confirmed ? "店舗割当を保存しました。メニュー選択と確認連絡後に来店待ちへ進みます" : "店舗割当を保存しました");
     } catch {
-      notify("蠎苓・蜑ｲ蠖薙・菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆");
+      notify("店舗割当の保存に失敗しました");
     }
   };
   const createReservation = async (input: BookingForm, options?: ReservationSubmitOptions) => {
@@ -177,7 +177,7 @@ export default function Home() {
     setSelected(s => s?.id === id ? reservation : s);
     const transitioned = await applyAutomaticStatus(reservation);
     if (reservation.status === STATUS.confirmed && transitioned.status === STATUS.waitingForVisit) {
-      notify("繝｡繝九Η繝ｼ繝ｻ蠎苓・蜑ｲ蠖薙・遒ｺ隱埼｣邨｡縺悟ｮ御ｺ・＠縺溘◆繧√∵悽莠育ｴ・｢ｺ螳夲ｼ域擂蠎怜ｾ・■・峨↓縺励∪縺励◆");
+      notify("メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました");
       return transitioned;
     }
     notify(`予約内容を更新しました（${id}）`);
@@ -193,14 +193,14 @@ export default function Home() {
   const updateConfirmationContact = async (id: string, contactedAt: string | null) => {
     const reservation = await saveConfirmationContact(id, contactedAt);
     if (contactedAt && reservation.status === STATUS.waitingForVisit) {
-      notify("繝｡繝九Η繝ｼ繝ｻ蠎苓・蜑ｲ蠖薙・遒ｺ隱埼｣邨｡縺悟ｮ御ｺ・＠縺溘◆繧√∵悽莠育ｴ・｢ｺ螳夲ｼ域擂蠎怜ｾ・■・峨↓縺励∪縺励◆");
+      notify("メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました");
       return;
     }
     if (!contactedAt && reservation.status === STATUS.confirmed) {
-      notify("遒ｺ隱埼｣邨｡繧呈悴螳滓命縺ｫ謌ｻ縺励◆縺溘ａ縲∵悽莠育ｴ・｢ｺ螳壹↓謌ｻ縺励∪縺励◆");
+      notify("確認連絡を未実施に戻したため、本予約確定に戻しました");
       return;
     }
-    notify(contactedAt ? "遒ｺ隱埼｣邨｡貂医∩縺ｫ譖ｴ譁ｰ縺励∪縺励◆" : "遒ｺ隱埼｣邨｡繧呈悴螳滓命縺ｫ謌ｻ縺励∪縺励◆");
+    notify(contactedAt ? "確認連絡済みに更新しました" : "確認連絡を未実施に戻しました");
   };
   const bulkUpdateConfirmationContacts = async () => {
     if (!confirmationContactTargets.length || isBulkContacting) return;
@@ -212,7 +212,7 @@ export default function Home() {
       const updated = await Promise.all(confirmationContactTargets.map(reservation => saveConfirmationContact(reservation.id, contactedAt)));
       notify(`${updated.length}件を確認連絡済みにしました`);
     } catch {
-      notify("荳諡ｬ遒ｺ隱埼｣邨｡縺ｮ菫晏ｭ倥↓螟ｱ謨励＠縺ｾ縺励◆");
+      notify("一括確認連絡の保存に失敗しました");
     } finally {
       setIsBulkContacting(false);
     }
@@ -223,26 +223,26 @@ export default function Home() {
     const { menu } = await adminRequestJson<{ menu: Menu }>(url, { method, body: JSON.stringify(input) });
     setMenuCatalog(items => sortByDisplayOrderThenName(originalName ? items.map(item => item.name === originalName ? menu : item) : [...items, menu]));
     setReservations(rs => originalName && originalName !== menu.name ? rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).map(item => item === originalName ? menu.name : item) })) : rs);
-    notify(originalName ? "繝｡繝九Η繝ｼ繧呈峩譁ｰ縺励∪縺励◆" : "繝｡繝九Η繝ｼ繧定ｿｽ蜉縺励∪縺励◆");
+    notify(originalName ? "メニューを更新しました" : "メニューを追加しました");
   };
   const deleteMenu = async (name: string) => {
     await adminRequestJson<{ ok: boolean }>(`/api/menus/${encodeURIComponent(name)}`, { method: "DELETE" });
     setMenuCatalog(items => items.filter(item => item.name !== name));
     setReservations(rs => rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).filter(item => item !== name) })));
-    notify("繝｡繝九Η繝ｼ繧貞炎髯､縺励∪縺励◆");
+    notify("メニューを削除しました");
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
     const { customer } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
     setCustomerList(items => items.map(item => item.id && customer.id && item.id === customer.id ? customer : item.name === originalName || item.contact === input.originalContact ? customer : item));
     setReservations(rs => rs.map(r => r.customer === originalName || r.email === input.originalContact ? { ...r, customer: customer.name, email: customer.contact, phone: customer.phone } : r));
     setSelected(s => s && (s.customer === originalName || s.email === input.originalContact) ? { ...s, customer: customer.name, email: customer.contact, phone: customer.phone } : s);
-    notify(`${customer.name}讒倥・鬘ｧ螳｢諠・ｱ繧呈峩譁ｰ縺励∪縺励◆`);
+    notify(`${customer.name}様の顧客情報を更新しました`);
   };
   const createCustomer = async (input: CustomerForm) => {
     const { customer } = await adminRequestJson<{ customer: Customer }>("/api/customers", { method: "POST", body: JSON.stringify(input) });
     setInactiveCustomerList(items => items.filter(item => item.id !== customer.id && item.contact !== customer.contact));
     setCustomerList(items => [customer, ...items.filter(item => item.id !== customer.id && item.contact !== customer.contact)]);
-    notify(`${customer.name}讒倥・鬘ｧ螳｢諠・ｱ繧堤匳骭ｲ縺励∪縺励◆`);
+    notify(`${customer.name}様の顧客情報を登録しました`);
   };
   const deleteCustomer = async (name: string) => {
     await adminRequestJson<{ ok: boolean }>(`/api/customers/${encodeURIComponent(name)}`, { method: "DELETE" });
@@ -254,23 +254,23 @@ export default function Home() {
       return items.filter(item => item.name !== name);
     });
     setSelected(s => s?.customer === name ? null : s);
-    notify(`${name}讒倥・鬘ｧ螳｢諠・ｱ繧貞炎髯､縺励∪縺励◆`);
+    notify(`${name}様の顧客情報を削除しました`);
   };
   const reactivateCustomer = async (customer: Customer) => {
-    if (!customer.id) throw new Error("蠕ｩ蜈・ｯｾ雎｡縺ｮ鬘ｧ螳｢ID縺後≠繧翫∪縺帙ｓ");
+    if (!customer.id) throw new Error("復元対象の顧客IDがありません");
     const { customer: restored } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(customer.name)}/reactivate`, {
       method: "PATCH",
       body: JSON.stringify({ id: customer.id }),
     });
     setInactiveCustomerList(items => items.filter(item => item.id !== restored.id));
     setCustomerList(items => [restored, ...items.filter(item => item.id !== restored.id)]);
-    notify(`${restored.name}讒倥ｒ譛牙柑縺ｫ縺励∪縺励◆`);
+    notify(`${restored.name}様を有効にしました`);
   };
   const createStore = async (input: StoreForm) => {
     const { store } = await adminRequestJson<{ store: Store }>("/api/stores", { method: "POST", body: JSON.stringify(input) });
     setInactiveStoreList(items => items.filter(item => item.id !== store.id && item.name !== store.name));
     setStores(items => sortByDisplayOrderThenName([store, ...items.filter(item => item.id !== store.id && item.name !== store.name)]));
-    notify(`${store.name}繧堤匳骭ｲ縺励∪縺励◆`);
+    notify(`${store.name}を登録しました`);
   };
   const saveStore = async (originalName: string, input: StoreForm) => {
     const { store } = await adminRequestJson<{ store: Store }>(`/api/stores/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
@@ -283,17 +283,17 @@ export default function Home() {
       const storeAssignments = reservationAssignments(s).map(assignment => assignment.store === originalName ? { ...assignment, store: store.name } : assignment);
       return { ...s, storeAssignments, store: storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : s.store === originalName ? store.name : s.store };
     })() : s);
-    notify(`${store.name}繧呈峩譁ｰ縺励∪縺励◆`);
+    notify(`${store.name}を更新しました`);
   };
   const reactivateStore = async (store: Store) => {
-    if (!store.id) throw new Error("蠕ｩ蜈・ｯｾ雎｡縺ｮ蠎苓・ID縺後≠繧翫∪縺帙ｓ");
+    if (!store.id) throw new Error("復元対象の店舗IDがありません");
     const { store: restored } = await adminRequestJson<{ store: Store }>(`/api/stores/${encodeURIComponent(store.name)}/reactivate`, {
       method: "PATCH",
       body: JSON.stringify({ id: store.id }),
     });
     setInactiveStoreList(items => items.filter(item => item.id !== restored.id));
     setStores(items => sortByDisplayOrderThenName([restored, ...items.filter(item => item.id !== restored.id)]));
-    notify(`${restored.name}繧呈怏蜉ｹ縺ｫ縺励∪縺励◆`);
+    notify(`${restored.name}を有効にしました`);
   };
   const deleteStore = async (name: string) => {
     await adminRequestJson<{ ok: boolean }>(`/api/stores/${encodeURIComponent(name)}`, { method: "DELETE" });
@@ -310,7 +310,7 @@ export default function Home() {
       const storeAssignments = reservationAssignments(s).filter(assignment => assignment.store !== name);
       return { ...s, storeAssignments, store: storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null };
     })() : s);
-    notify(`${name}繧貞炎髯､縺励・未騾｣莠育ｴ・ｒ譛ｪ蜑ｲ蠖薙↓謌ｻ縺励∪縺励◆`);
+    notify(`${name}を削除し、関連予約を未割当に戻しました`);
   };
   const submitAdminReservation = async () => {
     try {
@@ -324,7 +324,7 @@ export default function Home() {
       setSelected(reservation);
       notify(`予約を登録しました（${reservation.id}）`);
     } catch {
-      notify("莠育ｴ・匳骭ｲ縺ｫ螟ｱ謨励＠縺ｾ縺励◆");
+      notify("予約登録に失敗しました");
     }
   };
 

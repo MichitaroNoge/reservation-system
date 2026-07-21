@@ -423,6 +423,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
     setReservationSort(current => current.key === key ? { key, direction: current.direction === "asc" ? "desc" : "asc" } : { key, direction: "asc" });
   };
   const sortLabel = (key: ReservationSortKey) => reservationSort.key === key ? (reservationSort.direction === "asc" ? "↑" : "↓") : "↕";
+  const hasReservationDateFilter = Boolean(reservationDateFromFilter || reservationDateToFilter);
   const quickFilters: ReservationFilter[] = ["すべて", "承認待ち", "仮予約確定", "仮予約確定（期限切れ）", "本予約確定", "本予約確定（メニュー未確定）", "本予約確定（店舗未割当）", "本予約確定（未確認連絡）", "本予約確定（来店待ち）"];
   const pageDescriptions: Record<Exclude<View, "dashboard">, string> = {
     reservations: "",
@@ -440,7 +441,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
         <div className="reservation-search-row">
           <label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label>
           <div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>〜</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>
-          {(reservationDateFromFilter || reservationDateToFilter) && <button className="clear-filter" onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>}
+          <button className={hasReservationDateFilter ? "clear-filter" : "clear-filter is-placeholder"} disabled={!hasReservationDateFilter} aria-hidden={!hasReservationDateFilter} tabIndex={hasReservationDateFilter ? 0 : -1} onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>
           <div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div>
           <button type="button" className="reservation-new-button" onClick={onOpenNewReservation}><Icon name="plus"/>新規登録</button>
         </div>

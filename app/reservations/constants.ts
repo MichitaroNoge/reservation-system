@@ -31,8 +31,10 @@ export const defaultStores: Store[] = [
 export const statusClass: Record<Status, string> = {
   temporary_requested: "amber",
   temporary_confirmed: "blue",
+  temporary_rejected: "red",
   confirmed_requested: "violet",
   confirmed: "green",
+  confirmed_rejected: "red",
   waiting_for_visit: "cyan",
   visited: "gray",
   cancellation_requested: "red",

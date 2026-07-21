@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { reservationStatusCodes } from "../lib/domain";
+import { canTransitionReservationStatus, reservationStatusCodes } from "../lib/domain";
 import { FileReservationRepository } from "../lib/repositories/file-reservation-repository";
 import type { Menu, Reservation, Store } from "../lib/domain";
 
@@ -79,6 +79,12 @@ test("important reservation workflows", async (t) => {
     const reservation = await repository.updateReservationStatus("RSV-1047", reservationStatusCodes.waitingForVisit);
 
     assert.equal(reservation.status, reservationStatusCodes.waitingForVisit);
+  });
+
+  await t.test("allows rejecting temporary and confirmed reservation requests", () => {
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.temporaryRequested, reservationStatusCodes.temporaryRejected), true);
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmedRequested, reservationStatusCodes.confirmedRejected), true);
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmed, reservationStatusCodes.confirmedRejected), false);
   });
 
   await t.test("assigns people across stores and rejects mismatched totals", async () => {

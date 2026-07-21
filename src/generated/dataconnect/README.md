@@ -1,4 +1,4 @@
-# Generated TypeScript README
+﻿# Generated TypeScript README
 This README will guide you through the process of using the generated JavaScript SDK package for the connector `reservation`. It will also provide examples on how to use your generated SDK to call your Data Connect queries and mutations.
 
 **If you're looking for the `React README`, you can find it at [`dataconnect/react/README.md`](./react/README.md)**
@@ -24,6 +24,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*GetStoreByName*](#getstorebyname)
   - [*GetStoreById*](#getstorebyid)
   - [*ListMenus*](#listmenus)
+  - [*ListInactiveMenus*](#listinactivemenus)
   - [*GetMenuByName*](#getmenubyname)
   - [*ListBillingRecords*](#listbillingrecords)
 - [**Mutations**](#mutations)
@@ -47,6 +48,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*CreateMenu*](#createmenu)
   - [*UpdateMenu*](#updatemenu)
   - [*DeactivateMenu*](#deactivatemenu)
+  - [*ReactivateMenu*](#reactivatemenu)
   - [*RecordVisit*](#recordvisit)
 
 # Accessing the connector
@@ -1715,6 +1717,105 @@ const ref = listMenusRef();
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = listMenusRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.menus);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.menus);
+});
+```
+
+## ListInactiveMenus
+You can execute the `ListInactiveMenus` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+listInactiveMenus(options?: ExecuteQueryOptions): QueryPromise<ListInactiveMenusData, undefined>;
+
+interface ListInactiveMenusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListInactiveMenusData, undefined>;
+}
+export const listInactiveMenusRef: ListInactiveMenusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listInactiveMenus(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInactiveMenusData, undefined>;
+
+interface ListInactiveMenusRef {
+  ...
+  (dc: DataConnect): QueryRef<ListInactiveMenusData, undefined>;
+}
+export const listInactiveMenusRef: ListInactiveMenusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listInactiveMenusRef:
+```typescript
+const name = listInactiveMenusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListInactiveMenus` query has no variables.
+### Return Type
+Recall that executing the `ListInactiveMenus` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListInactiveMenusData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListInactiveMenusData {
+  menus: ({
+    id: UUIDString;
+    name: string;
+    description?: string | null;
+    standardPrice: number;
+    durationMinutes: number;
+    displayOrder: number;
+    active: boolean;
+  } & Menu_Key)[];
+}
+```
+### Using `ListInactiveMenus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listInactiveMenus } from '@reservation-system/dataconnect';
+
+
+// Call the `listInactiveMenus()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listInactiveMenus();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listInactiveMenus(dataConnect);
+
+console.log(data.menus);
+
+// Or, you can use the `Promise` API.
+listInactiveMenus().then((response) => {
+  const data = response.data;
+  console.log(data.menus);
+});
+```
+
+### Using `ListInactiveMenus`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listInactiveMenusRef } from '@reservation-system/dataconnect';
+
+
+// Call the `listInactiveMenusRef()` function to get a reference to the query.
+const ref = listInactiveMenusRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listInactiveMenusRef(dataConnect);
 
 // Call `executeQuery()` on the reference to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
@@ -4266,6 +4367,115 @@ const ref = deactivateMenuRef({ id: ..., });
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = deactivateMenuRef(dataConnect, deactivateMenuVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.menu_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.menu_update);
+});
+```
+
+## ReactivateMenu
+You can execute the `ReactivateMenu` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+reactivateMenu(vars: ReactivateMenuVariables): MutationPromise<ReactivateMenuData, ReactivateMenuVariables>;
+
+interface ReactivateMenuRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ReactivateMenuVariables): MutationRef<ReactivateMenuData, ReactivateMenuVariables>;
+}
+export const reactivateMenuRef: ReactivateMenuRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+reactivateMenu(dc: DataConnect, vars: ReactivateMenuVariables): MutationPromise<ReactivateMenuData, ReactivateMenuVariables>;
+
+interface ReactivateMenuRef {
+  ...
+  (dc: DataConnect, vars: ReactivateMenuVariables): MutationRef<ReactivateMenuData, ReactivateMenuVariables>;
+}
+export const reactivateMenuRef: ReactivateMenuRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the reactivateMenuRef:
+```typescript
+const name = reactivateMenuRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ReactivateMenu` mutation requires an argument of type `ReactivateMenuVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ReactivateMenuVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `ReactivateMenu` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ReactivateMenuData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ReactivateMenuData {
+  menu_update?: Menu_Key | null;
+}
+```
+### Using `ReactivateMenu`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, reactivateMenu, ReactivateMenuVariables } from '@reservation-system/dataconnect';
+
+// The `ReactivateMenu` mutation requires an argument of type `ReactivateMenuVariables`:
+const reactivateMenuVars: ReactivateMenuVariables = {
+  id: ...,
+};
+
+// Call the `reactivateMenu()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await reactivateMenu(reactivateMenuVars);
+// Variables can be defined inline as well.
+const { data } = await reactivateMenu({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await reactivateMenu(dataConnect, reactivateMenuVars);
+
+console.log(data.menu_update);
+
+// Or, you can use the `Promise` API.
+reactivateMenu(reactivateMenuVars).then((response) => {
+  const data = response.data;
+  console.log(data.menu_update);
+});
+```
+
+### Using `ReactivateMenu`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, reactivateMenuRef, ReactivateMenuVariables } from '@reservation-system/dataconnect';
+
+// The `ReactivateMenu` mutation requires an argument of type `ReactivateMenuVariables`:
+const reactivateMenuVars: ReactivateMenuVariables = {
+  id: ...,
+};
+
+// Call the `reactivateMenuRef()` function to get a reference to the mutation.
+const ref = reactivateMenuRef(reactivateMenuVars);
+// Variables can be defined inline as well.
+const ref = reactivateMenuRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = reactivateMenuRef(dataConnect, reactivateMenuVars);
 
 // Call `executeMutation()` on the reference to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.

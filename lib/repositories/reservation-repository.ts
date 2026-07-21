@@ -21,7 +21,9 @@ export type ReservationRepository = {
   deleteStore(name: string): Promise<void>;
   reactivateStore(id: string): Promise<Store>;
   listMenus(): Promise<Menu[]>;
+  listInactiveMenus(): Promise<Menu[]>;
   createMenu(input: SaveMenuInput): Promise<Menu>;
   updateMenu(name: string, input: SaveMenuInput): Promise<Menu>;
   deleteMenu(name: string): Promise<void>;
+  reactivateMenu(id: string): Promise<Menu>;
 };

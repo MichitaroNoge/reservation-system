@@ -22,6 +22,7 @@ import {
   getStoreByName,
   listCustomers,
   listInactiveCustomers,
+  listInactiveMenus,
   listInactiveStores,
   listMenus,
   listReservations,
@@ -30,6 +31,7 @@ import {
   updateCustomer,
   updateCustomerIdentity,
   reactivateCustomer as reactivateDataConnectCustomer,
+  reactivateMenu as reactivateDataConnectMenu,
   reactivateStore as reactivateDataConnectStore,
   updateMenu as updateDataConnectMenu,
   updateReservation,
@@ -46,6 +48,7 @@ import {
   type GetStoreByNameData,
   type ListCustomersData,
   type ListInactiveCustomersData,
+  type ListInactiveMenusData,
   type ListInactiveStoresData,
   type ListMenusData,
   type ListReservationsData,
@@ -72,7 +75,7 @@ import type { ReservationRepository } from "./reservation-repository";
 
 type DataConnectReservation = ListReservationsData["reservations"][number] | GetReservationByCodeData["reservations"][number];
 type DataConnectCustomer = ListCustomersData["customers"][number] | ListInactiveCustomersData["customers"][number] | NonNullable<GetCustomerByIdData["customer"]> | GetCustomerByNameData["customers"][number] | GetCustomerByEmailData["customers"][number] | GetCustomerByFirebaseUidData["customers"][number];
-type DataConnectMenu = ListMenusData["menus"][number] | GetMenuByNameData["menus"][number];
+type DataConnectMenu = ListMenusData["menus"][number] | ListInactiveMenusData["menus"][number] | GetMenuByNameData["menus"][number];
 type DataConnectStore = ListStoresData["stores"][number] | ListInactiveStoresData["stores"][number] | NonNullable<GetStoreByIdData["store"]> | GetStoreByNameData["stores"][number];
 type ReservationWithDataConnectIds = Reservation & {
   dataConnectId: string;
@@ -315,9 +318,28 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return sortByDisplayOrderThenName(menus.map(toMenu));
   }
 
+  async listInactiveMenus() {
+    const { data } = await listInactiveMenus(this.connection());
+    return sortByDisplayOrderThenName(data.menus.map(toMenu));
+  }
+
   async createMenu(input: SaveMenuInput) {
     const existing = await this.findDataConnectMenuByName(input.name);
-    if (existing) throw new Error(`Menu already exists: ${input.name}`);
+    if (existing?.active) throw new Error(`Menu already exists: ${input.name}`);
+    if (existing) {
+      await updateDataConnectMenu(this.connection(), {
+        id: existing.id,
+        name: input.name,
+        description: input.description,
+        standardPrice: input.price,
+        durationMinutes: durationToMinutes(input.duration),
+        displayOrder: input.displayOrder,
+        active: true,
+      });
+      await reactivateDataConnectMenu(this.connection(), { id: existing.id });
+      const restored = await this.getDataConnectMenuByName(input.name);
+      return toMenu(restored);
+    }
     await createDataConnectMenu(this.connection(), {
       name: input.name,
       description: input.description,
@@ -346,6 +368,14 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   async deleteMenu(name: string) {
     const menu = await this.getDataConnectMenuByName(name);
     await deactivateMenu(this.connection(), { id: menu.id });
+  }
+
+  async reactivateMenu(id: string) {
+    await reactivateDataConnectMenu(this.connection(), { id });
+    const menus = await this.listDataConnectInactiveAndActiveMenus();
+    const menu = menus.find((item) => item.id === id);
+    if (!menu) throw new Error(`Menu not found: ${id}`);
+    return toMenu(menu);
   }
 
   private connection() {
@@ -497,6 +527,12 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return data.menus;
   }
 
+  private async listDataConnectInactiveAndActiveMenus() {
+    const activeMenus = await this.listDataConnectMenus();
+    const { data } = await listInactiveMenus(this.connection());
+    return [...activeMenus, ...data.menus];
+  }
+
   private async nextReservationCode() {
     const reservations = await this.listReservations();
     const maxNumber = reservations.reduce((max, reservation) => {
@@ -562,11 +598,13 @@ function toStore(store: DataConnectStore): Store {
 
 function toMenu(menu: DataConnectMenu): Menu {
   return {
+    id: menu.id,
     name: menu.name,
     description: menu.description ?? "",
     price: menu.standardPrice,
     duration: menu.durationMinutes > 0 ? `${menu.durationMinutes}分` : "来店後",
     displayOrder: menu.displayOrder ?? 0,
+    active: menu.active,
   };
 }
 

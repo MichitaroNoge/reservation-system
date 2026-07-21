@@ -125,13 +125,25 @@ test("important reservation workflows", async (t) => {
   await t.test("deleting a menu keeps existing reservation history", async () => {
     await repository.deleteMenu("記念日プレート");
     const menus = await repository.listMenus();
+    const inactiveMenus = await repository.listInactiveMenus();
     const reservations = await repository.listReservations();
     const target = reservations.find((reservation) => reservation.id === "RSV-1047");
 
     assert.ok(!menus.some((menu) => menu.name === "記念日プレート"));
+    assert.equal(inactiveMenus.length, 1);
+    assert.equal(inactiveMenus[0].name, "記念日プレート");
     assert.ok(target);
     assert.deepEqual(target.menuItems, ["季節のコース", "記念日プレート"]);
     assert.equal(target.totalAmount, 9000);
+  });
+
+  await t.test("reactivating a menu returns it to active choices", async () => {
+    const inactiveMenus = await repository.listInactiveMenus();
+    const restored = await repository.reactivateMenu(inactiveMenus[0].id ?? "");
+    const menus = await repository.listMenus();
+
+    assert.equal(restored.name, "記念日プレート");
+    assert.ok(menus.some((menu) => menu.name === "記念日プレート"));
   });
 });
 

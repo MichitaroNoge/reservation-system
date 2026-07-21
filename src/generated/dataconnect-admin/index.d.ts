@@ -1,4 +1,4 @@
-import { ConnectorConfig, DataConnect, OperationOptions, ExecuteOperationResponse } from 'firebase-admin/data-connect';
+﻿import { ConnectorConfig, DataConnect, OperationOptions, ExecuteOperationResponse } from 'firebase-admin/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 
@@ -422,6 +422,18 @@ export interface ListInactiveCustomersData {
   } & Customer_Key)[];
 }
 
+export interface ListInactiveMenusData {
+  menus: ({
+    id: UUIDString;
+    name: string;
+    description?: string | null;
+    standardPrice: number;
+    durationMinutes: number;
+    displayOrder: number;
+    active: boolean;
+  } & Menu_Key)[];
+}
+
 export interface ListInactiveStoresData {
   stores: ({
     id: UUIDString;
@@ -507,6 +519,14 @@ export interface ReactivateCustomerData {
 }
 
 export interface ReactivateCustomerVariables {
+  id: UUIDString;
+}
+
+export interface ReactivateMenuData {
+  menu_update?: Menu_Key | null;
+}
+
+export interface ReactivateMenuVariables {
   id: UUIDString;
 }
 
@@ -736,6 +756,11 @@ export function deactivateMenu(dc: DataConnect, vars: DeactivateMenuVariables, o
 /** Generated Node Admin SDK operation action function for the 'DeactivateMenu' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deactivateMenu(vars: DeactivateMenuVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateMenuData>>;
 
+/** Generated Node Admin SDK operation action function for the 'ReactivateMenu' Mutation. Allow users to execute without passing in DataConnect. */
+export function reactivateMenu(dc: DataConnect, vars: ReactivateMenuVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateMenuData>>;
+/** Generated Node Admin SDK operation action function for the 'ReactivateMenu' Mutation. Allow users to pass in custom DataConnect instances. */
+export function reactivateMenu(vars: ReactivateMenuVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ReactivateMenuData>>;
+
 /** Generated Node Admin SDK operation action function for the 'RecordVisit' Mutation. Allow users to execute without passing in DataConnect. */
 export function recordVisit(dc: DataConnect, vars: RecordVisitVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<RecordVisitData>>;
 /** Generated Node Admin SDK operation action function for the 'RecordVisit' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -810,6 +835,11 @@ export function getStoreById(vars: GetStoreByIdVariables, options?: OperationOpt
 export function listMenus(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListMenusData>>;
 /** Generated Node Admin SDK operation action function for the 'ListMenus' Query. Allow users to pass in custom DataConnect instances. */
 export function listMenus(options?: OperationOptions): Promise<ExecuteOperationResponse<ListMenusData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListInactiveMenus' Query. Allow users to execute without passing in DataConnect. */
+export function listInactiveMenus(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveMenusData>>;
+/** Generated Node Admin SDK operation action function for the 'ListInactiveMenus' Query. Allow users to pass in custom DataConnect instances. */
+export function listInactiveMenus(options?: OperationOptions): Promise<ExecuteOperationResponse<ListInactiveMenusData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetMenuByName' Query. Allow users to execute without passing in DataConnect. */
 export function getMenuByName(dc: DataConnect, vars: GetMenuByNameVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetMenuByNameData>>;

@@ -1,4 +1,4 @@
-const { validateAdminArgs } = require('firebase-admin/data-connect');
+﻿const { validateAdminArgs } = require('firebase-admin/data-connect');
 
 const BillingStatus = {
   UNBILLED: "UNBILLED",
@@ -173,6 +173,13 @@ function deactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.deactivateMenu = deactivateMenu;
 
+function reactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ReactivateMenu', inputVars, inputOpts);
+}
+exports.reactivateMenu = reactivateMenu;
+
 function recordVisit(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -277,6 +284,13 @@ function listMenus(dcOrOptions, options) {
   return dcInstance.executeQuery('ListMenus', undefined, inputOpts);
 }
 exports.listMenus = listMenus;
+
+function listInactiveMenus(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListInactiveMenus', undefined, inputOpts);
+}
+exports.listInactiveMenus = listInactiveMenus;
 
 function getMenuByName(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);

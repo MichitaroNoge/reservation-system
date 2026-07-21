@@ -1,4 +1,4 @@
-# Generated React README
+﻿# Generated React README
 This README will guide you through the process of using the generated React SDK package for the connector `reservation`. It will also provide examples on how to use your generated SDK to call your Data Connect queries and mutations.
 
 **If you're looking for the `JavaScript README`, you can find it at [`dataconnect/README.md`](../README.md)**
@@ -31,6 +31,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*GetStoreByName*](#getstorebyname)
   - [*GetStoreById*](#getstorebyid)
   - [*ListMenus*](#listmenus)
+  - [*ListInactiveMenus*](#listinactivemenus)
   - [*GetMenuByName*](#getmenubyname)
   - [*ListBillingRecords*](#listbillingrecords)
 - [**Mutations**](#mutations)
@@ -54,6 +55,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*CreateMenu*](#createmenu)
   - [*UpdateMenu*](#updatemenu)
   - [*DeactivateMenu*](#deactivatemenu)
+  - [*ReactivateMenu*](#reactivatemenu)
   - [*RecordVisit*](#recordvisit)
 
 # TanStack Query Firebase & TanStack React Query
@@ -1415,6 +1417,83 @@ export default function ListMenusComponent() {
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
   const query = useListMenus(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.menus);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListInactiveMenus
+You can execute the `ListInactiveMenus` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListInactiveMenus(dc: DataConnect, options?: useDataConnectQueryOptions<ListInactiveMenusData>): UseDataConnectQueryResult<ListInactiveMenusData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListInactiveMenus(options?: useDataConnectQueryOptions<ListInactiveMenusData>): UseDataConnectQueryResult<ListInactiveMenusData, undefined>;
+```
+
+### Variables
+The `ListInactiveMenus` Query has no variables.
+### Return Type
+Recall that calling the `ListInactiveMenus` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListInactiveMenus` Query is of type `ListInactiveMenusData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListInactiveMenusData {
+  menus: ({
+    id: UUIDString;
+    name: string;
+    description?: string | null;
+    standardPrice: number;
+    durationMinutes: number;
+    displayOrder: number;
+    active: boolean;
+  } & Menu_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListInactiveMenus`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@reservation-system/dataconnect';
+import { useListInactiveMenus } from '@reservation-system/dataconnect/react'
+
+export default function ListInactiveMenusComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListInactiveMenus();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListInactiveMenus(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListInactiveMenus(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListInactiveMenus(dataConnect, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -3584,6 +3663,100 @@ export default function DeactivateMenuComponent() {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
   mutation.mutate(deactivateMenuVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.menu_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ReactivateMenu
+You can execute the `ReactivateMenu` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useReactivateMenu(options?: useDataConnectMutationOptions<ReactivateMenuData, FirebaseError, ReactivateMenuVariables>): UseDataConnectMutationResult<ReactivateMenuData, ReactivateMenuVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useReactivateMenu(dc: DataConnect, options?: useDataConnectMutationOptions<ReactivateMenuData, FirebaseError, ReactivateMenuVariables>): UseDataConnectMutationResult<ReactivateMenuData, ReactivateMenuVariables>;
+```
+
+### Variables
+The `ReactivateMenu` Mutation requires an argument of type `ReactivateMenuVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ReactivateMenuVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that calling the `ReactivateMenu` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ReactivateMenu` Mutation is of type `ReactivateMenuData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ReactivateMenuData {
+  menu_update?: Menu_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `ReactivateMenu`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ReactivateMenuVariables } from '@reservation-system/dataconnect';
+import { useReactivateMenu } from '@reservation-system/dataconnect/react'
+
+export default function ReactivateMenuComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useReactivateMenu();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useReactivateMenu(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useReactivateMenu(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useReactivateMenu(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useReactivateMenu` Mutation requires an argument of type `ReactivateMenuVariables`:
+  const reactivateMenuVars: ReactivateMenuVariables = {
+    id: ...,
+  };
+  mutation.mutate(reactivateMenuVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(reactivateMenuVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {

@@ -1,4 +1,4 @@
-const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } = require('firebase/data-connect');
+﻿const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs, makeMemoryCacheProvider } = require('firebase/data-connect');
 
 const BillingStatus = {
   UNBILLED: "UNBILLED",
@@ -320,6 +320,20 @@ exports.deactivateMenu = function deactivateMenu(dcOrVars, vars) {
 }
 ;
 
+const reactivateMenuRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ReactivateMenu', inputVars);
+}
+reactivateMenuRef.operationName = 'ReactivateMenu';
+exports.reactivateMenuRef = reactivateMenuRef;
+
+exports.reactivateMenu = function reactivateMenu(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(reactivateMenuRef(dcInstance, inputVars));
+}
+;
+
 const recordVisitRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -541,6 +555,21 @@ exports.listMenus = function listMenus(dcOrOptions, options) {
 
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listMenusRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listInactiveMenusRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListInactiveMenus');
+}
+listInactiveMenusRef.operationName = 'ListInactiveMenus';
+exports.listInactiveMenusRef = listInactiveMenusRef;
+
+exports.listInactiveMenus = function listInactiveMenus(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listInactiveMenusRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

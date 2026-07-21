@@ -1,4 +1,4 @@
-import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
+﻿import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 export const dataConnectSettings: DataConnectSettings;
@@ -428,6 +428,18 @@ export interface ListInactiveCustomersData {
   } & Customer_Key)[];
 }
 
+export interface ListInactiveMenusData {
+  menus: ({
+    id: UUIDString;
+    name: string;
+    description?: string | null;
+    standardPrice: number;
+    durationMinutes: number;
+    displayOrder: number;
+    active: boolean;
+  } & Menu_Key)[];
+}
+
 export interface ListInactiveStoresData {
   stores: ({
     id: UUIDString;
@@ -513,6 +525,14 @@ export interface ReactivateCustomerData {
 }
 
 export interface ReactivateCustomerVariables {
+  id: UUIDString;
+}
+
+export interface ReactivateMenuData {
+  menu_update?: Menu_Key | null;
+}
+
+export interface ReactivateMenuVariables {
   id: UUIDString;
 }
 
@@ -882,6 +902,18 @@ export const deactivateMenuRef: DeactivateMenuRef;
 export function deactivateMenu(vars: DeactivateMenuVariables): MutationPromise<DeactivateMenuData, DeactivateMenuVariables>;
 export function deactivateMenu(dc: DataConnect, vars: DeactivateMenuVariables): MutationPromise<DeactivateMenuData, DeactivateMenuVariables>;
 
+interface ReactivateMenuRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ReactivateMenuVariables): MutationRef<ReactivateMenuData, ReactivateMenuVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ReactivateMenuVariables): MutationRef<ReactivateMenuData, ReactivateMenuVariables>;
+  operationName: string;
+}
+export const reactivateMenuRef: ReactivateMenuRef;
+
+export function reactivateMenu(vars: ReactivateMenuVariables): MutationPromise<ReactivateMenuData, ReactivateMenuVariables>;
+export function reactivateMenu(dc: DataConnect, vars: ReactivateMenuVariables): MutationPromise<ReactivateMenuData, ReactivateMenuVariables>;
+
 interface RecordVisitRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: RecordVisitVariables): MutationRef<RecordVisitData, RecordVisitVariables>;
@@ -1061,6 +1093,18 @@ export const listMenusRef: ListMenusRef;
 
 export function listMenus(options?: ExecuteQueryOptions): QueryPromise<ListMenusData, undefined>;
 export function listMenus(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListMenusData, undefined>;
+
+interface ListInactiveMenusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListInactiveMenusData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListInactiveMenusData, undefined>;
+  operationName: string;
+}
+export const listInactiveMenusRef: ListInactiveMenusRef;
+
+export function listInactiveMenus(options?: ExecuteQueryOptions): QueryPromise<ListInactiveMenusData, undefined>;
+export function listInactiveMenus(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInactiveMenusData, undefined>;
 
 interface GetMenuByNameRef {
   /* Allow users to create refs without passing in DataConnect */

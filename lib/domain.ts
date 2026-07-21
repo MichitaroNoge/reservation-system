@@ -196,11 +196,13 @@ export type Store = {
 export type SaveStoreInput = Store;
 
 export type Menu = {
+  id?: string;
   name: string;
   description: string;
   price: number;
   duration: string;
   displayOrder: number;
+  active?: boolean;
 };
 
 export type CreateReservationInput = {

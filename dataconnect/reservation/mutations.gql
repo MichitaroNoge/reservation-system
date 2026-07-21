@@ -197,6 +197,14 @@ mutation DeactivateMenu($id: UUID!)
   })
 }
 
+mutation ReactivateMenu($id: UUID!)
+@auth(level: NO_ACCESS) {
+  menu_update(key: {id: $id}, data: {
+    active: true
+    updatedAt_expr: "request.time"
+  })
+}
+
 mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!)
 @auth(level: NO_ACCESS)
 @transaction {

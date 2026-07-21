@@ -6,18 +6,22 @@ import type { Menu, MenuForm } from "../types";
 
 type MenuManagementProps = {
   menus: Menu[];
+  inactiveMenus: Menu[];
   onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>;
   onDeleteMenu: (name: string) => Promise<void>;
+  onReactivateMenu: (menu: Menu) => Promise<void>;
   notify: (message: string) => void;
 };
 
 const emptyForm: MenuForm = { name: "", description: "", price: 0, duration: "来店後", displayOrder: 0 };
 
-export function MenuManagement({ menus, onSaveMenu, onDeleteMenu, notify }: MenuManagementProps) {
+export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu, onReactivateMenu, notify }: MenuManagementProps) {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState<MenuForm>(emptyForm);
   const [savingName, setSavingName] = useState<string | null>(null);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const startCreate = () => {
     setEditingName(null);
@@ -66,6 +70,18 @@ export function MenuManagement({ menus, onSaveMenu, onDeleteMenu, notify }: Menu
     }
   };
 
+  const reactivate = async (menu: Menu) => {
+    if (!menu.id || reactivatingId) return;
+    setReactivatingId(menu.id);
+    try {
+      await onReactivateMenu(menu);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "メニュー情報の有効化に失敗しました");
+    } finally {
+      setReactivatingId(null);
+    }
+  };
+
   const renderFormCells = (mode: "create" | "edit", menu?: Menu) => {
     const target = mode === "create" ? "__new__" : menu?.name;
     const isSaving = savingName === target;
@@ -103,6 +119,11 @@ export function MenuManagement({ menus, onSaveMenu, onDeleteMenu, notify }: Menu
           <span>登録済みメニュー</span>
         </div>
         <div className="menu-management-actions">
+          {inactiveMenus.length ? (
+            <button type="button" className={showInactive ? "active" : ""} onClick={() => setShowInactive((current) => !current)}>
+              {showInactive ? "削除済みを隠す" : `削除済みを表示 (${inactiveMenus.length})`}
+            </button>
+          ) : null}
           <button type="button" className="primary" onClick={startCreate} disabled={isCreating}>
             <Icon name="plus" />
             新規登録
@@ -145,6 +166,48 @@ export function MenuManagement({ menus, onSaveMenu, onDeleteMenu, notify }: Menu
         </table>
         {!menus.length && !isCreating ? <div className="empty-table">登録済みメニューはありません。</div> : null}
       </div>
+
+      {showInactive && inactiveMenus.length ? (
+        <div className="inactive-menu-section">
+          <div className="subsection-head">
+            <div>
+              <h3>削除済みメニュー</h3>
+              <p>必要なメニューだけ有効に戻せます。</p>
+            </div>
+            <span>{inactiveMenus.length}件</span>
+          </div>
+          <div className="table-wrap">
+            <table className="large-table menu-table inactive-table">
+              <thead>
+                <tr>
+                  <th>表示順</th>
+                  <th>メニュー名</th>
+                  <th>説明</th>
+                  <th>金額</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {inactiveMenus.map((menu) => (
+                  <tr key={menu.id ?? `${menu.name}-inactive`}>
+                    <td>{menu.displayOrder ?? 0}</td>
+                    <td><strong>{menu.name}</strong></td>
+                    <td>{menu.description || "-"}</td>
+                    <td><strong>{"¥"}{menu.price.toLocaleString()}</strong></td>
+                    <td>
+                      <div className="row-actions">
+                        <button type="button" className="save" disabled={!menu.id || reactivatingId === menu.id} onClick={() => reactivate(menu)}>
+                          {reactivatingId === menu.id ? "有効化中" : "有効にする"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

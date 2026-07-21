@@ -22,7 +22,7 @@ export type Reservation = {
   received: string;
   phone: string;
 };
-export type Menu = { name: string; description: string; price: number; duration: string; displayOrder: number };
+export type Menu = { id?: string; name: string; description: string; price: number; duration: string; displayOrder: number; active?: boolean };
 export type Customer = { id?: string; name: string; contact: string; phone: string; count: number; last: string };
 export type Store = { id?: string; name: string; displayOrder: number };
 export type BookingForm = { menuItems: string[]; date: string; startTime: string; people: number; name: string; email: string; phone: string; status?: Status; policyAgreement?: PolicyAgreement };

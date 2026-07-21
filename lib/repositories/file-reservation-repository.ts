@@ -72,7 +72,7 @@ function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: str
 }
 
 function normalizeMenu(menu: Menu): Menu {
-  return { ...menu, displayOrder: menu.displayOrder ?? 0 };
+  return { ...menu, displayOrder: menu.displayOrder ?? 0, active: menu.active ?? true };
 }
 
 function normalizeStore(store: Store): Store {
@@ -313,15 +313,26 @@ export class FileReservationRepository implements ReservationRepository {
 
   async listMenus() {
     const database = await this.readDatabase();
-    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu));
+    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu).filter((menu) => menu.active !== false));
+  }
+
+  async listInactiveMenus(): Promise<Menu[]> {
+    const database = await this.readDatabase();
+    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu).filter((menu) => menu.active === false));
   }
 
   async createMenu(input: SaveMenuInput) {
     const database = await this.readDatabase();
-    if (database.menus.some((menu) => menu.name === input.name)) {
+    const existingIndex = database.menus.findIndex((menu) => menu.name === input.name);
+    const existing = existingIndex >= 0 ? normalizeMenu(database.menus[existingIndex]) : null;
+    if (existing?.active !== false) {
       throw new Error(`Menu already exists: ${input.name}`);
     }
-    database.menus = [...database.menus, normalizeMenu(input)];
+    if (existing) {
+      database.menus[existingIndex] = normalizeMenu({ ...input, id: existing.id, active: true });
+    } else {
+      database.menus = [...database.menus, normalizeMenu(input)];
+    }
     await this.writeDatabase(database);
     return normalizeMenu(input);
   }
@@ -347,7 +358,18 @@ export class FileReservationRepository implements ReservationRepository {
 
   async deleteMenu(name: string) {
     const database = await this.readDatabase();
-    database.menus = database.menus.filter((menu) => menu.name !== name);
+    database.menus = database.menus.map((menu) => menu.name === name
+      ? normalizeMenu({ ...menu, id: menu.id ?? `file-menu-${encodeURIComponent(menu.name)}`, active: false })
+      : menu);
     await this.writeDatabase(database);
+  }
+
+  async reactivateMenu(id: string): Promise<Menu> {
+    const database = await this.readDatabase();
+    const index = database.menus.findIndex((menu) => menu.id === id);
+    if (index < 0) throw new Error(`Menu not found: ${id}`);
+    database.menus[index] = normalizeMenu({ ...database.menus[index], active: true });
+    await this.writeDatabase(database);
+    return normalizeMenu(database.menus[index]);
   }
 }

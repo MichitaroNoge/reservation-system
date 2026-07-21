@@ -37,6 +37,7 @@ export default function Home() {
   const [reservationDateToFilter, setReservationDateToFilter] = useState("");
   const [reservationSearch, setReservationSearch] = useState("");
   const [menuCatalog, setMenuCatalog] = useState<Menu[]>(defaultMenus);
+  const [inactiveMenuList, setInactiveMenuList] = useState<Menu[]>([]);
   const [stores, setStores] = useState<Store[]>(defaultStores);
   const [inactiveStoreList, setInactiveStoreList] = useState<Store[]>([]);
   const [customerList, setCustomerList] = useState<Customer[]>([]);
@@ -70,6 +71,9 @@ export default function Home() {
     adminRequestJson<{ stores: Store[] }>("/api/stores/inactive")
       .then(({ stores }) => setInactiveStoreList(sortByDisplayOrderThenName(stores)))
       .catch(() => notify("削除済み店舗データの読み込みに失敗しました"));
+    adminRequestJson<{ menus: Menu[] }>("/api/menus/inactive")
+      .then(({ menus }) => setInactiveMenuList(sortByDisplayOrderThenName(menus)))
+      .catch(() => notify("削除済みメニューデータの読み込みに失敗しました"));
   }, [adminSession]);
 
   const visible = useMemo(() => filter === "すべて" ? reservations : reservations.filter(r => r.status.includes(filter)), [filter, reservations]);
@@ -221,14 +225,29 @@ export default function Home() {
     const url = originalName ? `/api/menus/${encodeURIComponent(originalName)}` : "/api/menus";
     const method = originalName ? "PATCH" : "POST";
     const { menu } = await adminRequestJson<{ menu: Menu }>(url, { method, body: JSON.stringify(input) });
+    setInactiveMenuList(items => items.filter(item => item.id !== menu.id && item.name !== menu.name));
     setMenuCatalog(items => sortByDisplayOrderThenName(originalName ? items.map(item => item.name === originalName ? menu : item) : [...items, menu]));
     setReservations(rs => originalName && originalName !== menu.name ? rs.map(r => ({ ...r, menuItems: (r.menuItems ?? []).map(item => item === originalName ? menu.name : item) })) : rs);
     notify(originalName ? "メニューを更新しました" : "メニューを追加しました");
   };
   const deleteMenu = async (name: string) => {
     await adminRequestJson<{ ok: boolean }>(`/api/menus/${encodeURIComponent(name)}`, { method: "DELETE" });
-    setMenuCatalog(items => items.filter(item => item.name !== name));
+    setMenuCatalog(items => {
+      const deleted = items.find(item => item.name === name);
+      if (deleted) setInactiveMenuList(inactive => [deleted, ...inactive.filter(item => item.id !== deleted.id && item.name !== deleted.name)]);
+      return items.filter(item => item.name !== name);
+    });
     notify("メニューを新規選択肢から削除しました。既存予約の履歴は保持されます");
+  };
+  const reactivateMenu = async (menu: Menu) => {
+    if (!menu.id) throw new Error("復元対象のメニューIDがありません");
+    const { menu: restored } = await adminRequestJson<{ menu: Menu }>(`/api/menus/${encodeURIComponent(menu.name)}/reactivate`, {
+      method: "PATCH",
+      body: JSON.stringify({ id: menu.id }),
+    });
+    setInactiveMenuList(items => items.filter(item => item.id !== restored.id));
+    setMenuCatalog(items => sortByDisplayOrderThenName([restored, ...items.filter(item => item.id !== restored.id && item.name !== restored.name)]));
+    notify(`${restored.name}を有効にしました`);
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
     const { customer } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
@@ -351,7 +370,7 @@ export default function Home() {
           <Task color="green" title="メニュー確認" count={taskCounts.menuUnselected} text="メニューが未確定のお客様を確認しましょう" onClick={() => openReservations("本予約確定（メニュー未確定）")} />
           <Task color="blue" title="確認連絡" count={taskCounts.preContactDue} text={"食事日まで" + confirmationContactWindowDays + "日未満のお客様へ確認連絡を行いましょう"} onClick={() => setView("confirmationContacts")} />
         </div></section>
-      </main> : <ManagementPage view={view} reservations={reservations} confirmationContactTargets={confirmationContactTargets} confirmationContactWindowDays={confirmationContactWindowDays} setConfirmationContactWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={bulkUpdateConfirmationContacts} customers={customers} inactiveCustomers={inactiveCustomerList} stores={stores} inactiveStores={inactiveStoreList} menus={menuCatalog} reservationFilter={reservationFilter} setReservationFilter={setReservationFilter} reservationDateFromFilter={reservationDateFromFilter} setReservationDateFromFilter={setReservationDateFromFilter} reservationDateToFilter={reservationDateToFilter} setReservationDateToFilter={setReservationDateToFilter} reservationSearch={reservationSearch} setReservationSearch={setReservationSearch} onSelect={setSelected} notify={notify} onSaveMenu={saveMenu} onDeleteMenu={deleteMenu} onCreateCustomer={createCustomer} onSaveCustomer={saveCustomer} onDeleteCustomer={deleteCustomer} onReactivateCustomer={reactivateCustomer} onCreateStore={createStore} onSaveStore={saveStore} onDeleteStore={deleteStore} onReactivateStore={reactivateStore} onOpenNewReservation={() => setIsNewReservationOpen(true)} />}
+      </main> : <ManagementPage view={view} reservations={reservations} confirmationContactTargets={confirmationContactTargets} confirmationContactWindowDays={confirmationContactWindowDays} setConfirmationContactWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={bulkUpdateConfirmationContacts} customers={customers} inactiveCustomers={inactiveCustomerList} stores={stores} inactiveStores={inactiveStoreList} menus={menuCatalog} inactiveMenus={inactiveMenuList} reservationFilter={reservationFilter} setReservationFilter={setReservationFilter} reservationDateFromFilter={reservationDateFromFilter} setReservationDateFromFilter={setReservationDateFromFilter} reservationDateToFilter={reservationDateToFilter} setReservationDateToFilter={setReservationDateToFilter} reservationSearch={reservationSearch} setReservationSearch={setReservationSearch} onSelect={setSelected} notify={notify} onSaveMenu={saveMenu} onDeleteMenu={deleteMenu} onReactivateMenu={reactivateMenu} onCreateCustomer={createCustomer} onSaveCustomer={saveCustomer} onDeleteCustomer={deleteCustomer} onReactivateCustomer={reactivateCustomer} onCreateStore={createStore} onSaveStore={saveStore} onDeleteStore={deleteStore} onReactivateStore={reactivateStore} onOpenNewReservation={() => setIsNewReservationOpen(true)} />}
     </div>
     {isNewReservationOpen && <NewReservationDrawer form={adminForm} setForm={setAdminForm} onClose={() => setIsNewReservationOpen(false)} onSubmit={submitAdminReservation} menuCatalog={menuCatalog} />}
     {selected && <ReservationDrawer reservation={selected} onClose={() => setSelected(null)} updateStatus={updateStatus} updateConfirmationContact={updateConfirmationContact} assignStores={assignStores} updateReservation={updateReservation} menuCatalog={menuCatalog} stores={stores} />}
@@ -359,7 +378,7 @@ export default function Home() {
   </div>;
 }
 
-function ManagementPage({ view, reservations, confirmationContactTargets, confirmationContactWindowDays, setConfirmationContactWindowDays, isBulkContacting, onBulkConfirmationContact, customers, inactiveCustomers, stores, inactiveStores, menus, reservationFilter, setReservationFilter, reservationDateFromFilter, setReservationDateFromFilter, reservationDateToFilter, setReservationDateToFilter, reservationSearch, setReservationSearch, onSelect, notify, onSaveMenu, onDeleteMenu, onCreateCustomer, onSaveCustomer, onDeleteCustomer, onReactivateCustomer, onCreateStore, onSaveStore, onDeleteStore, onReactivateStore, onOpenNewReservation }: { view: Exclude<View,"dashboard">; reservations: Reservation[]; confirmationContactTargets: Reservation[]; confirmationContactWindowDays: number; setConfirmationContactWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; customers: Customer[]; inactiveCustomers: Customer[]; stores: Store[]; inactiveStores: Store[]; menus: Menu[]; reservationFilter: ReservationFilter; setReservationFilter: (filter: ReservationFilter) => void; reservationDateFromFilter: string; setReservationDateFromFilter: (date: string) => void; reservationDateToFilter: string; setReservationDateToFilter: (date: string) => void; reservationSearch: string; setReservationSearch: (search: string) => void; onSelect: (r: Reservation) => void; notify: (s:string) => void; onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>; onDeleteMenu: (name: string) => Promise<void>; onCreateCustomer: (input: CustomerForm) => Promise<void>; onSaveCustomer: (originalName: string, input: CustomerForm) => Promise<void>; onDeleteCustomer: (name: string) => Promise<void>; onReactivateCustomer: (customer: Customer) => Promise<void>; onCreateStore: (input: StoreForm) => Promise<void>; onSaveStore: (originalName: string, input: StoreForm) => Promise<void>; onDeleteStore: (name: string) => Promise<void>; onReactivateStore: (store: Store) => Promise<void>; onOpenNewReservation: () => void }) {
+function ManagementPage({ view, reservations, confirmationContactTargets, confirmationContactWindowDays, setConfirmationContactWindowDays, isBulkContacting, onBulkConfirmationContact, customers, inactiveCustomers, stores, inactiveStores, menus, inactiveMenus, reservationFilter, setReservationFilter, reservationDateFromFilter, setReservationDateFromFilter, reservationDateToFilter, setReservationDateToFilter, reservationSearch, setReservationSearch, onSelect, notify, onSaveMenu, onDeleteMenu, onReactivateMenu, onCreateCustomer, onSaveCustomer, onDeleteCustomer, onReactivateCustomer, onCreateStore, onSaveStore, onDeleteStore, onReactivateStore, onOpenNewReservation }: { view: Exclude<View,"dashboard">; reservations: Reservation[]; confirmationContactTargets: Reservation[]; confirmationContactWindowDays: number; setConfirmationContactWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; customers: Customer[]; inactiveCustomers: Customer[]; stores: Store[]; inactiveStores: Store[]; menus: Menu[]; inactiveMenus: Menu[]; reservationFilter: ReservationFilter; setReservationFilter: (filter: ReservationFilter) => void; reservationDateFromFilter: string; setReservationDateFromFilter: (date: string) => void; reservationDateToFilter: string; setReservationDateToFilter: (date: string) => void; reservationSearch: string; setReservationSearch: (search: string) => void; onSelect: (r: Reservation) => void; notify: (s:string) => void; onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>; onDeleteMenu: (name: string) => Promise<void>; onReactivateMenu: (menu: Menu) => Promise<void>; onCreateCustomer: (input: CustomerForm) => Promise<void>; onSaveCustomer: (originalName: string, input: CustomerForm) => Promise<void>; onDeleteCustomer: (name: string) => Promise<void>; onReactivateCustomer: (customer: Customer) => Promise<void>; onCreateStore: (input: StoreForm) => Promise<void>; onSaveStore: (originalName: string, input: StoreForm) => Promise<void>; onDeleteStore: (name: string) => Promise<void>; onReactivateStore: (store: Store) => Promise<void>; onOpenNewReservation: () => void }) {
   const [reservationSort, setReservationSort] = useState<{ key: ReservationSortKey; direction: SortDirection }>({ key: "date", direction: "asc" });
   const filteredReservations = useMemo(() => reservations.filter((reservation) => {
     const effectiveDateFrom = reservationDateFromFilter && reservationDateToFilter && reservationDateFromFilter > reservationDateToFilter ? reservationDateToFilter : reservationDateFromFilter;
@@ -414,7 +433,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
     billing: "来店実績、売上、請求書の発行状況を管理します。",
   };
   return <main className="management">
-    {view !== "confirmationContacts" && view !== "customers" && view !== "stores" && view !== "menus" && <section className="page-title compact"><span>{pageDescriptions[view]}</span><button onClick={() => view === "reservations" ? onOpenNewReservation() : notify(view === "billing" ? "請求データをCSV出力しました" : "新規登録画面を準備しました")}><Icon name={view === "billing" ? "chart" : "plus"}/>{view === "billing" ? "CSV出力" : "新規登録"}</button></section>}
+    {view !== "reservations" && view !== "confirmationContacts" && view !== "customers" && view !== "stores" && view !== "menus" && <section className="page-title compact"><span>{pageDescriptions[view]}</span><button onClick={() => notify(view === "billing" ? "請求データをCSV出力しました" : "新規登録画面を準備しました")}><Icon name={view === "billing" ? "chart" : "plus"}/>{view === "billing" ? "CSV出力" : "新規登録"}</button></section>}
     {view === "confirmationContacts" && <ConfirmationContactPage reservations={confirmationContactTargets} windowDays={confirmationContactWindowDays} setWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={onBulkConfirmationContact} onSelect={onSelect} />}
     {view === "reservations" && <section className="panel management-panel">
       <div className="management-tools reservation-tools">
@@ -423,6 +442,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
           <div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>〜</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>
           {(reservationDateFromFilter || reservationDateToFilter) && <button className="clear-filter" onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>}
           <div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div>
+          <button type="button" className="reservation-new-button" onClick={onOpenNewReservation}><Icon name="plus"/>新規登録</button>
         </div>
         <div className="reservation-filter-row"><div className="segmented">{quickFilters.map(filter => <button key={filter} className={reservationFilter === filter ? "active" : ""} onClick={() => setReservationFilter(filter)}>{filter}</button>)}</div></div>
       </div>
@@ -433,7 +453,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
     </section>}
     {view === "customers" && <CustomerManagement customers={customers} inactiveCustomers={inactiveCustomers} onCreateCustomer={onCreateCustomer} onSaveCustomer={onSaveCustomer} onDeleteCustomer={onDeleteCustomer} onReactivateCustomer={onReactivateCustomer} notify={notify} />}
     {view === "stores" && <StoreManagement stores={stores} inactiveStores={inactiveStores} onCreateStore={onCreateStore} onSaveStore={onSaveStore} onDeleteStore={onDeleteStore} onReactivateStore={onReactivateStore} notify={notify} />}
-    {view === "menus" && <MenuManagement menus={menus} onSaveMenu={onSaveMenu} onDeleteMenu={onDeleteMenu} notify={notify} />}
+    {view === "menus" && <MenuManagement menus={menus} inactiveMenus={inactiveMenus} onSaveMenu={onSaveMenu} onDeleteMenu={onDeleteMenu} onReactivateMenu={onReactivateMenu} notify={notify} />}
     {view === "billing" && <>
       <section className="stats billing-stats">
         <Stat icon="chart" label="今月の売上" value="682,400" note="先月比 +8.2%" color="green"/>

@@ -203,6 +203,18 @@ query ListMenus @auth(level: PUBLIC, insecureReason: "Menus are public booking d
   }
 }
 
+query ListInactiveMenus @auth(level: NO_ACCESS) {
+  menus(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
+    id
+    name
+    description
+    standardPrice
+    durationMinutes
+    displayOrder
+    active
+  }
+}
+
 query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
   menus(where: {name: {eq: $name}}, limit: 1) {
     id

@@ -380,6 +380,7 @@ export default function Home() {
 
 function ManagementPage({ view, reservations, confirmationContactTargets, confirmationContactWindowDays, setConfirmationContactWindowDays, isBulkContacting, onBulkConfirmationContact, customers, inactiveCustomers, stores, inactiveStores, menus, inactiveMenus, reservationFilter, setReservationFilter, reservationDateFromFilter, setReservationDateFromFilter, reservationDateToFilter, setReservationDateToFilter, reservationSearch, setReservationSearch, onSelect, notify, onSaveMenu, onDeleteMenu, onReactivateMenu, onCreateCustomer, onSaveCustomer, onDeleteCustomer, onReactivateCustomer, onCreateStore, onSaveStore, onDeleteStore, onReactivateStore, onOpenNewReservation }: { view: Exclude<View,"dashboard">; reservations: Reservation[]; confirmationContactTargets: Reservation[]; confirmationContactWindowDays: number; setConfirmationContactWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; customers: Customer[]; inactiveCustomers: Customer[]; stores: Store[]; inactiveStores: Store[]; menus: Menu[]; inactiveMenus: Menu[]; reservationFilter: ReservationFilter; setReservationFilter: (filter: ReservationFilter) => void; reservationDateFromFilter: string; setReservationDateFromFilter: (date: string) => void; reservationDateToFilter: string; setReservationDateToFilter: (date: string) => void; reservationSearch: string; setReservationSearch: (search: string) => void; onSelect: (r: Reservation) => void; notify: (s:string) => void; onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>; onDeleteMenu: (name: string) => Promise<void>; onReactivateMenu: (menu: Menu) => Promise<void>; onCreateCustomer: (input: CustomerForm) => Promise<void>; onSaveCustomer: (originalName: string, input: CustomerForm) => Promise<void>; onDeleteCustomer: (name: string) => Promise<void>; onReactivateCustomer: (customer: Customer) => Promise<void>; onCreateStore: (input: StoreForm) => Promise<void>; onSaveStore: (originalName: string, input: StoreForm) => Promise<void>; onDeleteStore: (name: string) => Promise<void>; onReactivateStore: (store: Store) => Promise<void>; onOpenNewReservation: () => void }) {
   const [reservationSort, setReservationSort] = useState<{ key: ReservationSortKey; direction: SortDirection }>({ key: "date", direction: "asc" });
+  const [reservationStatusFilter, setReservationStatusFilter] = useState<Status | "">("");
   const filteredReservations = useMemo(() => reservations.filter((reservation) => {
     const effectiveDateFrom = reservationDateFromFilter && reservationDateToFilter && reservationDateFromFilter > reservationDateToFilter ? reservationDateToFilter : reservationDateFromFilter;
     const effectiveDateTo = reservationDateFromFilter && reservationDateToFilter && reservationDateFromFilter > reservationDateToFilter ? reservationDateFromFilter : reservationDateToFilter;
@@ -390,6 +391,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
     const keyword = reservationSearch.trim().toLowerCase();
     const matchesSearch = !keyword || [reservation.id, reservation.customer, reservation.phone, reservation.email ?? ""].some(value => value.toLowerCase().includes(keyword));
     if (!matchesSearch) return false;
+    if (reservationStatusFilter && reservation.status !== reservationStatusFilter) return false;
     if (reservationFilter === "すべて") return true;
     if (reservationFilter === "承認待ち") return approvalStatuses.includes(reservation.status);
     if (reservationFilter === "仮予約確定（期限切れ）") return isTemporaryReservationExpired(reservation);
@@ -399,7 +401,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
     if (reservationFilter === "本予約確定（未確認連絡）") return isConfirmedReservation(reservation) && !reservation.confirmationContactedAt;
     if (reservationFilter === "本予約確定（来店待ち）") return isVisitReadyReservation(reservation);
     return statusLabel(reservation.status) === reservationFilter;
-  }), [reservationDateFromFilter, reservationDateToFilter, reservationFilter, reservationSearch, reservations]);
+  }), [reservationDateFromFilter, reservationDateToFilter, reservationFilter, reservationSearch, reservationStatusFilter, reservations]);
   const sortedReservations = useMemo(() => {
     const valueFor = (reservation: Reservation, key: ReservationSortKey): string | number => {
       if (key === "status") return reservationDisplayLabel(reservation);
@@ -441,6 +443,7 @@ function ManagementPage({ view, reservations, confirmationContactTargets, confir
         <div className="reservation-search-row">
           <label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label>
           <div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>〜</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>
+          <label className="reservation-status-filter"><span>ステータス</span><select value={reservationStatusFilter} onChange={(event) => setReservationStatusFilter(event.target.value as Status | "")}><option value="">すべて</option>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>
           <button className={hasReservationDateFilter ? "clear-filter" : "clear-filter is-placeholder"} disabled={!hasReservationDateFilter} aria-hidden={!hasReservationDateFilter} tabIndex={hasReservationDateFilter ? 0 : -1} onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>
           <div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div>
           <button type="button" className="reservation-new-button" onClick={onOpenNewReservation}><Icon name="plus"/>新規登録</button>

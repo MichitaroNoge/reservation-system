@@ -356,7 +356,7 @@ export default function Home() {
       <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約管理",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div><div className="top-actions"><button className="icon-btn"><Icon name="bell"/><i/></button></div></header>
+      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約管理",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
       {view === "dashboard" ? <main className="dashboard">
         <section className="welcome"><div><p>おはようございます</p><h2>今日も予約状況を確認しましょう</h2></div><div className="pulse"><span/>システム正常稼働中</div></section>
         <section className="dashboard-block dashboard-info-block"><div className="dashboard-block-head"><h3>情報</h3><p>予約状況の概要と本日の予定を確認できます</p></div><div className="info-dashboard-grid"><div className="info-summary-list">

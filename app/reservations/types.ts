@@ -33,7 +33,7 @@ export type StoreForm = Store;
 export type AdminSession = { user: User; email: string | null };
 export type ApiRequestInit = RequestInit & { authToken?: string };
 export type ReservationSubmitOptions = { authToken?: string; forceAdmin?: boolean; customerAccountMode?: "account" | "guest" };
-export type View = "dashboard" | "reservations" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
+export type View = "dashboard" | "reservations" | "reservationChangeRequests" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
 export type ReservationFilter =
   | "すべて"
   | "承認待ち"

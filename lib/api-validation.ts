@@ -13,6 +13,7 @@ export function apiErrorResponse(error: unknown) {
     return Response.json({ error: message }, { status: error.statusCode });
   }
   if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
+  if (/Invalid reservation status transition/i.test(message)) return Response.json({ error: message }, { status: 400 });
   if (/not found/i.test(message)) return Response.json({ error: message }, { status: 404 });
   if (/already exists/i.test(message)) return Response.json({ error: message }, { status: 409 });
   if (/Could not load the default credentials|invalid-credential|credential/i.test(message)) {
@@ -69,6 +70,14 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.phone !== undefined) input.phone = requirePhone(body.phone, "phone");
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
   return input;
+}
+
+export function validateCancellationRequestInput(body: Record<string, unknown>) {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  return { reservationId, email, phone };
 }
 
 export function validateReservationStatus(value: unknown): ReservationStatus {

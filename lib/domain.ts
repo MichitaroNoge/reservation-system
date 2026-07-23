@@ -56,6 +56,7 @@ export type ReservationStatusTransitionReason =
   | "reject_temporary"
   | "approve_confirmed"
   | "reject_confirmed"
+  | "request_cancellation"
   | "ready_for_visit"
   | "readiness_incomplete"
   | "record_visit"
@@ -74,6 +75,11 @@ export const reservationStatusTransitions = [
   { from: "temporary_requested", to: "temporary_rejected", reason: "reject_temporary", label: "仮予約を却下する" },
   { from: "confirmed_requested", to: "confirmed", reason: "approve_confirmed", label: "本予約を承認する" },
   { from: "confirmed_requested", to: "confirmed_rejected", reason: "reject_confirmed", label: "本予約を却下する" },
+  { from: "temporary_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "temporary_confirmed", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "confirmed_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "confirmed", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "waiting_for_visit", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
   { from: "confirmed", to: "waiting_for_visit", reason: "ready_for_visit", label: "来店待ちに進める", automatic: true },
   { from: "waiting_for_visit", to: "confirmed", reason: "readiness_incomplete", label: "本予約確定に戻す", automatic: true },
   { from: "waiting_for_visit", to: "visited", reason: "record_visit", label: "来店済みにする" },

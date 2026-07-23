@@ -164,6 +164,12 @@ export default function Home() {
     setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
     return reservation;
   };
+  const requestCancellation = async (input: { reservationId: string; email?: string; phone?: string }) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/cancellation-request", { method: "POST", body: JSON.stringify(input) });
+    setReservations(rs => rs.map(r => r.id === reservation.id ? reservation : r));
+    setSelected(s => s?.id === reservation.id ? reservation : s);
+    return reservation;
+  };
   const updateReservation = async (id: string, input: BookingForm) => {
     const { reservation } = await adminRequestJson<{ reservation: Reservation }>(`/api/reservations/${id}`, {
       method: "PATCH",
@@ -345,7 +351,7 @@ export default function Home() {
     setView("reservations");
   };
 
-  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} menuCatalog={menuCatalog} />;
+  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} menuCatalog={menuCatalog} />;
   if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
   if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => setRole("customer")} error={authError} />;
 
@@ -593,14 +599,19 @@ function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }:
   </div></aside></>;
 }
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; menuCatalog: Menu[] }) {
+function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
+  const [portalMode, setPortalMode] = useState<"home" | "reservation" | "cancellation">("home");
   const [bookingMode, setBookingMode] = useState<"login" | "register" | "guest">("guest");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
   const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [cancellationForm, setCancellationForm] = useState({ reservationId: "", email: "", phone: "" });
+  const [isSubmittingCancellation, setIsSubmittingCancellation] = useState(false);
+  const [cancellationSubmitted, setCancellationSubmitted] = useState(false);
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.startTime && form.people);
+  const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && (cancellationForm.email.trim() || cancellationForm.phone.trim())) && !isSubmittingCancellation;
 
   useEffect(() => {
     if (!customerUser) return;
@@ -662,12 +673,35 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
       notify("予約申請の保存に失敗しました");
     }
   };
+  const submitCancellation = async () => {
+    if (!canSubmitCancellation) return;
+    setIsSubmittingCancellation(true);
+    try {
+      const reservation = await onSubmitCancellation({
+        reservationId: cancellationForm.reservationId.trim(),
+        email: cancellationForm.email.trim() || undefined,
+        phone: cancellationForm.phone.trim() || undefined,
+      });
+      notify("キャンセル申請を受け付けました（" + reservation.id + "）");
+      setCancellationSubmitted(true);
+    } catch {
+      notify("キャンセル申請の保存に失敗しました");
+    } finally {
+      setIsSubmittingCancellation(false);
+    }
+  };
+  const backToPortalHome = () => {
+    setPortalMode("home");
+    setStep(1);
+    setCancellationSubmitted(false);
+  };
 
   return <main className="customer-page restaurant-reservation">
     <header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><button onClick={onAdmin}>管理画面</button></nav></header>
-    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>予約フォーム</h1></div></section>
+    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "cancellation" ? "キャンセル申請" : "予約フォーム"}</h1></div></section>
     <section className="booking-card">
-      <div className="stepper">{["予約種別","日時・人数","お客様情報","受付完了"].map((label, index)=><div key={label} className={step >= index + 1 ? "active" : ""}><span>{step > index + 1 ? <Icon name="check"/> : index + 1}</span><small>{label}</small>{index < 3 && <i/>}</div>)}</div>
+      {portalMode === "home" && <div className="form-body narrow portal-entry"><p className="form-kicker">REQUEST</p><h2>お手続きを選択</h2><div className="portal-entry-grid"><button type="button" onClick={() => { setPortalMode("reservation"); setStep(1); }}><strong>予約申請</strong><small>仮予約または本予約を申し込みます</small></button><button type="button" onClick={() => { setPortalMode("cancellation"); setCancellationSubmitted(false); }}><strong>キャンセル申請</strong><small>受付済みの予約のキャンセルを申請します</small></button></div></div>}
+      {portalMode === "reservation" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button><div className="stepper">{["予約種別","日時・人数","お客様情報","受付完了"].map((label, index)=><div key={label} className={step >= index + 1 ? "active" : ""}><span>{step > index + 1 ? <Icon name="check"/> : index + 1}</span><small>{label}</small>{index < 3 && <i/>}</div>)}</div>
       {step === 1 && <div className="form-body narrow reservation-type-step"><p className="form-kicker">STEP 1</p><h2>予約種別を選択</h2><fieldset className="reservation-type-options"><legend>予約種別</legend><button type="button" className={form.status === STATUS.confirmedRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.confirmedRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>本予約を申し込む</strong><small>正式な予約として申請します</small></span></button><button type="button" className={form.status === STATUS.temporaryRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.temporaryRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>仮予約として相談する</strong><small>日程を仮押さえして相談します</small></span></button></fieldset><div className="form-nav"><span/><button className="next" onClick={() => setStep(2)}>日時へ <Icon name="arrow"/></button></div></div>}
       {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数</h2><div className="form-fields reservation-date-fields"><label>利用日<input type="date" value={form.date} onChange={event => setForm({ ...form, date: event.target.value })}/></label><label>開始時間<input type="time" value={form.startTime} onChange={event => setForm({ ...form, startTime: event.target.value })}/></label><label>人数<select value={form.people} onChange={event => setForm({ ...form, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/><div className="form-nav"><button onClick={() => setStep(1)}>戻る</button><button className="next" disabled={!form.date || !form.startTime} onClick={() => setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}
       {step === 3 && <div className="form-body narrow"><p className="form-kicker">STEP 3</p><h2>お客様情報</h2>
@@ -689,7 +723,8 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
           {customerAuthError ? <div className="auth-error">{customerAuthError}</div> : null}
         </section>
         <div className="form-fields single"><label>お名前<input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })}/></label><label>メールアドレス<input type="email" value={form.email} onChange={event => { setForm({ ...form, email: event.target.value }); setAccountEmail(event.target.value); }}/></label><label>電話番号<input value={form.phone} onChange={event => setForm({ ...form, phone: event.target.value })}/></label></div><div className="confirm-box"><span>{bookingFormDateTimeLabel(form)}・{form.people}名</span><strong>{menuSelectionLabel(form.menuItems)}</strong><small>{statusLabel(form.status ?? STATUS.confirmedRequested)}・{"¥"}{total.toLocaleString()}</small></div><div className="form-nav"><button onClick={() => setStep(2)}>戻る</button><button className="next" disabled={!canSubmit || (bookingMode !== "guest" && !customerUser)} onClick={submit}>この内容で申請する <Icon name="arrow"/></button></div></div>}
-      {step === 4 && <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>予約申請を受け付けました</h2><p>内容を確認後、予約可否をご連絡します。</p><button className="next" onClick={() => setStep(1)}>トップに戻る</button></div>}
+      {step === 4 && <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>予約申請を受け付けました</h2><p>内容を確認後、予約可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div>}</>}
+      {portalMode === "cancellation" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button>{cancellationSubmitted ? <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>キャンセル申請を受け付けました</h2><p>内容を確認後、キャンセル可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div> : <div className="form-body narrow cancellation-form"><p className="form-kicker">CANCEL REQUEST</p><h2>キャンセル申請</h2><div className="form-fields single"><label>予約ID<input value={cancellationForm.reservationId} placeholder="例: RSV-1047" onChange={event => setCancellationForm({ ...cancellationForm, reservationId: event.target.value })}/></label><label>メールアドレス<input type="email" value={cancellationForm.email} onChange={event => setCancellationForm({ ...cancellationForm, email: event.target.value })}/></label><label>電話番号<input value={cancellationForm.phone} onChange={event => setCancellationForm({ ...cancellationForm, phone: event.target.value })}/></label></div><p className="customer-mode-note">予約時のメールアドレスまたは電話番号のどちらかが一致した場合に申請できます。</p><div className="form-nav"><button onClick={backToPortalHome}>戻る</button><button className="next" disabled={!canSubmitCancellation} onClick={submitCancellation}>{isSubmittingCancellation ? "送信中" : "キャンセルを申請する"} <Icon name="arrow"/></button></div></div>}</>}
     </section>
     {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
   </main>;

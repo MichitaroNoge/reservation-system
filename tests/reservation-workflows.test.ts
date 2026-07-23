@@ -87,6 +87,12 @@ test("important reservation workflows", async (t) => {
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmed, reservationStatusCodes.confirmedRejected), false);
   });
 
+  await t.test("allows customers to request cancellation for active reservations", () => {
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmed, reservationStatusCodes.cancellationRequested), true);
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.waitingForVisit, reservationStatusCodes.cancellationRequested), true);
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.visited, reservationStatusCodes.cancellationRequested), false);
+  });
+
   await t.test("assigns people across stores and rejects mismatched totals", async () => {
     const reservation = await repository.assignStores("RSV-1047", [
       { store: "渋谷店", people: 2 },

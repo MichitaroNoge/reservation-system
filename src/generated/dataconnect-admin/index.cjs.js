@@ -1,4 +1,4 @@
-﻿const { validateAdminArgs } = require('firebase-admin/data-connect');
+const { validateAdminArgs } = require('firebase-admin/data-connect');
 
 const BillingStatus = {
   UNBILLED: "UNBILLED",
@@ -13,6 +13,13 @@ const BillingType = {
   CANCELLATION: "CANCELLATION",
 }
 exports.BillingType = BillingType;
+
+const ReservationChangeRequestStatus = {
+  REQUESTED: "REQUESTED",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+}
+exports.ReservationChangeRequestStatus = ReservationChangeRequestStatus;
 
 const ReservationStatus = {
   TEMPORARY_REQUESTED: "TEMPORARY_REQUESTED",
@@ -126,6 +133,20 @@ function deleteStoreAssignment(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.deleteStoreAssignment = deleteStoreAssignment;
 
+function createReservationChangeRequest(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateReservationChangeRequest', inputVars, inputOpts);
+}
+exports.createReservationChangeRequest = createReservationChangeRequest;
+
+function updateReservationChangeRequestStatus(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateReservationChangeRequestStatus', inputVars, inputOpts);
+}
+exports.updateReservationChangeRequestStatus = updateReservationChangeRequestStatus;
+
 function createStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -209,6 +230,13 @@ function getReservationByCode(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('GetReservationByCode', inputVars, inputOpts);
 }
 exports.getReservationByCode = getReservationByCode;
+
+function listReservationChangeRequests(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
+}
+exports.listReservationChangeRequests = listReservationChangeRequests;
 
 function listCustomers(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
@@ -307,3 +335,4 @@ function listBillingRecords(dcOrOptions, options) {
   return dcInstance.executeQuery('ListBillingRecords', undefined, inputOpts);
 }
 exports.listBillingRecords = listBillingRecords;
+

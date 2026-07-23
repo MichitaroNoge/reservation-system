@@ -1,4 +1,4 @@
-﻿import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
+import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise, DataConnectSettings } from 'firebase/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 export const dataConnectSettings: DataConnectSettings;
@@ -19,6 +19,12 @@ export enum BillingStatus {
 export enum BillingType {
   USAGE = "USAGE",
   CANCELLATION = "CANCELLATION",
+};
+
+export enum ReservationChangeRequestStatus {
+  REQUESTED = "REQUESTED",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
 };
 
 export enum ReservationStatus {
@@ -84,6 +90,19 @@ export interface CreateMenuVariables {
   durationMinutes: number;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface CreateReservationChangeRequestData {
+  reservationChangeRequest_insert: ReservationChangeRequest_Key;
+}
+
+export interface CreateReservationChangeRequestVariables {
+  reservationId: UUIDString;
+  requestedDate: DateString;
+  requestedTime: string;
+  requestedPeople: number;
+  requestedMenuItemsJson: string;
+  reason?: string | null;
 }
 
 export interface CreateReservationData {
@@ -463,6 +482,39 @@ export interface ListMenusData {
   } & Menu_Key)[];
 }
 
+export interface ListReservationChangeRequestsData {
+  reservationChangeRequests: ({
+    id: UUIDString;
+    requestedDate: DateString;
+    requestedTime: string;
+    requestedPeople: number;
+    requestedMenuItemsJson: string;
+    reason?: string | null;
+    status: ReservationChangeRequestStatus;
+    requestedAt: TimestampString;
+    reviewedAt?: TimestampString | null;
+    reservation: {
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      usageTime: string;
+      expectedPeople: number;
+      customer: {
+        id: UUIDString;
+        name: string;
+        phone: string;
+        email: string;
+      } & Customer_Key;
+      reservationDetails_on_reservation: ({
+        quantity: number;
+        menu: {
+          name: string;
+        };
+      })[];
+    } & Reservation_Key;
+  } & ReservationChangeRequest_Key)[];
+}
+
 export interface ListReservationsData {
   reservations: ({
     id: UUIDString;
@@ -557,6 +609,11 @@ export interface RecordVisitVariables {
   actualPeople: number;
 }
 
+export interface ReservationChangeRequest_Key {
+  id: UUIDString;
+  __typename?: 'ReservationChangeRequest_Key';
+}
+
 export interface ReservationDetail_Key {
   id: UUIDString;
   __typename?: 'ReservationDetail_Key';
@@ -621,6 +678,16 @@ export interface UpdateMenuVariables {
   durationMinutes: number;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface UpdateReservationChangeRequestStatusData {
+  reservationChangeRequest_update?: ReservationChangeRequest_Key | null;
+}
+
+export interface UpdateReservationChangeRequestStatusVariables {
+  id: UUIDString;
+  status: ReservationChangeRequestStatus;
+  reviewedAt?: TimestampString | null;
 }
 
 export interface UpdateReservationData {
@@ -820,6 +887,30 @@ export const deleteStoreAssignmentRef: DeleteStoreAssignmentRef;
 export function deleteStoreAssignment(vars: DeleteStoreAssignmentVariables): MutationPromise<DeleteStoreAssignmentData, DeleteStoreAssignmentVariables>;
 export function deleteStoreAssignment(dc: DataConnect, vars: DeleteStoreAssignmentVariables): MutationPromise<DeleteStoreAssignmentData, DeleteStoreAssignmentVariables>;
 
+interface CreateReservationChangeRequestRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateReservationChangeRequestVariables): MutationRef<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateReservationChangeRequestVariables): MutationRef<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+  operationName: string;
+}
+export const createReservationChangeRequestRef: CreateReservationChangeRequestRef;
+
+export function createReservationChangeRequest(vars: CreateReservationChangeRequestVariables): MutationPromise<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+export function createReservationChangeRequest(dc: DataConnect, vars: CreateReservationChangeRequestVariables): MutationPromise<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+
+interface UpdateReservationChangeRequestStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateReservationChangeRequestStatusVariables): MutationRef<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateReservationChangeRequestStatusVariables): MutationRef<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+  operationName: string;
+}
+export const updateReservationChangeRequestStatusRef: UpdateReservationChangeRequestStatusRef;
+
+export function updateReservationChangeRequestStatus(vars: UpdateReservationChangeRequestStatusVariables): MutationPromise<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+export function updateReservationChangeRequestStatus(dc: DataConnect, vars: UpdateReservationChangeRequestStatusVariables): MutationPromise<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+
 interface CreateStoreRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: CreateStoreVariables): MutationRef<CreateStoreData, CreateStoreVariables>;
@@ -963,6 +1054,18 @@ export const getReservationByCodeRef: GetReservationByCodeRef;
 
 export function getReservationByCode(vars: GetReservationByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetReservationByCodeData, GetReservationByCodeVariables>;
 export function getReservationByCode(dc: DataConnect, vars: GetReservationByCodeVariables, options?: ExecuteQueryOptions): QueryPromise<GetReservationByCodeData, GetReservationByCodeVariables>;
+
+interface ListReservationChangeRequestsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListReservationChangeRequestsData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListReservationChangeRequestsData, undefined>;
+  operationName: string;
+}
+export const listReservationChangeRequestsRef: ListReservationChangeRequestsRef;
+
+export function listReservationChangeRequests(options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
+export function listReservationChangeRequests(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
 
 interface ListCustomersRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1131,3 +1234,4 @@ export const listBillingRecordsRef: ListBillingRecordsRef;
 
 export function listBillingRecords(options?: ExecuteQueryOptions): QueryPromise<ListBillingRecordsData, undefined>;
 export function listBillingRecords(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBillingRecordsData, undefined>;
+

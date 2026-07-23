@@ -1,4 +1,4 @@
-﻿import { ConnectorConfig, DataConnect, OperationOptions, ExecuteOperationResponse } from 'firebase-admin/data-connect';
+import { ConnectorConfig, DataConnect, OperationOptions, ExecuteOperationResponse } from 'firebase-admin/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 
@@ -16,6 +16,11 @@ export enum BillingStatus {
 export enum BillingType {
   USAGE = "USAGE",
   CANCELLATION = "CANCELLATION",
+}
+export enum ReservationChangeRequestStatus {
+  REQUESTED = "REQUESTED",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
 }
 export enum ReservationStatus {
   TEMPORARY_REQUESTED = "TEMPORARY_REQUESTED",
@@ -78,6 +83,19 @@ export interface CreateMenuVariables {
   durationMinutes: number;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface CreateReservationChangeRequestData {
+  reservationChangeRequest_insert: ReservationChangeRequest_Key;
+}
+
+export interface CreateReservationChangeRequestVariables {
+  reservationId: UUIDString;
+  requestedDate: DateString;
+  requestedTime: string;
+  requestedPeople: number;
+  requestedMenuItemsJson: string;
+  reason?: string | null;
 }
 
 export interface CreateReservationData {
@@ -457,6 +475,39 @@ export interface ListMenusData {
   } & Menu_Key)[];
 }
 
+export interface ListReservationChangeRequestsData {
+  reservationChangeRequests: ({
+    id: UUIDString;
+    requestedDate: DateString;
+    requestedTime: string;
+    requestedPeople: number;
+    requestedMenuItemsJson: string;
+    reason?: string | null;
+    status: ReservationChangeRequestStatus;
+    requestedAt: TimestampString;
+    reviewedAt?: TimestampString | null;
+    reservation: {
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      usageTime: string;
+      expectedPeople: number;
+      customer: {
+        id: UUIDString;
+        name: string;
+        phone: string;
+        email: string;
+      } & Customer_Key;
+      reservationDetails_on_reservation: ({
+        quantity: number;
+        menu: {
+          name: string;
+        };
+      })[];
+    } & Reservation_Key;
+  } & ReservationChangeRequest_Key)[];
+}
+
 export interface ListReservationsData {
   reservations: ({
     id: UUIDString;
@@ -551,6 +602,11 @@ export interface RecordVisitVariables {
   actualPeople: number;
 }
 
+export interface ReservationChangeRequest_Key {
+  id: UUIDString;
+  __typename?: 'ReservationChangeRequest_Key';
+}
+
 export interface ReservationDetail_Key {
   id: UUIDString;
   __typename?: 'ReservationDetail_Key';
@@ -615,6 +671,16 @@ export interface UpdateMenuVariables {
   durationMinutes: number;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface UpdateReservationChangeRequestStatusData {
+  reservationChangeRequest_update?: ReservationChangeRequest_Key | null;
+}
+
+export interface UpdateReservationChangeRequestStatusVariables {
+  id: UUIDString;
+  status: ReservationChangeRequestStatus;
+  reviewedAt?: TimestampString | null;
 }
 
 export interface UpdateReservationData {
@@ -723,6 +789,16 @@ export function deleteStoreAssignment(dc: DataConnect, vars: DeleteStoreAssignme
 /** Generated Node Admin SDK operation action function for the 'DeleteStoreAssignment' Mutation. Allow users to pass in custom DataConnect instances. */
 export function deleteStoreAssignment(vars: DeleteStoreAssignmentVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteStoreAssignmentData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateReservationChangeRequest' Mutation. Allow users to execute without passing in DataConnect. */
+export function createReservationChangeRequest(dc: DataConnect, vars: CreateReservationChangeRequestVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateReservationChangeRequestData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateReservationChangeRequest' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createReservationChangeRequest(vars: CreateReservationChangeRequestVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateReservationChangeRequestData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateReservationChangeRequestStatus' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateReservationChangeRequestStatus(dc: DataConnect, vars: UpdateReservationChangeRequestStatusVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReservationChangeRequestStatusData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateReservationChangeRequestStatus' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateReservationChangeRequestStatus(vars: UpdateReservationChangeRequestStatusVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReservationChangeRequestStatusData>>;
+
 /** Generated Node Admin SDK operation action function for the 'CreateStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function createStore(dc: DataConnect, vars: CreateStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'CreateStore' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -782,6 +858,11 @@ export function getReservation(vars: GetReservationVariables, options?: Operatio
 export function getReservationByCode(dc: DataConnect, vars: GetReservationByCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetReservationByCodeData>>;
 /** Generated Node Admin SDK operation action function for the 'GetReservationByCode' Query. Allow users to pass in custom DataConnect instances. */
 export function getReservationByCode(vars: GetReservationByCodeVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetReservationByCodeData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListReservationChangeRequests' Query. Allow users to execute without passing in DataConnect. */
+export function listReservationChangeRequests(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListReservationChangeRequestsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListReservationChangeRequests' Query. Allow users to pass in custom DataConnect instances. */
+export function listReservationChangeRequests(options?: OperationOptions): Promise<ExecuteOperationResponse<ListReservationChangeRequestsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListCustomers' Query. Allow users to execute without passing in DataConnect. */
 export function listCustomers(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListCustomersData>>;
@@ -852,3 +933,4 @@ export function getMenuByName(vars: GetMenuByNameVariables, options?: OperationO
 export function listBillingRecords(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListBillingRecordsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListBillingRecords' Query. Allow users to pass in custom DataConnect instances. */
 export function listBillingRecords(options?: OperationOptions): Promise<ExecuteOperationResponse<ListBillingRecordsData>>;
+

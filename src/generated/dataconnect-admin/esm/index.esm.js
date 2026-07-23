@@ -1,4 +1,4 @@
-﻿import { validateAdminArgs } from 'firebase-admin/data-connect';
+import { validateAdminArgs } from 'firebase-admin/data-connect';
 
 export const BillingStatus = {
   UNBILLED: "UNBILLED",
@@ -10,6 +10,12 @@ export const BillingStatus = {
 export const BillingType = {
   USAGE: "USAGE",
   CANCELLATION: "CANCELLATION",
+}
+
+export const ReservationChangeRequestStatus = {
+  REQUESTED: "REQUESTED",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
 }
 
 export const ReservationStatus = {
@@ -109,6 +115,18 @@ export function deleteStoreAssignment(dcOrVarsOrOptions, varsOrOptions, options)
   return dcInstance.executeMutation('DeleteStoreAssignment', inputVars, inputOpts);
 }
 
+export function createReservationChangeRequest(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateReservationChangeRequest', inputVars, inputOpts);
+}
+
+export function updateReservationChangeRequestStatus(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateReservationChangeRequestStatus', inputVars, inputOpts);
+}
+
 export function createStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -179,6 +197,12 @@ export function getReservationByCode(dcOrVarsOrOptions, varsOrOptions, options) 
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('GetReservationByCode', inputVars, inputOpts);
+}
+
+export function listReservationChangeRequests(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
 }
 
 export function listCustomers(dcOrOptions, options) {
@@ -264,3 +288,4 @@ export function listBillingRecords(dcOrOptions, options) {
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListBillingRecords', undefined, inputOpts);
 }
+

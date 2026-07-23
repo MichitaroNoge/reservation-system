@@ -87,6 +87,32 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
   }
 }
 
+query ListReservationChangeRequests @auth(level: NO_ACCESS) {
+  reservationChangeRequests(orderBy: {requestedAt: DESC}) {
+    id
+    requestedDate
+    requestedTime
+    requestedPeople
+    requestedMenuItemsJson
+    reason
+    status
+    requestedAt
+    reviewedAt
+    reservation {
+      id
+      reservationCode
+      usageDate
+      usageTime
+      expectedPeople
+      customer { id name phone email }
+      reservationDetails_on_reservation {
+        quantity
+        menu { name }
+      }
+    }
+  }
+}
+
 query ListCustomers @auth(level: NO_ACCESS) {
   customers(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
     id

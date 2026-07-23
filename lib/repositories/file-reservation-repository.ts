@@ -1,11 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { defaultReservationStatus, normalizeReservationStatus, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
 type Database = {
   reservations: Reservation[];
+  reservationChangeRequests?: ReservationChangeRequest[];
   menus: Menu[];
   stores: Store[];
   customers?: Customer[];
@@ -18,10 +19,11 @@ async function readDatabase(databasePath: string): Promise<Database> {
     const raw = await readFile(databasePath, "utf8");
     const database = JSON.parse(raw) as Database;
     database.customers ??= [];
+    database.reservationChangeRequests ??= [];
     database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
     return database;
   } catch {
-    const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores, customers: [] };
+    const initial = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, customers: [] };
     await writeDatabase(databasePath, initial);
     return initial;
   }
@@ -38,6 +40,14 @@ function nextReservationId(reservations: Reservation[]) {
     return Number.isFinite(number) ? Math.max(current, number) : current;
   }, 1000);
   return `RSV-${max + 1}`;
+}
+
+function nextChangeRequestId(requests: ReservationChangeRequest[]) {
+  const max = requests.reduce((current, request) => {
+    const number = Number(request.id.replace("RCR-", ""));
+    return Number.isFinite(number) ? Math.max(current, number) : current;
+  }, 1000);
+  return `RCR-${max + 1}`;
 }
 
 function receivedLabel() {
@@ -65,6 +75,30 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
   return menuItems.reduce((total, name) => total + (menus.find((menu) => menu.name === name)?.price ?? 0), 0);
+}
+
+function normalizeContact(value: string | undefined) {
+  return (value ?? "").replace(/[\s-]/g, "").toLowerCase();
+}
+
+function reservationMatchesContact(reservation: Reservation, input: { email?: string; phone?: string }) {
+  return Boolean(
+    (input.email && normalizeContact(reservation.email) === normalizeContact(input.email))
+    || (input.phone && normalizeContact(reservation.phone) === normalizeContact(input.phone)),
+  );
+}
+
+function assertCanRequestReservationChange(reservation: Reservation) {
+  const allowedStatuses: readonly ReservationStatus[] = [
+    reservationStatusCodes.temporaryRequested,
+    reservationStatusCodes.temporaryConfirmed,
+    reservationStatusCodes.confirmedRequested,
+    reservationStatusCodes.confirmed,
+    reservationStatusCodes.waitingForVisit,
+  ];
+  if (!allowedStatuses.includes(reservation.status)) {
+    throw new Error(`Reservation change cannot be requested for status: ${reservation.status}`);
+  }
 }
 
 function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: string }>(items: T[]) {
@@ -175,6 +209,84 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.store = validAssignments.length === 1 ? validAssignments[0].store : validAssignments.length > 1 ? "複数店舗" : null;
     await this.writeDatabase(database);
     return reservation;
+  }
+
+  async listReservationChangeRequests() {
+    const database = await this.readDatabase();
+    return database.reservationChangeRequests ?? [];
+  }
+
+  async createReservationChangeRequest(input: CreateReservationChangeRequestInput) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const reservation = database.reservations.find((item) => item.id.toLowerCase() === input.reservationId.toLowerCase());
+    if (!reservation || !reservationMatchesContact(reservation, input)) {
+      throw new Error(`Reservation not found: ${input.reservationId}`);
+    }
+    assertCanRequestReservationChange(reservation);
+    const request: ReservationChangeRequest = {
+      id: nextChangeRequestId(database.reservationChangeRequests),
+      reservationId: reservation.id,
+      customer: reservation.customer,
+      email: reservation.email,
+      phone: reservation.phone,
+      currentDate: reservation.date,
+      currentStartTime: reservation.startTime ?? defaultStartTime,
+      currentPeople: reservation.people,
+      currentMenuItems: reservation.menuItems ?? [],
+      requestedDate: input.requestedDate,
+      requestedStartTime: input.requestedStartTime,
+      requestedPeople: input.requestedPeople,
+      requestedMenuItems: input.requestedMenuItems,
+      reason: input.reason,
+      status: "requested",
+      requestedAt: new Date().toISOString(),
+      reviewedAt: null,
+    };
+    database.reservationChangeRequests = [request, ...database.reservationChangeRequests];
+    await this.writeDatabase(database);
+    return request;
+  }
+
+  async approveReservationChangeRequest(id: string) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const request = database.reservationChangeRequests.find((item) => item.id === id);
+    if (!request) throw new Error(`Reservation change request not found: ${id}`);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const reservation = database.reservations.find((item) => item.id === request.reservationId);
+    if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
+
+    const shouldResetAssignments = reservation.date !== request.requestedDate
+      || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime
+      || reservation.people !== request.requestedPeople;
+    reservation.date = request.requestedDate;
+    reservation.startTime = request.requestedStartTime;
+    reservation.people = request.requestedPeople;
+    reservation.menuItems = request.requestedMenuItems;
+    reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
+    if (shouldResetAssignments) {
+      reservation.store = null;
+      reservation.storeAssignments = [];
+    }
+    reservation.status = getAutomaticReservationStatus(reservation);
+    request.status = "approved";
+    request.reviewedAt = new Date().toISOString();
+
+    await this.writeDatabase(database);
+    return { request, reservation };
+  }
+
+  async rejectReservationChangeRequest(id: string) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const request = database.reservationChangeRequests.find((item) => item.id === id);
+    if (!request) throw new Error(`Reservation change request not found: ${id}`);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    request.status = "rejected";
+    request.reviewedAt = new Date().toISOString();
+    await this.writeDatabase(database);
+    return request;
   }
 
   async listCustomers(): Promise<Customer[]> {

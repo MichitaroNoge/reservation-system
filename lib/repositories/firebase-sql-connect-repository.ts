@@ -4,6 +4,7 @@ import {
   assignStore,
   connectorConfig as generatedConnectorConfig,
   createCustomer,
+  createReservationChangeRequest as createDataConnectReservationChangeRequest,
   createStore as createDataConnectStore,
   createMenu as createDataConnectMenu,
   createReservation,
@@ -20,6 +21,7 @@ import {
   getReservationByCode,
   getStoreById,
   getStoreByName,
+  listReservationChangeRequests as listDataConnectReservationChangeRequests,
   listCustomers,
   listInactiveCustomers,
   listInactiveMenus,
@@ -35,8 +37,10 @@ import {
   reactivateStore as reactivateDataConnectStore,
   updateMenu as updateDataConnectMenu,
   updateReservation,
+  updateReservationChangeRequestStatus as updateDataConnectReservationChangeRequestStatus,
   updateReservationStatus,
   updateStore,
+  ReservationChangeRequestStatus as DataConnectSdkReservationChangeRequestStatus,
   ReservationStatus as DataConnectSdkReservationStatus,
   type GetCustomerByNameData,
   type GetCustomerByEmailData,
@@ -51,17 +55,22 @@ import {
   type ListInactiveMenusData,
   type ListInactiveStoresData,
   type ListMenusData,
+  type ListReservationChangeRequestsData,
   type ListReservationsData,
   type ListStoresData,
 } from "@reservation-system/dataconnect-admin";
 import {
+  getAutomaticReservationStatus,
   normalizeReservationStatus,
+  reservationStatusCodes,
   toDataConnectReservationStatus,
+  type CreateReservationChangeRequestInput,
   type CreateReservationInput,
   type Customer,
   type DataConnectReservationStatus,
   type Menu,
   type Reservation,
+  type ReservationChangeRequest,
   type ReservationStatus,
   type SaveCustomerInput,
   type SaveMenuInput,
@@ -77,6 +86,7 @@ type DataConnectReservation = ListReservationsData["reservations"][number] | Get
 type DataConnectCustomer = ListCustomersData["customers"][number] | ListInactiveCustomersData["customers"][number] | NonNullable<GetCustomerByIdData["customer"]> | GetCustomerByNameData["customers"][number] | GetCustomerByEmailData["customers"][number] | GetCustomerByFirebaseUidData["customers"][number];
 type DataConnectMenu = ListMenusData["menus"][number] | ListInactiveMenusData["menus"][number] | GetMenuByNameData["menus"][number];
 type DataConnectStore = ListStoresData["stores"][number] | ListInactiveStoresData["stores"][number] | NonNullable<GetStoreByIdData["store"]> | GetStoreByNameData["stores"][number];
+type DataConnectReservationChangeRequest = ListReservationChangeRequestsData["reservationChangeRequests"][number];
 type ReservationWithDataConnectIds = Reservation & {
   dataConnectId: string;
   dataConnectCustomerId: string;
@@ -190,6 +200,68 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       });
     }
     return this.getReservationWithInternalId(id);
+  }
+
+  async listReservationChangeRequests() {
+    const { data } = await listDataConnectReservationChangeRequests(this.connection());
+    return data.reservationChangeRequests.map(toReservationChangeRequest);
+  }
+
+  async createReservationChangeRequest(input: CreateReservationChangeRequestInput) {
+    const reservation = await this.getReservationWithInternalId(input.reservationId);
+    if (!reservationMatchesContact(reservation, input)) {
+      throw new Error(`Reservation not found: ${input.reservationId}`);
+    }
+    assertCanRequestReservationChange(reservation);
+    const { data } = await createDataConnectReservationChangeRequest(this.connection(), {
+      reservationId: reservation.dataConnectId,
+      requestedDate: input.requestedDate,
+      requestedTime: input.requestedStartTime,
+      requestedPeople: input.requestedPeople,
+      requestedMenuItemsJson: JSON.stringify(input.requestedMenuItems),
+      reason: input.reason ?? null,
+    });
+    const request = (await this.listReservationChangeRequests()).find((item) => item.id === data.reservationChangeRequest_insert.id);
+    if (!request) throw new Error(`Reservation change request not found: ${data.reservationChangeRequest_insert.id}`);
+    return request;
+  }
+
+  async approveReservationChangeRequest(id: string) {
+    const request = await this.getReservationChangeRequest(id);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const reservation = await this.getReservationWithInternalId(request.reservationId);
+    const shouldResetAssignments = reservation.date !== request.requestedDate
+      || (reservation.startTime ?? "10:00") !== request.requestedStartTime
+      || reservation.people !== request.requestedPeople;
+
+    await updateReservation(this.connection(), {
+      id: reservation.dataConnectId,
+      usageDate: request.requestedDate,
+      usageTime: request.requestedStartTime,
+      expectedPeople: request.requestedPeople,
+    });
+    await this.replaceReservationDetails(reservation.dataConnectId, reservation.dataConnectReservationDetails, request.requestedMenuItems);
+    if (shouldResetAssignments) {
+      for (const assignment of reservation.dataConnectStoreAssignments) {
+        await deleteStoreAssignment(this.connection(), { id: assignment.id });
+      }
+    }
+    const updated = await this.getReservationWithInternalId(request.reservationId);
+    const automaticStatus = getAutomaticReservationStatus(updated);
+    const reservationAfterStatus = automaticStatus === updated.status
+      ? updated
+      : await this.updateReservationStatus(updated.id, automaticStatus);
+    const reviewedAt = new Date().toISOString();
+    await this.updateReservationChangeRequestStatus(id, "APPROVED", reviewedAt);
+    return { request: { ...request, status: "approved" as const, reviewedAt }, reservation: reservationAfterStatus };
+  }
+
+  async rejectReservationChangeRequest(id: string) {
+    const request = await this.getReservationChangeRequest(id);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const reviewedAt = new Date().toISOString();
+    await this.updateReservationChangeRequestStatus(id, "REJECTED", reviewedAt);
+    return { ...request, status: "rejected" as const, reviewedAt };
   }
 
   async listCustomers() {
@@ -381,6 +453,20 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   private connection() {
     this.dataConnect ??= getDataConnect(connectorConfig, getFirebaseAdminApp());
     return this.dataConnect;
+  }
+
+  private async getReservationChangeRequest(id: string) {
+    const request = (await this.listReservationChangeRequests()).find((item) => item.id === id);
+    if (!request) throw new Error(`Reservation change request not found: ${id}`);
+    return request;
+  }
+
+  private async updateReservationChangeRequestStatus(id: string, status: "APPROVED" | "REJECTED", reviewedAt: string) {
+    await updateDataConnectReservationChangeRequestStatus(this.connection(), {
+      id,
+      status: DataConnectSdkReservationChangeRequestStatus[status],
+      reviewedAt,
+    });
   }
 
   private async getReservationWithInternalId(reservationCode: string): Promise<ReservationWithDataConnectIds> {
@@ -576,6 +662,30 @@ function toReservation(reservation: DataConnectReservation): Reservation {
   };
 }
 
+function toReservationChangeRequest(request: DataConnectReservationChangeRequest): ReservationChangeRequest {
+  return {
+    id: request.id,
+    reservationId: request.reservation.reservationCode,
+    customer: request.reservation.customer.name,
+    email: request.reservation.customer.email,
+    phone: request.reservation.customer.phone,
+    currentDate: request.reservation.usageDate,
+    currentStartTime: request.reservation.usageTime,
+    currentPeople: request.reservation.expectedPeople,
+    currentMenuItems: (request.reservation.reservationDetails_on_reservation ?? []).flatMap((detail) =>
+      Array.from({ length: detail.quantity }, () => detail.menu.name),
+    ),
+    requestedDate: request.requestedDate,
+    requestedStartTime: request.requestedTime,
+    requestedPeople: request.requestedPeople,
+    requestedMenuItems: parseMenuItemsJson(request.requestedMenuItemsJson),
+    reason: request.reason ?? undefined,
+    status: request.status === "APPROVED" ? "approved" : request.status === "REJECTED" ? "rejected" : "requested",
+    requestedAt: request.requestedAt,
+    reviewedAt: request.reviewedAt ?? null,
+  };
+}
+
 function toCustomer(customer: DataConnectCustomer): Customer {
   const reservations = "reservations_on_customer" in customer ? customer.reservations_on_customer ?? [] : [];
   return {
@@ -626,4 +736,37 @@ function formatReceivedLabel(value: string) {
 
 function toSdkReservationStatus(status: ReservationStatus) {
   return DataConnectSdkReservationStatus[toDataConnectReservationStatus(status)];
+}
+
+function parseMenuItemsJson(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeContact(value: string | undefined) {
+  return (value ?? "").replace(/[\s-]/g, "").toLowerCase();
+}
+
+function reservationMatchesContact(reservation: Reservation, input: { email?: string; phone?: string }) {
+  return Boolean(
+    (input.email && normalizeContact(reservation.email) === normalizeContact(input.email))
+    || (input.phone && normalizeContact(reservation.phone) === normalizeContact(input.phone)),
+  );
+}
+
+function assertCanRequestReservationChange(reservation: Reservation) {
+  const allowedStatuses: readonly ReservationStatus[] = [
+    reservationStatusCodes.temporaryRequested,
+    reservationStatusCodes.temporaryConfirmed,
+    reservationStatusCodes.confirmedRequested,
+    reservationStatusCodes.confirmed,
+    reservationStatusCodes.waitingForVisit,
+  ];
+  if (!allowedStatuses.includes(reservation.status)) {
+    throw new Error(`Reservation change cannot be requested for status: ${reservation.status}`);
+  }
 }

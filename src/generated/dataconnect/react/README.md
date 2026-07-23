@@ -1,4 +1,4 @@
-﻿# Generated React README
+# Generated React README
 This README will guide you through the process of using the generated React SDK package for the connector `reservation`. It will also provide examples on how to use your generated SDK to call your Data Connect queries and mutations.
 
 **If you're looking for the `JavaScript README`, you can find it at [`dataconnect/README.md`](../README.md)**
@@ -20,6 +20,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*ListReservations*](#listreservations)
   - [*GetReservation*](#getreservation)
   - [*GetReservationByCode*](#getreservationbycode)
+  - [*ListReservationChangeRequests*](#listreservationchangerequests)
   - [*ListCustomers*](#listcustomers)
   - [*ListInactiveCustomers*](#listinactivecustomers)
   - [*GetCustomerByName*](#getcustomerbyname)
@@ -48,6 +49,8 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
+  - [*CreateReservationChangeRequest*](#createreservationchangerequest)
+  - [*UpdateReservationChangeRequestStatus*](#updatereservationchangerequeststatus)
   - [*CreateStore*](#createstore)
   - [*UpdateStore*](#updatestore)
   - [*DeactivateStore*](#deactivatestore)
@@ -354,7 +357,7 @@ import { useGetReservation } from '@reservation-system/dataconnect/react'
 export default function GetReservationComponent() {
   // The `useGetReservation` Query hook requires an argument of type `GetReservationVariables`:
   const getReservationVars: GetReservationVariables = {
-    id: ...,
+    id: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -477,7 +480,7 @@ import { useGetReservationByCode } from '@reservation-system/dataconnect/react'
 export default function GetReservationByCodeComponent() {
   // The `useGetReservationByCode` Query hook requires an argument of type `GetReservationByCodeVariables`:
   const getReservationByCodeVars: GetReservationByCodeVariables = {
-    reservationCode: ...,
+    reservationCode: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -511,6 +514,104 @@ export default function GetReservationByCodeComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.reservations);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListReservationChangeRequests
+You can execute the `ListReservationChangeRequests` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListReservationChangeRequests(dc: DataConnect, options?: useDataConnectQueryOptions<ListReservationChangeRequestsData>): UseDataConnectQueryResult<ListReservationChangeRequestsData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListReservationChangeRequests(options?: useDataConnectQueryOptions<ListReservationChangeRequestsData>): UseDataConnectQueryResult<ListReservationChangeRequestsData, undefined>;
+```
+
+### Variables
+The `ListReservationChangeRequests` Query has no variables.
+### Return Type
+Recall that calling the `ListReservationChangeRequests` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListReservationChangeRequests` Query is of type `ListReservationChangeRequestsData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListReservationChangeRequestsData {
+  reservationChangeRequests: ({
+    id: UUIDString;
+    requestedDate: DateString;
+    requestedTime: string;
+    requestedPeople: number;
+    requestedMenuItemsJson: string;
+    reason?: string | null;
+    status: ReservationChangeRequestStatus;
+    requestedAt: TimestampString;
+    reviewedAt?: TimestampString | null;
+    reservation: {
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      usageTime: string;
+      expectedPeople: number;
+      customer: {
+        id: UUIDString;
+        name: string;
+        phone: string;
+        email: string;
+      } & Customer_Key;
+      reservationDetails_on_reservation: ({
+        quantity: number;
+        menu: {
+          name: string;
+        };
+      })[];
+    } & Reservation_Key;
+  } & ReservationChangeRequest_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListReservationChangeRequests`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@reservation-system/dataconnect';
+import { useListReservationChangeRequests } from '@reservation-system/dataconnect/react'
+
+export default function ListReservationChangeRequestsComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListReservationChangeRequests();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListReservationChangeRequests(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListReservationChangeRequests(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListReservationChangeRequests(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.reservationChangeRequests);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -731,7 +832,7 @@ import { useGetCustomerByName } from '@reservation-system/dataconnect/react'
 export default function GetCustomerByNameComponent() {
   // The `useGetCustomerByName` Query hook requires an argument of type `GetCustomerByNameVariables`:
   const getCustomerByNameVars: GetCustomerByNameVariables = {
-    name: ...,
+    name: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -819,7 +920,7 @@ import { useGetCustomerById } from '@reservation-system/dataconnect/react'
 export default function GetCustomerByIdComponent() {
   // The `useGetCustomerById` Query hook requires an argument of type `GetCustomerByIdVariables`:
   const getCustomerByIdVars: GetCustomerByIdVariables = {
-    id: ...,
+    id: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -908,7 +1009,7 @@ import { useGetCustomerByFirebaseUid } from '@reservation-system/dataconnect/rea
 export default function GetCustomerByFirebaseUidComponent() {
   // The `useGetCustomerByFirebaseUid` Query hook requires an argument of type `GetCustomerByFirebaseUidVariables`:
   const getCustomerByFirebaseUidVars: GetCustomerByFirebaseUidVariables = {
-    firebaseUid: ...,
+    firebaseUid: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -997,7 +1098,7 @@ import { useGetCustomerByEmail } from '@reservation-system/dataconnect/react'
 export default function GetCustomerByEmailComponent() {
   // The `useGetCustomerByEmail` Query hook requires an argument of type `GetCustomerByEmailVariables`:
   const getCustomerByEmailVars: GetCustomerByEmailVariables = {
-    email: ...,
+    email: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -1232,7 +1333,7 @@ import { useGetStoreByName } from '@reservation-system/dataconnect/react'
 export default function GetStoreByNameComponent() {
   // The `useGetStoreByName` Query hook requires an argument of type `GetStoreByNameVariables`:
   const getStoreByNameVars: GetStoreByNameVariables = {
-    name: ...,
+    name: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -1319,7 +1420,7 @@ import { useGetStoreById } from '@reservation-system/dataconnect/react'
 export default function GetStoreByIdComponent() {
   // The `useGetStoreById` Query hook requires an argument of type `GetStoreByIdVariables`:
   const getStoreByIdVars: GetStoreByIdVariables = {
-    id: ...,
+    id: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -1563,7 +1664,7 @@ import { useGetMenuByName } from '@reservation-system/dataconnect/react'
 export default function GetMenuByNameComponent() {
   // The `useGetMenuByName` Query hook requires an argument of type `GetMenuByNameVariables`:
   const getMenuByNameVars: GetMenuByNameVariables = {
-    name: ...,
+    name: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
@@ -1783,9 +1884,9 @@ export default function CreateCustomerComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateCustomer` Mutation requires an argument of type `CreateCustomerVariables`:
   const createCustomerVars: CreateCustomerVariables = {
-    name: ...,
-    phone: ...,
-    email: ...,
+    name: ..., 
+    phone: ..., 
+    email: ..., 
     firebaseUid: ..., // optional
   };
   mutation.mutate(createCustomerVars);
@@ -1883,10 +1984,10 @@ export default function UpdateCustomerComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateCustomer` Mutation requires an argument of type `UpdateCustomerVariables`:
   const updateCustomerVars: UpdateCustomerVariables = {
-    id: ...,
-    name: ...,
-    phone: ...,
-    email: ...,
+    id: ..., 
+    name: ..., 
+    phone: ..., 
+    email: ..., 
   };
   mutation.mutate(updateCustomerVars);
   // Variables can be defined inline as well.
@@ -1984,10 +2085,10 @@ export default function UpdateCustomerIdentityComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateCustomerIdentity` Mutation requires an argument of type `UpdateCustomerIdentityVariables`:
   const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
-    id: ...,
-    name: ...,
-    phone: ...,
-    email: ...,
+    id: ..., 
+    name: ..., 
+    phone: ..., 
+    email: ..., 
     firebaseUid: ..., // optional
   };
   mutation.mutate(updateCustomerIdentityVars);
@@ -2082,7 +2183,7 @@ export default function DeactivateCustomerComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useDeactivateCustomer` Mutation requires an argument of type `DeactivateCustomerVariables`:
   const deactivateCustomerVars: DeactivateCustomerVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(deactivateCustomerVars);
   // Variables can be defined inline as well.
@@ -2176,7 +2277,7 @@ export default function ReactivateCustomerComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useReactivateCustomer` Mutation requires an argument of type `ReactivateCustomerVariables`:
   const reactivateCustomerVars: ReactivateCustomerVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(reactivateCustomerVars);
   // Variables can be defined inline as well.
@@ -2277,12 +2378,12 @@ export default function CreateReservationComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateReservation` Mutation requires an argument of type `CreateReservationVariables`:
   const createReservationVars: CreateReservationVariables = {
-    reservationCode: ...,
-    customerId: ...,
-    usageDate: ...,
-    usageTime: ...,
-    expectedPeople: ...,
-    status: ...,
+    reservationCode: ..., 
+    customerId: ..., 
+    usageDate: ..., 
+    usageTime: ..., 
+    expectedPeople: ..., 
+    status: ..., 
     policyAgreementKind: ..., // optional
     policyAgreementAcceptedAt: ..., // optional
   };
@@ -2381,10 +2482,10 @@ export default function AddReservationDetailComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAddReservationDetail` Mutation requires an argument of type `AddReservationDetailVariables`:
   const addReservationDetailVars: AddReservationDetailVariables = {
-    reservationId: ...,
-    menuId: ...,
-    quantity: ...,
-    unitPrice: ...,
+    reservationId: ..., 
+    menuId: ..., 
+    quantity: ..., 
+    unitPrice: ..., 
   };
   mutation.mutate(addReservationDetailVars);
   // Variables can be defined inline as well.
@@ -2478,7 +2579,7 @@ export default function DeleteReservationDetailComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useDeleteReservationDetail` Mutation requires an argument of type `DeleteReservationDetailVariables`:
   const deleteReservationDetailVars: DeleteReservationDetailVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(deleteReservationDetailVars);
   // Variables can be defined inline as well.
@@ -2575,10 +2676,10 @@ export default function UpdateReservationComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateReservation` Mutation requires an argument of type `UpdateReservationVariables`:
   const updateReservationVars: UpdateReservationVariables = {
-    id: ...,
-    usageDate: ...,
-    usageTime: ...,
-    expectedPeople: ...,
+    id: ..., 
+    usageDate: ..., 
+    usageTime: ..., 
+    expectedPeople: ..., 
   };
   mutation.mutate(updateReservationVars);
   // Variables can be defined inline as well.
@@ -2673,8 +2774,8 @@ export default function UpdateReservationStatusComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateReservationStatus` Mutation requires an argument of type `UpdateReservationStatusVariables`:
   const updateReservationStatusVars: UpdateReservationStatusVariables = {
-    id: ...,
-    status: ...,
+    id: ..., 
+    status: ..., 
   };
   mutation.mutate(updateReservationStatusVars);
   // Variables can be defined inline as well.
@@ -2769,7 +2870,7 @@ export default function UpdateConfirmationContactComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateConfirmationContact` Mutation requires an argument of type `UpdateConfirmationContactVariables`:
   const updateConfirmationContactVars: UpdateConfirmationContactVariables = {
-    id: ...,
+    id: ..., 
     confirmationContactedAt: ..., // optional
   };
   mutation.mutate(updateConfirmationContactVars);
@@ -2866,9 +2967,9 @@ export default function AssignStoreComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useAssignStore` Mutation requires an argument of type `AssignStoreVariables`:
   const assignStoreVars: AssignStoreVariables = {
-    reservationId: ...,
-    storeId: ...,
-    people: ...,
+    reservationId: ..., 
+    storeId: ..., 
+    people: ..., 
   };
   mutation.mutate(assignStoreVars);
   // Variables can be defined inline as well.
@@ -2962,7 +3063,7 @@ export default function DeleteStoreAssignmentComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useDeleteStoreAssignment` Mutation requires an argument of type `DeleteStoreAssignmentVariables`:
   const deleteStoreAssignmentVars: DeleteStoreAssignmentVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(deleteStoreAssignmentVars);
   // Variables can be defined inline as well.
@@ -2986,6 +3087,208 @@ export default function DeleteStoreAssignmentComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.storeAssignment_delete);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## CreateReservationChangeRequest
+You can execute the `CreateReservationChangeRequest` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateReservationChangeRequest(options?: useDataConnectMutationOptions<CreateReservationChangeRequestData, FirebaseError, CreateReservationChangeRequestVariables>): UseDataConnectMutationResult<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateReservationChangeRequest(dc: DataConnect, options?: useDataConnectMutationOptions<CreateReservationChangeRequestData, FirebaseError, CreateReservationChangeRequestVariables>): UseDataConnectMutationResult<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+```
+
+### Variables
+The `CreateReservationChangeRequest` Mutation requires an argument of type `CreateReservationChangeRequestVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateReservationChangeRequestVariables {
+  reservationId: UUIDString;
+  requestedDate: DateString;
+  requestedTime: string;
+  requestedPeople: number;
+  requestedMenuItemsJson: string;
+  reason?: string | null;
+}
+```
+### Return Type
+Recall that calling the `CreateReservationChangeRequest` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateReservationChangeRequest` Mutation is of type `CreateReservationChangeRequestData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateReservationChangeRequestData {
+  reservationChangeRequest_insert: ReservationChangeRequest_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateReservationChangeRequest`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateReservationChangeRequestVariables } from '@reservation-system/dataconnect';
+import { useCreateReservationChangeRequest } from '@reservation-system/dataconnect/react'
+
+export default function CreateReservationChangeRequestComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateReservationChangeRequest();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateReservationChangeRequest(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateReservationChangeRequest(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateReservationChangeRequest(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateReservationChangeRequest` Mutation requires an argument of type `CreateReservationChangeRequestVariables`:
+  const createReservationChangeRequestVars: CreateReservationChangeRequestVariables = {
+    reservationId: ..., 
+    requestedDate: ..., 
+    requestedTime: ..., 
+    requestedPeople: ..., 
+    requestedMenuItemsJson: ..., 
+    reason: ..., // optional
+  };
+  mutation.mutate(createReservationChangeRequestVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ reservationId: ..., requestedDate: ..., requestedTime: ..., requestedPeople: ..., requestedMenuItemsJson: ..., reason: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createReservationChangeRequestVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.reservationChangeRequest_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateReservationChangeRequestStatus
+You can execute the `UpdateReservationChangeRequestStatus` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateReservationChangeRequestStatus(options?: useDataConnectMutationOptions<UpdateReservationChangeRequestStatusData, FirebaseError, UpdateReservationChangeRequestStatusVariables>): UseDataConnectMutationResult<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateReservationChangeRequestStatus(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateReservationChangeRequestStatusData, FirebaseError, UpdateReservationChangeRequestStatusVariables>): UseDataConnectMutationResult<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+```
+
+### Variables
+The `UpdateReservationChangeRequestStatus` Mutation requires an argument of type `UpdateReservationChangeRequestStatusVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateReservationChangeRequestStatusVariables {
+  id: UUIDString;
+  status: ReservationChangeRequestStatus;
+  reviewedAt?: TimestampString | null;
+}
+```
+### Return Type
+Recall that calling the `UpdateReservationChangeRequestStatus` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateReservationChangeRequestStatus` Mutation is of type `UpdateReservationChangeRequestStatusData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateReservationChangeRequestStatusData {
+  reservationChangeRequest_update?: ReservationChangeRequest_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateReservationChangeRequestStatus`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateReservationChangeRequestStatusVariables } from '@reservation-system/dataconnect';
+import { useUpdateReservationChangeRequestStatus } from '@reservation-system/dataconnect/react'
+
+export default function UpdateReservationChangeRequestStatusComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateReservationChangeRequestStatus();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateReservationChangeRequestStatus(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateReservationChangeRequestStatus(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateReservationChangeRequestStatus(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateReservationChangeRequestStatus` Mutation requires an argument of type `UpdateReservationChangeRequestStatusVariables`:
+  const updateReservationChangeRequestStatusVars: UpdateReservationChangeRequestStatusVariables = {
+    id: ..., 
+    status: ..., 
+    reviewedAt: ..., // optional
+  };
+  mutation.mutate(updateReservationChangeRequestStatusVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., status: ..., reviewedAt: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateReservationChangeRequestStatusVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.reservationChangeRequest_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -3058,9 +3361,9 @@ export default function CreateStoreComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateStore` Mutation requires an argument of type `CreateStoreVariables`:
   const createStoreVars: CreateStoreVariables = {
-    name: ...,
+    name: ..., 
     displayOrder: ..., // optional
-    active: ...,
+    active: ..., 
   };
   mutation.mutate(createStoreVars);
   // Variables can be defined inline as well.
@@ -3157,10 +3460,10 @@ export default function UpdateStoreComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateStore` Mutation requires an argument of type `UpdateStoreVariables`:
   const updateStoreVars: UpdateStoreVariables = {
-    id: ...,
-    name: ...,
+    id: ..., 
+    name: ..., 
     displayOrder: ..., // optional
-    active: ...,
+    active: ..., 
   };
   mutation.mutate(updateStoreVars);
   // Variables can be defined inline as well.
@@ -3254,7 +3557,7 @@ export default function DeactivateStoreComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useDeactivateStore` Mutation requires an argument of type `DeactivateStoreVariables`:
   const deactivateStoreVars: DeactivateStoreVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(deactivateStoreVars);
   // Variables can be defined inline as well.
@@ -3348,7 +3651,7 @@ export default function ReactivateStoreComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useReactivateStore` Mutation requires an argument of type `ReactivateStoreVariables`:
   const reactivateStoreVars: ReactivateStoreVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(reactivateStoreVars);
   // Variables can be defined inline as well.
@@ -3447,12 +3750,12 @@ export default function CreateMenuComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useCreateMenu` Mutation requires an argument of type `CreateMenuVariables`:
   const createMenuVars: CreateMenuVariables = {
-    name: ...,
+    name: ..., 
     description: ..., // optional
-    standardPrice: ...,
-    durationMinutes: ...,
+    standardPrice: ..., 
+    durationMinutes: ..., 
     displayOrder: ..., // optional
-    active: ...,
+    active: ..., 
   };
   mutation.mutate(createMenuVars);
   // Variables can be defined inline as well.
@@ -3552,13 +3855,13 @@ export default function UpdateMenuComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useUpdateMenu` Mutation requires an argument of type `UpdateMenuVariables`:
   const updateMenuVars: UpdateMenuVariables = {
-    id: ...,
-    name: ...,
+    id: ..., 
+    name: ..., 
     description: ..., // optional
-    standardPrice: ...,
-    durationMinutes: ...,
+    standardPrice: ..., 
+    durationMinutes: ..., 
     displayOrder: ..., // optional
-    active: ...,
+    active: ..., 
   };
   mutation.mutate(updateMenuVars);
   // Variables can be defined inline as well.
@@ -3652,7 +3955,7 @@ export default function DeactivateMenuComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useDeactivateMenu` Mutation requires an argument of type `DeactivateMenuVariables`:
   const deactivateMenuVars: DeactivateMenuVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(deactivateMenuVars);
   // Variables can be defined inline as well.
@@ -3746,7 +4049,7 @@ export default function ReactivateMenuComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useReactivateMenu` Mutation requires an argument of type `ReactivateMenuVariables`:
   const reactivateMenuVars: ReactivateMenuVariables = {
-    id: ...,
+    id: ..., 
   };
   mutation.mutate(reactivateMenuVars);
   // Variables can be defined inline as well.
@@ -3843,9 +4146,9 @@ export default function RecordVisitComponent() {
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
   // The `useRecordVisit` Mutation requires an argument of type `RecordVisitVariables`:
   const recordVisitVars: RecordVisitVariables = {
-    reservationId: ...,
-    visitedAt: ...,
-    actualPeople: ...,
+    reservationId: ..., 
+    visitedAt: ..., 
+    actualPeople: ..., 
   };
   mutation.mutate(recordVisitVars);
   // Variables can be defined inline as well.
@@ -3874,3 +4177,4 @@ export default function RecordVisitComponent() {
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
+

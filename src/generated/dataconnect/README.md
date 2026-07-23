@@ -1,4 +1,4 @@
-﻿# Generated TypeScript README
+# Generated TypeScript README
 This README will guide you through the process of using the generated JavaScript SDK package for the connector `reservation`. It will also provide examples on how to use your generated SDK to call your Data Connect queries and mutations.
 
 **If you're looking for the `React README`, you can find it at [`dataconnect/react/README.md`](./react/README.md)**
@@ -13,6 +13,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListReservations*](#listreservations)
   - [*GetReservation*](#getreservation)
   - [*GetReservationByCode*](#getreservationbycode)
+  - [*ListReservationChangeRequests*](#listreservationchangerequests)
   - [*ListCustomers*](#listcustomers)
   - [*ListInactiveCustomers*](#listinactivecustomers)
   - [*GetCustomerByName*](#getcustomerbyname)
@@ -41,6 +42,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
+  - [*CreateReservationChangeRequest*](#createreservationchangerequest)
+  - [*UpdateReservationChangeRequestStatus*](#updatereservationchangerequeststatus)
   - [*CreateStore*](#createstore)
   - [*UpdateStore*](#updatestore)
   - [*DeactivateStore*](#deactivatestore)
@@ -335,7 +338,7 @@ import { connectorConfig, getReservation, GetReservationVariables } from '@reser
 
 // The `GetReservation` query requires an argument of type `GetReservationVariables`:
 const getReservationVars: GetReservationVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getReservation()` function to execute the query.
@@ -365,7 +368,7 @@ import { connectorConfig, getReservationRef, GetReservationVariables } from '@re
 
 // The `GetReservation` query requires an argument of type `GetReservationVariables`:
 const getReservationVars: GetReservationVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getReservationRef()` function to get a reference to the query.
@@ -485,7 +488,7 @@ import { connectorConfig, getReservationByCode, GetReservationByCodeVariables } 
 
 // The `GetReservationByCode` query requires an argument of type `GetReservationByCodeVariables`:
 const getReservationByCodeVars: GetReservationByCodeVariables = {
-  reservationCode: ...,
+  reservationCode: ..., 
 };
 
 // Call the `getReservationByCode()` function to execute the query.
@@ -515,7 +518,7 @@ import { connectorConfig, getReservationByCodeRef, GetReservationByCodeVariables
 
 // The `GetReservationByCode` query requires an argument of type `GetReservationByCodeVariables`:
 const getReservationByCodeVars: GetReservationByCodeVariables = {
-  reservationCode: ...,
+  reservationCode: ..., 
 };
 
 // Call the `getReservationByCodeRef()` function to get a reference to the query.
@@ -537,6 +540,126 @@ console.log(data.reservations);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.reservations);
+});
+```
+
+## ListReservationChangeRequests
+You can execute the `ListReservationChangeRequests` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+listReservationChangeRequests(options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
+
+interface ListReservationChangeRequestsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListReservationChangeRequestsData, undefined>;
+}
+export const listReservationChangeRequestsRef: ListReservationChangeRequestsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listReservationChangeRequests(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
+
+interface ListReservationChangeRequestsRef {
+  ...
+  (dc: DataConnect): QueryRef<ListReservationChangeRequestsData, undefined>;
+}
+export const listReservationChangeRequestsRef: ListReservationChangeRequestsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listReservationChangeRequestsRef:
+```typescript
+const name = listReservationChangeRequestsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListReservationChangeRequests` query has no variables.
+### Return Type
+Recall that executing the `ListReservationChangeRequests` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListReservationChangeRequestsData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListReservationChangeRequestsData {
+  reservationChangeRequests: ({
+    id: UUIDString;
+    requestedDate: DateString;
+    requestedTime: string;
+    requestedPeople: number;
+    requestedMenuItemsJson: string;
+    reason?: string | null;
+    status: ReservationChangeRequestStatus;
+    requestedAt: TimestampString;
+    reviewedAt?: TimestampString | null;
+    reservation: {
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      usageTime: string;
+      expectedPeople: number;
+      customer: {
+        id: UUIDString;
+        name: string;
+        phone: string;
+        email: string;
+      } & Customer_Key;
+      reservationDetails_on_reservation: ({
+        quantity: number;
+        menu: {
+          name: string;
+        };
+      })[];
+    } & Reservation_Key;
+  } & ReservationChangeRequest_Key)[];
+}
+```
+### Using `ListReservationChangeRequests`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listReservationChangeRequests } from '@reservation-system/dataconnect';
+
+
+// Call the `listReservationChangeRequests()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listReservationChangeRequests();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listReservationChangeRequests(dataConnect);
+
+console.log(data.reservationChangeRequests);
+
+// Or, you can use the `Promise` API.
+listReservationChangeRequests().then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequests);
+});
+```
+
+### Using `ListReservationChangeRequests`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listReservationChangeRequestsRef } from '@reservation-system/dataconnect';
+
+
+// Call the `listReservationChangeRequestsRef()` function to get a reference to the query.
+const ref = listReservationChangeRequestsRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listReservationChangeRequestsRef(dataConnect);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.reservationChangeRequests);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequests);
 });
 ```
 
@@ -810,7 +933,7 @@ import { connectorConfig, getCustomerByName, GetCustomerByNameVariables } from '
 
 // The `GetCustomerByName` query requires an argument of type `GetCustomerByNameVariables`:
 const getCustomerByNameVars: GetCustomerByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getCustomerByName()` function to execute the query.
@@ -840,7 +963,7 @@ import { connectorConfig, getCustomerByNameRef, GetCustomerByNameVariables } fro
 
 // The `GetCustomerByName` query requires an argument of type `GetCustomerByNameVariables`:
 const getCustomerByNameVars: GetCustomerByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getCustomerByNameRef()` function to get a reference to the query.
@@ -925,7 +1048,7 @@ import { connectorConfig, getCustomerById, GetCustomerByIdVariables } from '@res
 
 // The `GetCustomerById` query requires an argument of type `GetCustomerByIdVariables`:
 const getCustomerByIdVars: GetCustomerByIdVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getCustomerById()` function to execute the query.
@@ -955,7 +1078,7 @@ import { connectorConfig, getCustomerByIdRef, GetCustomerByIdVariables } from '@
 
 // The `GetCustomerById` query requires an argument of type `GetCustomerByIdVariables`:
 const getCustomerByIdVars: GetCustomerByIdVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getCustomerByIdRef()` function to get a reference to the query.
@@ -1041,7 +1164,7 @@ import { connectorConfig, getCustomerByFirebaseUid, GetCustomerByFirebaseUidVari
 
 // The `GetCustomerByFirebaseUid` query requires an argument of type `GetCustomerByFirebaseUidVariables`:
 const getCustomerByFirebaseUidVars: GetCustomerByFirebaseUidVariables = {
-  firebaseUid: ...,
+  firebaseUid: ..., 
 };
 
 // Call the `getCustomerByFirebaseUid()` function to execute the query.
@@ -1071,7 +1194,7 @@ import { connectorConfig, getCustomerByFirebaseUidRef, GetCustomerByFirebaseUidV
 
 // The `GetCustomerByFirebaseUid` query requires an argument of type `GetCustomerByFirebaseUidVariables`:
 const getCustomerByFirebaseUidVars: GetCustomerByFirebaseUidVariables = {
-  firebaseUid: ...,
+  firebaseUid: ..., 
 };
 
 // Call the `getCustomerByFirebaseUidRef()` function to get a reference to the query.
@@ -1157,7 +1280,7 @@ import { connectorConfig, getCustomerByEmail, GetCustomerByEmailVariables } from
 
 // The `GetCustomerByEmail` query requires an argument of type `GetCustomerByEmailVariables`:
 const getCustomerByEmailVars: GetCustomerByEmailVariables = {
-  email: ...,
+  email: ..., 
 };
 
 // Call the `getCustomerByEmail()` function to execute the query.
@@ -1187,7 +1310,7 @@ import { connectorConfig, getCustomerByEmailRef, GetCustomerByEmailVariables } f
 
 // The `GetCustomerByEmail` query requires an argument of type `GetCustomerByEmailVariables`:
 const getCustomerByEmailVars: GetCustomerByEmailVariables = {
-  email: ...,
+  email: ..., 
 };
 
 // Call the `getCustomerByEmailRef()` function to get a reference to the query.
@@ -1463,7 +1586,7 @@ import { connectorConfig, getStoreByName, GetStoreByNameVariables } from '@reser
 
 // The `GetStoreByName` query requires an argument of type `GetStoreByNameVariables`:
 const getStoreByNameVars: GetStoreByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getStoreByName()` function to execute the query.
@@ -1493,7 +1616,7 @@ import { connectorConfig, getStoreByNameRef, GetStoreByNameVariables } from '@re
 
 // The `GetStoreByName` query requires an argument of type `GetStoreByNameVariables`:
 const getStoreByNameVars: GetStoreByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getStoreByNameRef()` function to get a reference to the query.
@@ -1577,7 +1700,7 @@ import { connectorConfig, getStoreById, GetStoreByIdVariables } from '@reservati
 
 // The `GetStoreById` query requires an argument of type `GetStoreByIdVariables`:
 const getStoreByIdVars: GetStoreByIdVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getStoreById()` function to execute the query.
@@ -1607,7 +1730,7 @@ import { connectorConfig, getStoreByIdRef, GetStoreByIdVariables } from '@reserv
 
 // The `GetStoreById` query requires an argument of type `GetStoreByIdVariables`:
 const getStoreByIdVars: GetStoreByIdVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `getStoreByIdRef()` function to get a reference to the query.
@@ -1892,7 +2015,7 @@ import { connectorConfig, getMenuByName, GetMenuByNameVariables } from '@reserva
 
 // The `GetMenuByName` query requires an argument of type `GetMenuByNameVariables`:
 const getMenuByNameVars: GetMenuByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getMenuByName()` function to execute the query.
@@ -1922,7 +2045,7 @@ import { connectorConfig, getMenuByNameRef, GetMenuByNameVariables } from '@rese
 
 // The `GetMenuByName` query requires an argument of type `GetMenuByNameVariables`:
 const getMenuByNameVars: GetMenuByNameVariables = {
-  name: ...,
+  name: ..., 
 };
 
 // Call the `getMenuByNameRef()` function to get a reference to the query.
@@ -2129,9 +2252,9 @@ import { connectorConfig, createCustomer, CreateCustomerVariables } from '@reser
 
 // The `CreateCustomer` mutation requires an argument of type `CreateCustomerVariables`:
 const createCustomerVars: CreateCustomerVariables = {
-  name: ...,
-  phone: ...,
-  email: ...,
+  name: ..., 
+  phone: ..., 
+  email: ..., 
   firebaseUid: ..., // optional
 };
 
@@ -2162,9 +2285,9 @@ import { connectorConfig, createCustomerRef, CreateCustomerVariables } from '@re
 
 // The `CreateCustomer` mutation requires an argument of type `CreateCustomerVariables`:
 const createCustomerVars: CreateCustomerVariables = {
-  name: ...,
-  phone: ...,
-  email: ...,
+  name: ..., 
+  phone: ..., 
+  email: ..., 
   firebaseUid: ..., // optional
 };
 
@@ -2247,10 +2370,10 @@ import { connectorConfig, updateCustomer, UpdateCustomerVariables } from '@reser
 
 // The `UpdateCustomer` mutation requires an argument of type `UpdateCustomerVariables`:
 const updateCustomerVars: UpdateCustomerVariables = {
-  id: ...,
-  name: ...,
-  phone: ...,
-  email: ...,
+  id: ..., 
+  name: ..., 
+  phone: ..., 
+  email: ..., 
 };
 
 // Call the `updateCustomer()` function to execute the mutation.
@@ -2280,10 +2403,10 @@ import { connectorConfig, updateCustomerRef, UpdateCustomerVariables } from '@re
 
 // The `UpdateCustomer` mutation requires an argument of type `UpdateCustomerVariables`:
 const updateCustomerVars: UpdateCustomerVariables = {
-  id: ...,
-  name: ...,
-  phone: ...,
-  email: ...,
+  id: ..., 
+  name: ..., 
+  phone: ..., 
+  email: ..., 
 };
 
 // Call the `updateCustomerRef()` function to get a reference to the mutation.
@@ -2366,10 +2489,10 @@ import { connectorConfig, updateCustomerIdentity, UpdateCustomerIdentityVariable
 
 // The `UpdateCustomerIdentity` mutation requires an argument of type `UpdateCustomerIdentityVariables`:
 const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
-  id: ...,
-  name: ...,
-  phone: ...,
-  email: ...,
+  id: ..., 
+  name: ..., 
+  phone: ..., 
+  email: ..., 
   firebaseUid: ..., // optional
 };
 
@@ -2400,10 +2523,10 @@ import { connectorConfig, updateCustomerIdentityRef, UpdateCustomerIdentityVaria
 
 // The `UpdateCustomerIdentity` mutation requires an argument of type `UpdateCustomerIdentityVariables`:
 const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
-  id: ...,
-  name: ...,
-  phone: ...,
-  email: ...,
+  id: ..., 
+  name: ..., 
+  phone: ..., 
+  email: ..., 
   firebaseUid: ..., // optional
 };
 
@@ -2483,7 +2606,7 @@ import { connectorConfig, deactivateCustomer, DeactivateCustomerVariables } from
 
 // The `DeactivateCustomer` mutation requires an argument of type `DeactivateCustomerVariables`:
 const deactivateCustomerVars: DeactivateCustomerVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateCustomer()` function to execute the mutation.
@@ -2513,7 +2636,7 @@ import { connectorConfig, deactivateCustomerRef, DeactivateCustomerVariables } f
 
 // The `DeactivateCustomer` mutation requires an argument of type `DeactivateCustomerVariables`:
 const deactivateCustomerVars: DeactivateCustomerVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateCustomerRef()` function to get a reference to the mutation.
@@ -2592,7 +2715,7 @@ import { connectorConfig, reactivateCustomer, ReactivateCustomerVariables } from
 
 // The `ReactivateCustomer` mutation requires an argument of type `ReactivateCustomerVariables`:
 const reactivateCustomerVars: ReactivateCustomerVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateCustomer()` function to execute the mutation.
@@ -2622,7 +2745,7 @@ import { connectorConfig, reactivateCustomerRef, ReactivateCustomerVariables } f
 
 // The `ReactivateCustomer` mutation requires an argument of type `ReactivateCustomerVariables`:
 const reactivateCustomerVars: ReactivateCustomerVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateCustomerRef()` function to get a reference to the mutation.
@@ -2708,12 +2831,12 @@ import { connectorConfig, createReservation, CreateReservationVariables } from '
 
 // The `CreateReservation` mutation requires an argument of type `CreateReservationVariables`:
 const createReservationVars: CreateReservationVariables = {
-  reservationCode: ...,
-  customerId: ...,
-  usageDate: ...,
-  usageTime: ...,
-  expectedPeople: ...,
-  status: ...,
+  reservationCode: ..., 
+  customerId: ..., 
+  usageDate: ..., 
+  usageTime: ..., 
+  expectedPeople: ..., 
+  status: ..., 
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -2745,12 +2868,12 @@ import { connectorConfig, createReservationRef, CreateReservationVariables } fro
 
 // The `CreateReservation` mutation requires an argument of type `CreateReservationVariables`:
 const createReservationVars: CreateReservationVariables = {
-  reservationCode: ...,
-  customerId: ...,
-  usageDate: ...,
-  usageTime: ...,
-  expectedPeople: ...,
-  status: ...,
+  reservationCode: ..., 
+  customerId: ..., 
+  usageDate: ..., 
+  usageTime: ..., 
+  expectedPeople: ..., 
+  status: ..., 
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -2834,10 +2957,10 @@ import { connectorConfig, addReservationDetail, AddReservationDetailVariables } 
 
 // The `AddReservationDetail` mutation requires an argument of type `AddReservationDetailVariables`:
 const addReservationDetailVars: AddReservationDetailVariables = {
-  reservationId: ...,
-  menuId: ...,
-  quantity: ...,
-  unitPrice: ...,
+  reservationId: ..., 
+  menuId: ..., 
+  quantity: ..., 
+  unitPrice: ..., 
 };
 
 // Call the `addReservationDetail()` function to execute the mutation.
@@ -2867,10 +2990,10 @@ import { connectorConfig, addReservationDetailRef, AddReservationDetailVariables
 
 // The `AddReservationDetail` mutation requires an argument of type `AddReservationDetailVariables`:
 const addReservationDetailVars: AddReservationDetailVariables = {
-  reservationId: ...,
-  menuId: ...,
-  quantity: ...,
-  unitPrice: ...,
+  reservationId: ..., 
+  menuId: ..., 
+  quantity: ..., 
+  unitPrice: ..., 
 };
 
 // Call the `addReservationDetailRef()` function to get a reference to the mutation.
@@ -2949,7 +3072,7 @@ import { connectorConfig, deleteReservationDetail, DeleteReservationDetailVariab
 
 // The `DeleteReservationDetail` mutation requires an argument of type `DeleteReservationDetailVariables`:
 const deleteReservationDetailVars: DeleteReservationDetailVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deleteReservationDetail()` function to execute the mutation.
@@ -2979,7 +3102,7 @@ import { connectorConfig, deleteReservationDetailRef, DeleteReservationDetailVar
 
 // The `DeleteReservationDetail` mutation requires an argument of type `DeleteReservationDetailVariables`:
 const deleteReservationDetailVars: DeleteReservationDetailVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deleteReservationDetailRef()` function to get a reference to the mutation.
@@ -3061,10 +3184,10 @@ import { connectorConfig, updateReservation, UpdateReservationVariables } from '
 
 // The `UpdateReservation` mutation requires an argument of type `UpdateReservationVariables`:
 const updateReservationVars: UpdateReservationVariables = {
-  id: ...,
-  usageDate: ...,
-  usageTime: ...,
-  expectedPeople: ...,
+  id: ..., 
+  usageDate: ..., 
+  usageTime: ..., 
+  expectedPeople: ..., 
 };
 
 // Call the `updateReservation()` function to execute the mutation.
@@ -3094,10 +3217,10 @@ import { connectorConfig, updateReservationRef, UpdateReservationVariables } fro
 
 // The `UpdateReservation` mutation requires an argument of type `UpdateReservationVariables`:
 const updateReservationVars: UpdateReservationVariables = {
-  id: ...,
-  usageDate: ...,
-  usageTime: ...,
-  expectedPeople: ...,
+  id: ..., 
+  usageDate: ..., 
+  usageTime: ..., 
+  expectedPeople: ..., 
 };
 
 // Call the `updateReservationRef()` function to get a reference to the mutation.
@@ -3177,8 +3300,8 @@ import { connectorConfig, updateReservationStatus, UpdateReservationStatusVariab
 
 // The `UpdateReservationStatus` mutation requires an argument of type `UpdateReservationStatusVariables`:
 const updateReservationStatusVars: UpdateReservationStatusVariables = {
-  id: ...,
-  status: ...,
+  id: ..., 
+  status: ..., 
 };
 
 // Call the `updateReservationStatus()` function to execute the mutation.
@@ -3208,8 +3331,8 @@ import { connectorConfig, updateReservationStatusRef, UpdateReservationStatusVar
 
 // The `UpdateReservationStatus` mutation requires an argument of type `UpdateReservationStatusVariables`:
 const updateReservationStatusVars: UpdateReservationStatusVariables = {
-  id: ...,
-  status: ...,
+  id: ..., 
+  status: ..., 
 };
 
 // Call the `updateReservationStatusRef()` function to get a reference to the mutation.
@@ -3289,7 +3412,7 @@ import { connectorConfig, updateConfirmationContact, UpdateConfirmationContactVa
 
 // The `UpdateConfirmationContact` mutation requires an argument of type `UpdateConfirmationContactVariables`:
 const updateConfirmationContactVars: UpdateConfirmationContactVariables = {
-  id: ...,
+  id: ..., 
   confirmationContactedAt: ..., // optional
 };
 
@@ -3320,7 +3443,7 @@ import { connectorConfig, updateConfirmationContactRef, UpdateConfirmationContac
 
 // The `UpdateConfirmationContact` mutation requires an argument of type `UpdateConfirmationContactVariables`:
 const updateConfirmationContactVars: UpdateConfirmationContactVariables = {
-  id: ...,
+  id: ..., 
   confirmationContactedAt: ..., // optional
 };
 
@@ -3402,9 +3525,9 @@ import { connectorConfig, assignStore, AssignStoreVariables } from '@reservation
 
 // The `AssignStore` mutation requires an argument of type `AssignStoreVariables`:
 const assignStoreVars: AssignStoreVariables = {
-  reservationId: ...,
-  storeId: ...,
-  people: ...,
+  reservationId: ..., 
+  storeId: ..., 
+  people: ..., 
 };
 
 // Call the `assignStore()` function to execute the mutation.
@@ -3434,9 +3557,9 @@ import { connectorConfig, assignStoreRef, AssignStoreVariables } from '@reservat
 
 // The `AssignStore` mutation requires an argument of type `AssignStoreVariables`:
 const assignStoreVars: AssignStoreVariables = {
-  reservationId: ...,
-  storeId: ...,
-  people: ...,
+  reservationId: ..., 
+  storeId: ..., 
+  people: ..., 
 };
 
 // Call the `assignStoreRef()` function to get a reference to the mutation.
@@ -3515,7 +3638,7 @@ import { connectorConfig, deleteStoreAssignment, DeleteStoreAssignmentVariables 
 
 // The `DeleteStoreAssignment` mutation requires an argument of type `DeleteStoreAssignmentVariables`:
 const deleteStoreAssignmentVars: DeleteStoreAssignmentVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deleteStoreAssignment()` function to execute the mutation.
@@ -3545,7 +3668,7 @@ import { connectorConfig, deleteStoreAssignmentRef, DeleteStoreAssignmentVariabl
 
 // The `DeleteStoreAssignment` mutation requires an argument of type `DeleteStoreAssignmentVariables`:
 const deleteStoreAssignmentVars: DeleteStoreAssignmentVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deleteStoreAssignmentRef()` function to get a reference to the mutation.
@@ -3567,6 +3690,245 @@ console.log(data.storeAssignment_delete);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.storeAssignment_delete);
+});
+```
+
+## CreateReservationChangeRequest
+You can execute the `CreateReservationChangeRequest` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+createReservationChangeRequest(vars: CreateReservationChangeRequestVariables): MutationPromise<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+
+interface CreateReservationChangeRequestRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateReservationChangeRequestVariables): MutationRef<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+}
+export const createReservationChangeRequestRef: CreateReservationChangeRequestRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createReservationChangeRequest(dc: DataConnect, vars: CreateReservationChangeRequestVariables): MutationPromise<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+
+interface CreateReservationChangeRequestRef {
+  ...
+  (dc: DataConnect, vars: CreateReservationChangeRequestVariables): MutationRef<CreateReservationChangeRequestData, CreateReservationChangeRequestVariables>;
+}
+export const createReservationChangeRequestRef: CreateReservationChangeRequestRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createReservationChangeRequestRef:
+```typescript
+const name = createReservationChangeRequestRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateReservationChangeRequest` mutation requires an argument of type `CreateReservationChangeRequestVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateReservationChangeRequestVariables {
+  reservationId: UUIDString;
+  requestedDate: DateString;
+  requestedTime: string;
+  requestedPeople: number;
+  requestedMenuItemsJson: string;
+  reason?: string | null;
+}
+```
+### Return Type
+Recall that executing the `CreateReservationChangeRequest` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateReservationChangeRequestData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateReservationChangeRequestData {
+  reservationChangeRequest_insert: ReservationChangeRequest_Key;
+}
+```
+### Using `CreateReservationChangeRequest`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createReservationChangeRequest, CreateReservationChangeRequestVariables } from '@reservation-system/dataconnect';
+
+// The `CreateReservationChangeRequest` mutation requires an argument of type `CreateReservationChangeRequestVariables`:
+const createReservationChangeRequestVars: CreateReservationChangeRequestVariables = {
+  reservationId: ..., 
+  requestedDate: ..., 
+  requestedTime: ..., 
+  requestedPeople: ..., 
+  requestedMenuItemsJson: ..., 
+  reason: ..., // optional
+};
+
+// Call the `createReservationChangeRequest()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createReservationChangeRequest(createReservationChangeRequestVars);
+// Variables can be defined inline as well.
+const { data } = await createReservationChangeRequest({ reservationId: ..., requestedDate: ..., requestedTime: ..., requestedPeople: ..., requestedMenuItemsJson: ..., reason: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createReservationChangeRequest(dataConnect, createReservationChangeRequestVars);
+
+console.log(data.reservationChangeRequest_insert);
+
+// Or, you can use the `Promise` API.
+createReservationChangeRequest(createReservationChangeRequestVars).then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequest_insert);
+});
+```
+
+### Using `CreateReservationChangeRequest`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createReservationChangeRequestRef, CreateReservationChangeRequestVariables } from '@reservation-system/dataconnect';
+
+// The `CreateReservationChangeRequest` mutation requires an argument of type `CreateReservationChangeRequestVariables`:
+const createReservationChangeRequestVars: CreateReservationChangeRequestVariables = {
+  reservationId: ..., 
+  requestedDate: ..., 
+  requestedTime: ..., 
+  requestedPeople: ..., 
+  requestedMenuItemsJson: ..., 
+  reason: ..., // optional
+};
+
+// Call the `createReservationChangeRequestRef()` function to get a reference to the mutation.
+const ref = createReservationChangeRequestRef(createReservationChangeRequestVars);
+// Variables can be defined inline as well.
+const ref = createReservationChangeRequestRef({ reservationId: ..., requestedDate: ..., requestedTime: ..., requestedPeople: ..., requestedMenuItemsJson: ..., reason: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createReservationChangeRequestRef(dataConnect, createReservationChangeRequestVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.reservationChangeRequest_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequest_insert);
+});
+```
+
+## UpdateReservationChangeRequestStatus
+You can execute the `UpdateReservationChangeRequestStatus` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+updateReservationChangeRequestStatus(vars: UpdateReservationChangeRequestStatusVariables): MutationPromise<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+
+interface UpdateReservationChangeRequestStatusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateReservationChangeRequestStatusVariables): MutationRef<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+}
+export const updateReservationChangeRequestStatusRef: UpdateReservationChangeRequestStatusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateReservationChangeRequestStatus(dc: DataConnect, vars: UpdateReservationChangeRequestStatusVariables): MutationPromise<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+
+interface UpdateReservationChangeRequestStatusRef {
+  ...
+  (dc: DataConnect, vars: UpdateReservationChangeRequestStatusVariables): MutationRef<UpdateReservationChangeRequestStatusData, UpdateReservationChangeRequestStatusVariables>;
+}
+export const updateReservationChangeRequestStatusRef: UpdateReservationChangeRequestStatusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateReservationChangeRequestStatusRef:
+```typescript
+const name = updateReservationChangeRequestStatusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateReservationChangeRequestStatus` mutation requires an argument of type `UpdateReservationChangeRequestStatusVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateReservationChangeRequestStatusVariables {
+  id: UUIDString;
+  status: ReservationChangeRequestStatus;
+  reviewedAt?: TimestampString | null;
+}
+```
+### Return Type
+Recall that executing the `UpdateReservationChangeRequestStatus` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateReservationChangeRequestStatusData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateReservationChangeRequestStatusData {
+  reservationChangeRequest_update?: ReservationChangeRequest_Key | null;
+}
+```
+### Using `UpdateReservationChangeRequestStatus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateReservationChangeRequestStatus, UpdateReservationChangeRequestStatusVariables } from '@reservation-system/dataconnect';
+
+// The `UpdateReservationChangeRequestStatus` mutation requires an argument of type `UpdateReservationChangeRequestStatusVariables`:
+const updateReservationChangeRequestStatusVars: UpdateReservationChangeRequestStatusVariables = {
+  id: ..., 
+  status: ..., 
+  reviewedAt: ..., // optional
+};
+
+// Call the `updateReservationChangeRequestStatus()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateReservationChangeRequestStatus(updateReservationChangeRequestStatusVars);
+// Variables can be defined inline as well.
+const { data } = await updateReservationChangeRequestStatus({ id: ..., status: ..., reviewedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateReservationChangeRequestStatus(dataConnect, updateReservationChangeRequestStatusVars);
+
+console.log(data.reservationChangeRequest_update);
+
+// Or, you can use the `Promise` API.
+updateReservationChangeRequestStatus(updateReservationChangeRequestStatusVars).then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequest_update);
+});
+```
+
+### Using `UpdateReservationChangeRequestStatus`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateReservationChangeRequestStatusRef, UpdateReservationChangeRequestStatusVariables } from '@reservation-system/dataconnect';
+
+// The `UpdateReservationChangeRequestStatus` mutation requires an argument of type `UpdateReservationChangeRequestStatusVariables`:
+const updateReservationChangeRequestStatusVars: UpdateReservationChangeRequestStatusVariables = {
+  id: ..., 
+  status: ..., 
+  reviewedAt: ..., // optional
+};
+
+// Call the `updateReservationChangeRequestStatusRef()` function to get a reference to the mutation.
+const ref = updateReservationChangeRequestStatusRef(updateReservationChangeRequestStatusVars);
+// Variables can be defined inline as well.
+const ref = updateReservationChangeRequestStatusRef({ id: ..., status: ..., reviewedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateReservationChangeRequestStatusRef(dataConnect, updateReservationChangeRequestStatusVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.reservationChangeRequest_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservationChangeRequest_update);
 });
 ```
 
@@ -3626,9 +3988,9 @@ import { connectorConfig, createStore, CreateStoreVariables } from '@reservation
 
 // The `CreateStore` mutation requires an argument of type `CreateStoreVariables`:
 const createStoreVars: CreateStoreVariables = {
-  name: ...,
+  name: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `createStore()` function to execute the mutation.
@@ -3658,9 +4020,9 @@ import { connectorConfig, createStoreRef, CreateStoreVariables } from '@reservat
 
 // The `CreateStore` mutation requires an argument of type `CreateStoreVariables`:
 const createStoreVars: CreateStoreVariables = {
-  name: ...,
+  name: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `createStoreRef()` function to get a reference to the mutation.
@@ -3742,10 +4104,10 @@ import { connectorConfig, updateStore, UpdateStoreVariables } from '@reservation
 
 // The `UpdateStore` mutation requires an argument of type `UpdateStoreVariables`:
 const updateStoreVars: UpdateStoreVariables = {
-  id: ...,
-  name: ...,
+  id: ..., 
+  name: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `updateStore()` function to execute the mutation.
@@ -3775,10 +4137,10 @@ import { connectorConfig, updateStoreRef, UpdateStoreVariables } from '@reservat
 
 // The `UpdateStore` mutation requires an argument of type `UpdateStoreVariables`:
 const updateStoreVars: UpdateStoreVariables = {
-  id: ...,
-  name: ...,
+  id: ..., 
+  name: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `updateStoreRef()` function to get a reference to the mutation.
@@ -3857,7 +4219,7 @@ import { connectorConfig, deactivateStore, DeactivateStoreVariables } from '@res
 
 // The `DeactivateStore` mutation requires an argument of type `DeactivateStoreVariables`:
 const deactivateStoreVars: DeactivateStoreVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateStore()` function to execute the mutation.
@@ -3887,7 +4249,7 @@ import { connectorConfig, deactivateStoreRef, DeactivateStoreVariables } from '@
 
 // The `DeactivateStore` mutation requires an argument of type `DeactivateStoreVariables`:
 const deactivateStoreVars: DeactivateStoreVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateStoreRef()` function to get a reference to the mutation.
@@ -3966,7 +4328,7 @@ import { connectorConfig, reactivateStore, ReactivateStoreVariables } from '@res
 
 // The `ReactivateStore` mutation requires an argument of type `ReactivateStoreVariables`:
 const reactivateStoreVars: ReactivateStoreVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateStore()` function to execute the mutation.
@@ -3996,7 +4358,7 @@ import { connectorConfig, reactivateStoreRef, ReactivateStoreVariables } from '@
 
 // The `ReactivateStore` mutation requires an argument of type `ReactivateStoreVariables`:
 const reactivateStoreVars: ReactivateStoreVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateStoreRef()` function to get a reference to the mutation.
@@ -4080,12 +4442,12 @@ import { connectorConfig, createMenu, CreateMenuVariables } from '@reservation-s
 
 // The `CreateMenu` mutation requires an argument of type `CreateMenuVariables`:
 const createMenuVars: CreateMenuVariables = {
-  name: ...,
+  name: ..., 
   description: ..., // optional
-  standardPrice: ...,
-  durationMinutes: ...,
+  standardPrice: ..., 
+  durationMinutes: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `createMenu()` function to execute the mutation.
@@ -4115,12 +4477,12 @@ import { connectorConfig, createMenuRef, CreateMenuVariables } from '@reservatio
 
 // The `CreateMenu` mutation requires an argument of type `CreateMenuVariables`:
 const createMenuVars: CreateMenuVariables = {
-  name: ...,
+  name: ..., 
   description: ..., // optional
-  standardPrice: ...,
-  durationMinutes: ...,
+  standardPrice: ..., 
+  durationMinutes: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `createMenuRef()` function to get a reference to the mutation.
@@ -4205,13 +4567,13 @@ import { connectorConfig, updateMenu, UpdateMenuVariables } from '@reservation-s
 
 // The `UpdateMenu` mutation requires an argument of type `UpdateMenuVariables`:
 const updateMenuVars: UpdateMenuVariables = {
-  id: ...,
-  name: ...,
+  id: ..., 
+  name: ..., 
   description: ..., // optional
-  standardPrice: ...,
-  durationMinutes: ...,
+  standardPrice: ..., 
+  durationMinutes: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `updateMenu()` function to execute the mutation.
@@ -4241,13 +4603,13 @@ import { connectorConfig, updateMenuRef, UpdateMenuVariables } from '@reservatio
 
 // The `UpdateMenu` mutation requires an argument of type `UpdateMenuVariables`:
 const updateMenuVars: UpdateMenuVariables = {
-  id: ...,
-  name: ...,
+  id: ..., 
+  name: ..., 
   description: ..., // optional
-  standardPrice: ...,
-  durationMinutes: ...,
+  standardPrice: ..., 
+  durationMinutes: ..., 
   displayOrder: ..., // optional
-  active: ...,
+  active: ..., 
 };
 
 // Call the `updateMenuRef()` function to get a reference to the mutation.
@@ -4326,7 +4688,7 @@ import { connectorConfig, deactivateMenu, DeactivateMenuVariables } from '@reser
 
 // The `DeactivateMenu` mutation requires an argument of type `DeactivateMenuVariables`:
 const deactivateMenuVars: DeactivateMenuVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateMenu()` function to execute the mutation.
@@ -4356,7 +4718,7 @@ import { connectorConfig, deactivateMenuRef, DeactivateMenuVariables } from '@re
 
 // The `DeactivateMenu` mutation requires an argument of type `DeactivateMenuVariables`:
 const deactivateMenuVars: DeactivateMenuVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `deactivateMenuRef()` function to get a reference to the mutation.
@@ -4435,7 +4797,7 @@ import { connectorConfig, reactivateMenu, ReactivateMenuVariables } from '@reser
 
 // The `ReactivateMenu` mutation requires an argument of type `ReactivateMenuVariables`:
 const reactivateMenuVars: ReactivateMenuVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateMenu()` function to execute the mutation.
@@ -4465,7 +4827,7 @@ import { connectorConfig, reactivateMenuRef, ReactivateMenuVariables } from '@re
 
 // The `ReactivateMenu` mutation requires an argument of type `ReactivateMenuVariables`:
 const reactivateMenuVars: ReactivateMenuVariables = {
-  id: ...,
+  id: ..., 
 };
 
 // Call the `reactivateMenuRef()` function to get a reference to the mutation.
@@ -4547,9 +4909,9 @@ import { connectorConfig, recordVisit, RecordVisitVariables } from '@reservation
 
 // The `RecordVisit` mutation requires an argument of type `RecordVisitVariables`:
 const recordVisitVars: RecordVisitVariables = {
-  reservationId: ...,
-  visitedAt: ...,
-  actualPeople: ...,
+  reservationId: ..., 
+  visitedAt: ..., 
+  actualPeople: ..., 
 };
 
 // Call the `recordVisit()` function to execute the mutation.
@@ -4581,9 +4943,9 @@ import { connectorConfig, recordVisitRef, RecordVisitVariables } from '@reservat
 
 // The `RecordVisit` mutation requires an argument of type `RecordVisitVariables`:
 const recordVisitVars: RecordVisitVariables = {
-  reservationId: ...,
-  visitedAt: ...,
-  actualPeople: ...,
+  reservationId: ..., 
+  visitedAt: ..., 
+  actualPeople: ..., 
 };
 
 // Call the `recordVisitRef()` function to get a reference to the mutation.
@@ -4609,3 +4971,4 @@ executeMutation(ref).then((response) => {
   console.log(data.reservation_update);
 });
 ```
+

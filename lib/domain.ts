@@ -187,6 +187,45 @@ export type Reservation = {
   phone: string;
 };
 
+export type ReservationChangeRequestStatus = "requested" | "approved" | "rejected";
+
+export const reservationChangeRequestStatuses = [
+  "requested",
+  "approved",
+  "rejected",
+] as const satisfies readonly ReservationChangeRequestStatus[];
+
+export type ReservationChangeRequest = {
+  id: string;
+  reservationId: string;
+  customer: string;
+  email?: string;
+  phone: string;
+  currentDate: string;
+  currentStartTime: string;
+  currentPeople: number;
+  currentMenuItems: string[];
+  requestedDate: string;
+  requestedStartTime: string;
+  requestedPeople: number;
+  requestedMenuItems: string[];
+  reason?: string;
+  status: ReservationChangeRequestStatus;
+  requestedAt: string;
+  reviewedAt?: string | null;
+};
+
+export type CreateReservationChangeRequestInput = {
+  reservationId: string;
+  email?: string;
+  phone?: string;
+  requestedDate: string;
+  requestedStartTime: string;
+  requestedPeople: number;
+  requestedMenuItems: string[];
+  reason?: string;
+};
+
 export type PolicyAgreement = {
   kind: "temporary" | "confirmed";
   acceptedAt: string;

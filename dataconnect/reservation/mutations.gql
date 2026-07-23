@@ -129,6 +129,38 @@ mutation DeleteStoreAssignment($id: UUID!)
   storeAssignment_delete(key: {id: $id})
 }
 
+mutation CreateReservationChangeRequest(
+  $reservationId: UUID!
+  $requestedDate: Date!
+  $requestedTime: String!
+  $requestedPeople: Int!
+  $requestedMenuItemsJson: String!
+  $reason: String
+)
+@auth(level: NO_ACCESS) {
+  reservationChangeRequest_insert(data: {
+    reservationId: $reservationId
+    requestedDate: $requestedDate
+    requestedTime: $requestedTime
+    requestedPeople: $requestedPeople
+    requestedMenuItemsJson: $requestedMenuItemsJson
+    reason: $reason
+    status: REQUESTED
+  })
+}
+
+mutation UpdateReservationChangeRequestStatus(
+  $id: UUID!
+  $status: ReservationChangeRequestStatus!
+  $reviewedAt: Timestamp
+)
+@auth(level: NO_ACCESS) {
+  reservationChangeRequest_update(key: {id: $id}, data: {
+    status: $status
+    reviewedAt: $reviewedAt
+  })
+}
+
 mutation CreateStore($name: String!, $displayOrder: Int = 0, $active: Boolean!)
 @auth(level: NO_ACCESS) {
   store_insert(data: {

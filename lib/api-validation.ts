@@ -1,5 +1,7 @@
 ﻿import { normalizeReservationStatus, reservationStatuses, type CreateReservationInput, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
 
+import type { CreateReservationChangeRequestInput } from "./domain";
+
 export class ApiValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -78,6 +80,23 @@ export function validateCancellationRequestInput(body: Record<string, unknown>) 
   const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
   if (!email && !phone) throw new ApiValidationError("email or phone is required.");
   return { reservationId, email, phone };
+}
+
+export function validateReservationChangeRequestInput(body: Record<string, unknown>): CreateReservationChangeRequestInput {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  return {
+    reservationId,
+    email,
+    phone,
+    requestedDate: requireIsoDate(body.requestedDate, "requestedDate"),
+    requestedStartTime: requireTime(body.requestedStartTime, "requestedStartTime"),
+    requestedPeople: requireInteger(body.requestedPeople, "requestedPeople", { min: 1, max: 999 }),
+    requestedMenuItems: optionalStringArray(body.requestedMenuItems, "requestedMenuItems") ?? [],
+    reason: body.reason === undefined || body.reason === "" ? undefined : requireString(body.reason, "reason", 1000).trim(),
+  };
 }
 
 export function validateReservationStatus(value: unknown): ReservationStatus {

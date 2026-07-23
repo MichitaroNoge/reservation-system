@@ -93,6 +93,32 @@ test("important reservation workflows", async (t) => {
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.visited, reservationStatusCodes.cancellationRequested), false);
   });
 
+  await t.test("creates and approves reservation change requests", async () => {
+    const request = await repository.createReservationChangeRequest({
+      reservationId: "RSV-1048",
+      email: "misaki@example.jp",
+      requestedDate: "2026-08-02",
+      requestedStartTime: "13:30",
+      requestedPeople: 2,
+      requestedMenuItems: [menus[0].name],
+      reason: "schedule changed",
+    });
+
+    assert.equal(request.status, "requested");
+    assert.equal(request.currentDate, "2026-07-24");
+    assert.equal(request.requestedDate, "2026-08-02");
+
+    const approved = await repository.approveReservationChangeRequest(request.id);
+
+    assert.equal(approved.request.status, "approved");
+    assert.equal(approved.reservation.id, "RSV-1048");
+    assert.equal(approved.reservation.date, "2026-08-02");
+    assert.equal(approved.reservation.startTime, "13:30");
+    assert.equal(approved.reservation.people, 2);
+    assert.deepEqual(approved.reservation.menuItems, [menus[0].name]);
+    assert.equal(approved.reservation.totalAmount, menus[0].price);
+  });
+
   await t.test("assigns people across stores and rejects mismatched totals", async () => {
     const reservation = await repository.assignStores("RSV-1047", [
       { store: "渋谷店", people: 2 },

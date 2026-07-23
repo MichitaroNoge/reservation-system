@@ -1,4 +1,4 @@
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import type { CreateReservationChangeRequestInput, CreateReservationInput, Customer, Menu, Reservation, ReservationChangeRequest, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
@@ -7,6 +7,10 @@ export type ReservationRepository = {
   updateReservationStatus(id: string, status: ReservationStatus): Promise<Reservation>;
   updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation>;
   assignStores(id: string, assignments: StoreAssignment[]): Promise<Reservation>;
+  listReservationChangeRequests(): Promise<ReservationChangeRequest[]>;
+  createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest>;
+  approveReservationChangeRequest(id: string): Promise<{ request: ReservationChangeRequest; reservation: Reservation }>;
+  rejectReservationChangeRequest(id: string): Promise<ReservationChangeRequest>;
   listCustomers(): Promise<Customer[]>;
   listInactiveCustomers(): Promise<Customer[]>;
   findCustomerForReservationAccount(firebaseUid: string, email: string): Promise<Customer | null>;

@@ -684,8 +684,8 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
       });
       notify("キャンセル申請を受け付けました（" + reservation.id + "）");
       setCancellationSubmitted(true);
-    } catch {
-      notify("キャンセル申請の保存に失敗しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "キャンセル申請の保存に失敗しました");
     } finally {
       setIsSubmittingCancellation(false);
     }

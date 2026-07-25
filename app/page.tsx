@@ -680,7 +680,7 @@ function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }:
 
 function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
-  const [portalMode, setPortalMode] = useState<"home" | "reservation" | "confirmedChange" | "change" | "cancellation">("home");
+  const [portalMode, setPortalMode] = useState<"home" | "account" | "reservation" | "confirmedChange" | "change" | "cancellation">("home");
   const [bookingMode, setBookingMode] = useState<"login" | "register" | "guest">("guest");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
@@ -694,6 +694,9 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
   const [changeRequestForm, setChangeRequestForm] = useState({ reservationId: "", email: "", phone: "", requestedDate: form.date, requestedStartTime: form.startTime, requestedPeople: form.people, requestedMenuItems: form.menuItems, reason: "" });
   const [isSubmittingChangeRequest, setIsSubmittingChangeRequest] = useState(false);
   const [changeRequestSubmitted, setChangeRequestSubmitted] = useState(false);
+  const [accountReservations, setAccountReservations] = useState<Reservation[]>([]);
+  const [isLoadingAccountReservations, setIsLoadingAccountReservations] = useState(false);
+  const [accountReservationError, setAccountReservationError] = useState("");
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.startTime && form.people);
   const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && (cancellationForm.email.trim() || cancellationForm.phone.trim())) && !isSubmittingCancellation;
@@ -716,6 +719,24 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
     loadCustomer().catch(() => notify("ログイン済みのお客様情報を取得できませんでした"));
   }, [customerUser, setForm]);
 
+  useEffect(() => {
+    if (portalMode !== "account" || !customerUser) return;
+    const loadReservations = async () => {
+      setIsLoadingAccountReservations(true);
+      setAccountReservationError("");
+      try {
+        const token = await customerUser.getIdToken();
+        const { reservations } = await requestJson<{ reservations: Reservation[] }>("/api/customers/me/reservations", { authToken: token });
+        setAccountReservations(reservations);
+      } catch {
+        setAccountReservationError("予約情報を取得できませんでした。時間をおいて再度お試しください。");
+      } finally {
+        setIsLoadingAccountReservations(false);
+      }
+    };
+    loadReservations();
+  }, [customerUser, portalMode]);
+
   const selectBookingMode = (mode: "login" | "register" | "guest") => {
     setBookingMode(mode);
     if (mode === "guest") return;
@@ -736,6 +757,19 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
       setForm((current) => ({ ...current, email: accountEmail }));
     } catch {
       notify(bookingMode === "register" ? "アカウント登録に失敗しました" : "ログインに失敗しました");
+    } finally {
+      setAccountSubmitting(false);
+    }
+  };
+
+  const loginForAccountReservations = async () => {
+    if (!accountEmail || !accountPassword || accountSubmitting) return;
+    setAccountSubmitting(true);
+    try {
+      await loginCustomer(accountEmail, accountPassword);
+      notify("ログインしました");
+    } catch {
+      notify("ログインに失敗しました");
     } finally {
       setAccountSubmitting(false);
     }
@@ -826,9 +860,10 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
 
   return <main className="customer-page restaurant-reservation">
     <header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><button onClick={onAdmin}>管理画面</button></nav></header>
-    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "cancellation" ? "キャンセル申請" : portalMode === "confirmedChange" ? "本予約への変更申請" : portalMode === "change" ? "予約内容変更申請" : "予約フォーム"}</h1></div></section>
+    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "account" ? "予約確認" : portalMode === "cancellation" ? "キャンセル申請" : portalMode === "confirmedChange" ? "本予約への変更申請" : portalMode === "change" ? "予約内容変更申請" : "予約フォーム"}</h1></div></section>
     <section className="booking-card">
-      {portalMode === "home" && <div className="form-body narrow portal-entry"><p className="form-kicker">REQUEST</p><h2>お手続きを選択</h2><div className="portal-entry-grid"><button type="button" onClick={() => { setPortalMode("reservation"); setStep(1); }}><strong>予約申請</strong><small>仮予約または本予約を申し込みます</small></button><button type="button" onClick={() => { setPortalMode("confirmedChange"); setConfirmedChangeSubmitted(false); }}><strong>本予約への変更申請</strong><small>確定済みの仮予約を本予約へ変更申請します</small></button><button type="button" onClick={() => { setPortalMode("change"); setChangeRequestSubmitted(false); }}><strong>予約内容変更申請</strong><small>受付済みの予約について日時・人数・メニューの変更を申請します</small></button><button type="button" onClick={() => { setPortalMode("cancellation"); setCancellationSubmitted(false); }}><strong>キャンセル申請</strong><small>受付済みの予約のキャンセルを申請します</small></button></div></div>}
+      {portalMode === "home" && <div className="form-body narrow portal-entry"><p className="form-kicker">REQUEST</p><h2>お手続きを選択</h2><div className="portal-entry-grid"><button type="button" onClick={() => { setPortalMode("account"); setAccountReservationError(""); }}><strong>予約確認</strong><small>ログインして自分の予約を確認します</small></button><button type="button" onClick={() => { setPortalMode("reservation"); setStep(1); }}><strong>予約申請</strong><small>仮予約または本予約を申し込みます</small></button><button type="button" onClick={() => { setPortalMode("confirmedChange"); setConfirmedChangeSubmitted(false); }}><strong>本予約への変更申請</strong><small>確定済みの仮予約を本予約へ変更申請します</small></button><button type="button" onClick={() => { setPortalMode("change"); setChangeRequestSubmitted(false); }}><strong>予約内容変更申請</strong><small>受付済みの予約について日時・人数・メニューの変更を申請します</small></button><button type="button" onClick={() => { setPortalMode("cancellation"); setCancellationSubmitted(false); }}><strong>キャンセル申請</strong><small>受付済みの予約のキャンセルを申請します</small></button></div></div>}
+      {portalMode === "account" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button><div className="form-body narrow customer-reservation-dashboard"><p className="form-kicker">MY RESERVATIONS</p><h2>予約確認</h2>{customerUser ? <div className="customer-account-current reservation-account-head"><span>ログイン中</span><strong>{customerUser.email}</strong><button type="button" onClick={() => { setAccountReservations([]); signOutCustomer(); }}>ログアウト</button></div> : <section className="customer-account-panel"><p>アカウント登録済みのお客様はログインすると予約を確認できます。</p><div className="customer-account-form"><input type="email" placeholder="メールアドレス" value={accountEmail} onChange={event => setAccountEmail(event.target.value)} /><input type="password" placeholder="パスワード" value={accountPassword} onChange={event => setAccountPassword(event.target.value)} /><button type="button" disabled={accountSubmitting || customerAuthLoading} onClick={loginForAccountReservations}>{accountSubmitting ? "確認中" : "ログイン"}</button></div>{customerAuthError ? <div className="auth-error">{customerAuthError}</div> : null}</section>}{customerUser && <>{isLoadingAccountReservations ? <div className="empty-table compact">予約情報を読み込んでいます。</div> : accountReservationError ? <div className="auth-error">{accountReservationError}</div> : accountReservations.length ? <div className="customer-reservation-list">{accountReservations.map(reservation => <article key={reservation.id} className="customer-reservation-item"><div><span className={"badge " + statusClass[reservation.status]}><i/>{reservationDisplayLabel(reservation)}</span><strong>{reservationDateTimeLabel(reservation)}</strong><small>{reservation.people}名・{reservationMenuLabel(reservation)}</small></div><dl><div><dt>予約ID</dt><dd>{reservation.id}</dd></div><div><dt>担当店舗</dt><dd>{assignmentLabel(reservation) || "未割当"}</dd></div><div><dt>確認連絡</dt><dd>{reservation.confirmationContactedAt ? "連絡済" : "未連絡"}</dd></div></dl></article>)}</div> : <div className="empty-table compact">表示できる予約はありません。</div>}</>}</div></>}
       {portalMode === "reservation" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button><div className="stepper">{["予約種別","日時・人数","お客様情報","受付完了"].map((label, index)=><div key={label} className={step >= index + 1 ? "active" : ""}><span>{step > index + 1 ? <Icon name="check"/> : index + 1}</span><small>{label}</small>{index < 3 && <i/>}</div>)}</div>
       {step === 1 && <div className="form-body narrow reservation-type-step"><p className="form-kicker">STEP 1</p><h2>予約種別を選択</h2><fieldset className="reservation-type-options"><legend>予約種別</legend><button type="button" className={form.status === STATUS.confirmedRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.confirmedRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>本予約を申し込む</strong><small>正式な予約として申請します</small></span></button><button type="button" className={form.status === STATUS.temporaryRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.temporaryRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>仮予約として相談する</strong><small>日程を仮押さえして相談します</small></span></button></fieldset><div className="form-nav"><span/><button className="next" onClick={() => setStep(2)}>日時へ <Icon name="arrow"/></button></div></div>}
       {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数</h2><div className="form-fields reservation-date-fields"><label>利用日<input type="date" value={form.date} onChange={event => setForm({ ...form, date: event.target.value })}/></label><label>開始時間<input type="time" value={form.startTime} onChange={event => setForm({ ...form, startTime: event.target.value })}/></label><label>人数<select value={form.people} onChange={event => setForm({ ...form, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/><div className="form-nav"><button onClick={() => setStep(1)}>戻る</button><button className="next" disabled={!form.date || !form.startTime} onClick={() => setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}

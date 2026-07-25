@@ -1,8 +1,10 @@
 export type ReservationStatus =
   | "temporary_requested"
   | "temporary_confirmed"
+  | "temporary_rejected"
   | "confirmed_requested"
   | "confirmed"
+  | "confirmed_rejected"
   | "waiting_for_visit"
   | "visited"
   | "cancellation_requested"
@@ -11,8 +13,10 @@ export type ReservationStatus =
 export const reservationStatuses = [
   "temporary_requested",
   "temporary_confirmed",
+  "temporary_rejected",
   "confirmed_requested",
   "confirmed",
+  "confirmed_rejected",
   "waiting_for_visit",
   "visited",
   "cancellation_requested",
@@ -24,8 +28,10 @@ export const defaultReservationStatus: ReservationStatus = "temporary_requested"
 export const reservationStatusCodes = {
   temporaryRequested: "temporary_requested",
   temporaryConfirmed: "temporary_confirmed",
+  temporaryRejected: "temporary_rejected",
   confirmedRequested: "confirmed_requested",
   confirmed: "confirmed",
+  confirmedRejected: "confirmed_rejected",
   waitingForVisit: "waiting_for_visit",
   visited: "visited",
   cancellationRequested: "cancellation_requested",
@@ -35,17 +41,22 @@ export const reservationStatusCodes = {
 export const reservationStatusLabels: Record<ReservationStatus, string> = {
   temporary_requested: "仮予約申請中",
   temporary_confirmed: "仮予約確定",
+  temporary_rejected: "仮予約却下",
   confirmed_requested: "本予約申請中",
   confirmed: "本予約確定",
+  confirmed_rejected: "本予約却下",
   waiting_for_visit: "来店待ち",
-  visited: "来店済",
+  visited: "来店済み",
   cancellation_requested: "キャンセル申請中",
   cancelled: "キャンセル確定",
 };
 
 export type ReservationStatusTransitionReason =
   | "approve_temporary"
+  | "reject_temporary"
   | "approve_confirmed"
+  | "reject_confirmed"
+  | "request_cancellation"
   | "ready_for_visit"
   | "readiness_incomplete"
   | "record_visit"
@@ -61,7 +72,14 @@ export type ReservationStatusTransition = {
 
 export const reservationStatusTransitions = [
   { from: "temporary_requested", to: "temporary_confirmed", reason: "approve_temporary", label: "仮予約を承認する" },
+  { from: "temporary_requested", to: "temporary_rejected", reason: "reject_temporary", label: "仮予約を却下する" },
   { from: "confirmed_requested", to: "confirmed", reason: "approve_confirmed", label: "本予約を承認する" },
+  { from: "confirmed_requested", to: "confirmed_rejected", reason: "reject_confirmed", label: "本予約を却下する" },
+  { from: "temporary_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "temporary_confirmed", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "confirmed_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "confirmed", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
+  { from: "waiting_for_visit", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
   { from: "confirmed", to: "waiting_for_visit", reason: "ready_for_visit", label: "来店待ちに進める", automatic: true },
   { from: "waiting_for_visit", to: "confirmed", reason: "readiness_incomplete", label: "本予約確定に戻す", automatic: true },
   { from: "waiting_for_visit", to: "visited", reason: "record_visit", label: "来店済みにする" },
@@ -71,8 +89,10 @@ export const reservationStatusTransitions = [
 export type DataConnectReservationStatus =
   | "TEMPORARY_REQUESTED"
   | "TEMPORARY_CONFIRMED"
+  | "TEMPORARY_REJECTED"
   | "CONFIRMED_REQUESTED"
   | "CONFIRMED"
+  | "CONFIRMED_REJECTED"
   | "WAITING_FOR_VISIT"
   | "VISITED"
   | "CANCELLATION_REQUESTED"
@@ -81,8 +101,10 @@ export type DataConnectReservationStatus =
 export const dataConnectReservationStatusMap: Record<ReservationStatus, DataConnectReservationStatus> = {
   temporary_requested: "TEMPORARY_REQUESTED",
   temporary_confirmed: "TEMPORARY_CONFIRMED",
+  temporary_rejected: "TEMPORARY_REJECTED",
   confirmed_requested: "CONFIRMED_REQUESTED",
   confirmed: "CONFIRMED",
+  confirmed_rejected: "CONFIRMED_REJECTED",
   waiting_for_visit: "WAITING_FOR_VISIT",
   visited: "VISITED",
   cancellation_requested: "CANCELLATION_REQUESTED",
@@ -92,8 +114,10 @@ export const dataConnectReservationStatusMap: Record<ReservationStatus, DataConn
 const reservationStatusByDataConnectStatus: Record<DataConnectReservationStatus, ReservationStatus> = {
   TEMPORARY_REQUESTED: "temporary_requested",
   TEMPORARY_CONFIRMED: "temporary_confirmed",
+  TEMPORARY_REJECTED: "temporary_rejected",
   CONFIRMED_REQUESTED: "confirmed_requested",
   CONFIRMED: "confirmed",
+  CONFIRMED_REJECTED: "confirmed_rejected",
   WAITING_FOR_VISIT: "waiting_for_visit",
   VISITED: "visited",
   CANCELLATION_REQUESTED: "cancellation_requested",
@@ -103,10 +127,13 @@ const reservationStatusByDataConnectStatus: Record<DataConnectReservationStatus,
 const legacyReservationStatusMap: Record<string, ReservationStatus> = {
   "仮予約申請中": "temporary_requested",
   "仮予約確定": "temporary_confirmed",
+  "仮予約却下": "temporary_rejected",
   "本予約申請中": "confirmed_requested",
   "本予約確定": "confirmed",
+  "本予約却下": "confirmed_rejected",
   "来店待ち": "waiting_for_visit",
   "来店済": "visited",
+  "来店済み": "visited",
   "キャンセル申請中": "cancellation_requested",
   "キャンセル確定": "cancelled",
 };
@@ -160,6 +187,45 @@ export type Reservation = {
   phone: string;
 };
 
+export type ReservationChangeRequestStatus = "requested" | "approved" | "rejected";
+
+export const reservationChangeRequestStatuses = [
+  "requested",
+  "approved",
+  "rejected",
+] as const satisfies readonly ReservationChangeRequestStatus[];
+
+export type ReservationChangeRequest = {
+  id: string;
+  reservationId: string;
+  customer: string;
+  email?: string;
+  phone: string;
+  currentDate: string;
+  currentStartTime: string;
+  currentPeople: number;
+  currentMenuItems: string[];
+  requestedDate: string;
+  requestedStartTime: string;
+  requestedPeople: number;
+  requestedMenuItems: string[];
+  reason?: string;
+  status: ReservationChangeRequestStatus;
+  requestedAt: string;
+  reviewedAt?: string | null;
+};
+
+export type CreateReservationChangeRequestInput = {
+  reservationId: string;
+  email?: string;
+  phone?: string;
+  requestedDate: string;
+  requestedStartTime: string;
+  requestedPeople: number;
+  requestedMenuItems: string[];
+  reason?: string;
+};
+
 export type PolicyAgreement = {
   kind: "temporary" | "confirmed";
   acceptedAt: string;
@@ -171,6 +237,7 @@ export type StoreAssignment = {
 };
 
 export type Customer = {
+  id?: string;
   name: string;
   contact: string;
   phone: string;
@@ -179,26 +246,29 @@ export type Customer = {
 };
 
 export type SaveCustomerInput = {
+  id?: string;
   name: string;
   contact: string;
   phone: string;
+  originalContact?: string;
 };
 
 export type Store = {
+  id?: string;
   name: string;
-  area: string;
-  today: number;
-  month: number;
-  state: string;
+  displayOrder: number;
 };
 
 export type SaveStoreInput = Store;
 
 export type Menu = {
+  id?: string;
   name: string;
   description: string;
   price: number;
   duration: string;
+  displayOrder: number;
+  active?: boolean;
 };
 
 export type CreateReservationInput = {
@@ -206,6 +276,8 @@ export type CreateReservationInput = {
   menuItems?: string[];
   status?: ReservationStatus;
   policyAgreement?: PolicyAgreement;
+  customerFirebaseUid?: string;
+  customerAccountMode?: "account" | "guest" | "admin";
   date: string;
   startTime?: string;
   people: number;

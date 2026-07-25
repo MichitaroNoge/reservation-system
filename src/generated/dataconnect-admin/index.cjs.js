@@ -14,11 +14,20 @@ const BillingType = {
 }
 exports.BillingType = BillingType;
 
+const ReservationChangeRequestStatus = {
+  REQUESTED: "REQUESTED",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+}
+exports.ReservationChangeRequestStatus = ReservationChangeRequestStatus;
+
 const ReservationStatus = {
   TEMPORARY_REQUESTED: "TEMPORARY_REQUESTED",
   TEMPORARY_CONFIRMED: "TEMPORARY_CONFIRMED",
+  TEMPORARY_REJECTED: "TEMPORARY_REJECTED",
   CONFIRMED_REQUESTED: "CONFIRMED_REQUESTED",
   CONFIRMED: "CONFIRMED",
+  CONFIRMED_REJECTED: "CONFIRMED_REJECTED",
   WAITING_FOR_VISIT: "WAITING_FOR_VISIT",
   VISITED: "VISITED",
   CANCELLATION_REQUESTED: "CANCELLATION_REQUESTED",
@@ -47,12 +56,26 @@ function updateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.updateCustomer = updateCustomer;
 
+function updateCustomerIdentity(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateCustomerIdentity', inputVars, inputOpts);
+}
+exports.updateCustomerIdentity = updateCustomerIdentity;
+
 function deactivateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation('DeactivateCustomer', inputVars, inputOpts);
 }
 exports.deactivateCustomer = deactivateCustomer;
+
+function reactivateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ReactivateCustomer', inputVars, inputOpts);
+}
+exports.reactivateCustomer = reactivateCustomer;
 
 function createReservation(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -110,6 +133,27 @@ function deleteStoreAssignment(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.deleteStoreAssignment = deleteStoreAssignment;
 
+function createReservationChangeRequest(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateReservationChangeRequest', inputVars, inputOpts);
+}
+exports.createReservationChangeRequest = createReservationChangeRequest;
+
+function updateReservationChangeRequestStatus(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateReservationChangeRequestStatus', inputVars, inputOpts);
+}
+exports.updateReservationChangeRequestStatus = updateReservationChangeRequestStatus;
+
+function createStore(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateStore', inputVars, inputOpts);
+}
+exports.createStore = createStore;
+
 function updateStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -123,6 +167,13 @@ function deactivateStore(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation('DeactivateStore', inputVars, inputOpts);
 }
 exports.deactivateStore = deactivateStore;
+
+function reactivateStore(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ReactivateStore', inputVars, inputOpts);
+}
+exports.reactivateStore = reactivateStore;
 
 function createMenu(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -144,6 +195,13 @@ function deactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation('DeactivateMenu', inputVars, inputOpts);
 }
 exports.deactivateMenu = deactivateMenu;
+
+function reactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ReactivateMenu', inputVars, inputOpts);
+}
+exports.reactivateMenu = reactivateMenu;
 
 function recordVisit(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -173,12 +231,26 @@ function getReservationByCode(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getReservationByCode = getReservationByCode;
 
+function listReservationChangeRequests(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
+}
+exports.listReservationChangeRequests = listReservationChangeRequests;
+
 function listCustomers(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListCustomers', undefined, inputOpts);
 }
 exports.listCustomers = listCustomers;
+
+function listInactiveCustomers(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListInactiveCustomers', undefined, inputOpts);
+}
+exports.listInactiveCustomers = listInactiveCustomers;
 
 function getCustomerByName(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -187,12 +259,40 @@ function getCustomerByName(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getCustomerByName = getCustomerByName;
 
+function getCustomerById(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetCustomerById', inputVars, inputOpts);
+}
+exports.getCustomerById = getCustomerById;
+
+function getCustomerByFirebaseUid(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetCustomerByFirebaseUid', inputVars, inputOpts);
+}
+exports.getCustomerByFirebaseUid = getCustomerByFirebaseUid;
+
+function getCustomerByEmail(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetCustomerByEmail', inputVars, inputOpts);
+}
+exports.getCustomerByEmail = getCustomerByEmail;
+
 function listStores(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListStores', undefined, inputOpts);
 }
 exports.listStores = listStores;
+
+function listInactiveStores(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListInactiveStores', undefined, inputOpts);
+}
+exports.listInactiveStores = listInactiveStores;
 
 function getStoreByName(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -201,12 +301,26 @@ function getStoreByName(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getStoreByName = getStoreByName;
 
+function getStoreById(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetStoreById', inputVars, inputOpts);
+}
+exports.getStoreById = getStoreById;
+
 function listMenus(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListMenus', undefined, inputOpts);
 }
 exports.listMenus = listMenus;
+
+function listInactiveMenus(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListInactiveMenus', undefined, inputOpts);
+}
+exports.listInactiveMenus = listInactiveMenus;
 
 function getMenuByName(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
@@ -221,3 +335,4 @@ function listBillingRecords(dcOrOptions, options) {
   return dcInstance.executeQuery('ListBillingRecords', undefined, inputOpts);
 }
 exports.listBillingRecords = listBillingRecords;
+

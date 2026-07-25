@@ -11,9 +11,17 @@
 1. 予約種別を選択する。
 2. 仮予約または本予約に応じた同意事項を確認する。
 3. 食事日、開始時刻、人数を入力する。
-4. 氏名、メールアドレス、電話番号を入力する。
-5. 任意でメニューを選択する。
-6. `POST /api/reservations` で予約を作成する。
+4. 必要に応じて顧客アカウントにログインまたは新規登録する。登録せずに進むこともできる。
+5. 氏名、メールアドレス、電話番号を入力する。
+6. 任意でメニューを選択する。
+7. `POST /api/reservations` で予約を作成する。
+
+顧客情報の解決:
+
+- ログイン済みの場合はFirebase IDトークンをAPIへ送り、`firebaseUid` で既存Customerを検索する。
+- `firebaseUid` で見つからず、同じメールアドレスのactive Customerがあれば、そのCustomerに `firebaseUid` を紐付けて再利用する。
+- 未ログインの場合は同じメールアドレスのactive Customerを再利用する。
+- 既存Customerが見つからない場合は新規作成する。
 
 ステータス:
 
@@ -24,14 +32,21 @@
 sequenceDiagram
   actor Customer as 顧客
   participant UI as 予約フォーム
+  participant Auth as Firebase Authentication
   participant API as POST /api/reservations
   participant Repo as ReservationRepository
   participant DB as Data Connect or file fallback
 
+  opt アカウント利用
+    Customer->>UI: ログインまたはアカウント作成
+    UI->>Auth: メール/パスワード認証
+    Auth-->>UI: IDトークン
+  end
   Customer->>UI: 予約情報を入力
   UI->>API: 予約作成
+  API->>API: 任意のIDトークン検証
   API->>Repo: createReservation
-  Repo->>DB: 保存
+  Repo->>DB: Customer検索/作成、Reservation保存
   DB-->>Repo: reservation
   Repo-->>API: reservation
   API-->>UI: reservation

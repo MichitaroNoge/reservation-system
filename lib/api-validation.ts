@@ -1,4 +1,6 @@
-import { normalizeReservationStatus, reservationStatuses, type CreateReservationInput, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
+﻿import { normalizeReservationStatus, reservationStatuses, type CreateReservationInput, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
+
+import type { CreateReservationChangeRequestInput } from "./domain";
 
 export class ApiValidationError extends Error {
   constructor(message: string) {
@@ -13,8 +15,14 @@ export function apiErrorResponse(error: unknown) {
     return Response.json({ error: message }, { status: error.statusCode });
   }
   if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
+  if (/Invalid reservation status transition/i.test(message)) return Response.json({ error: message }, { status: 400 });
   if (/not found/i.test(message)) return Response.json({ error: message }, { status: 404 });
   if (/already exists/i.test(message)) return Response.json({ error: message }, { status: 409 });
+  if (/Could not load the default credentials|invalid-credential|credential/i.test(message)) {
+    console.error(error);
+    return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
+  }
+  console.error(error);
   return Response.json({ error: "Internal server error" }, { status: 500 });
 }
 
@@ -43,7 +51,14 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
     menuItems,
     status,
     policyAgreement: validatePolicyAgreement(body.policyAgreement),
+    customerAccountMode: validateCustomerAccountMode(body.customerAccountMode),
   };
+}
+
+function validateCustomerAccountMode(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === "account" || value === "guest" || value === "admin") return value;
+  throw new ApiValidationError("customerAccountMode must be account, guest, or admin.");
 }
 
 export function validateUpdateReservationInput(body: Record<string, unknown>): UpdateReservationInput {
@@ -57,6 +72,31 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.phone !== undefined) input.phone = requirePhone(body.phone, "phone");
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
   return input;
+}
+
+export function validateCancellationRequestInput(body: Record<string, unknown>) {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  return { reservationId, email, phone };
+}
+
+export function validateReservationChangeRequestInput(body: Record<string, unknown>): CreateReservationChangeRequestInput {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  return {
+    reservationId,
+    email,
+    phone,
+    requestedDate: requireIsoDate(body.requestedDate, "requestedDate"),
+    requestedStartTime: requireTime(body.requestedStartTime, "requestedStartTime"),
+    requestedPeople: requireInteger(body.requestedPeople, "requestedPeople", { min: 1, max: 999 }),
+    requestedMenuItems: optionalStringArray(body.requestedMenuItems, "requestedMenuItems") ?? [],
+    reason: body.reason === undefined || body.reason === "" ? undefined : requireString(body.reason, "reason", 1000).trim(),
+  };
 }
 
 export function validateReservationStatus(value: unknown): ReservationStatus {
@@ -90,19 +130,19 @@ export function validateStoreAssignments(body: Record<string, unknown>, expected
 
 export function validateCustomerInput(body: Record<string, unknown>): SaveCustomerInput {
   return {
+    id: body.id === undefined ? undefined : requireNonEmptyString(body.id, "id", 64),
     name: requireNonEmptyString(body.name, "name", 100),
     contact: requireEmail(body.contact, "contact"),
     phone: requirePhone(body.phone, "phone"),
+    originalContact: body.originalContact === undefined ? undefined : requireEmail(body.originalContact, "originalContact"),
   };
 }
 
 export function validateStoreInput(body: Record<string, unknown>): SaveStoreInput {
   return {
+    id: body.id === undefined ? undefined : requireNonEmptyString(body.id, "id", 64),
     name: requireNonEmptyString(body.name, "name", 100),
-    area: requireNonEmptyString(body.area, "area", 255),
-    today: requireInteger(body.today, "today", { min: 0, max: 9999 }),
-    month: requireInteger(body.month, "month", { min: 0, max: 99999 }),
-    state: requireOneOf(body.state, "state", ["営業中", "休業中", "準備中"]),
+    displayOrder: body.displayOrder === undefined ? 0 : requireInteger(body.displayOrder, "displayOrder", { min: 0, max: 9999 }),
   };
 }
 
@@ -111,7 +151,8 @@ export function validateMenuInput(body: Record<string, unknown>): SaveMenuInput 
     name: requireNonEmptyString(body.name, "name", 100),
     description: body.description === undefined ? "" : requireString(body.description, "description", 1000),
     price: requireInteger(body.price, "price", { min: 0, max: 9999999 }),
-    duration: requireNonEmptyString(body.duration, "duration", 30),
+    duration: body.duration === undefined ? "来店後" : requireNonEmptyString(body.duration, "duration", 30),
+    displayOrder: body.displayOrder === undefined ? 0 : requireInteger(body.displayOrder, "displayOrder", { min: 0, max: 9999 }),
   };
 }
 

@@ -1,8 +1,10 @@
 enum ReservationStatus {
   TEMPORARY_REQUESTED
   TEMPORARY_CONFIRMED
+  TEMPORARY_REJECTED
   CONFIRMED_REQUESTED
   CONFIRMED
+  CONFIRMED_REJECTED
   WAITING_FOR_VISIT
   VISITED
   CANCELLATION_REQUESTED
@@ -11,6 +13,7 @@ enum ReservationStatus {
 
 enum BillingType { USAGE CANCELLATION }
 enum BillingStatus { UNBILLED INVOICED PAID VOIDED }
+enum ReservationChangeRequestStatus { REQUESTED APPROVED REJECTED }
 
 type Customer @table {
   id: UUID! @default(expr: "uuidV4()")
@@ -26,7 +29,7 @@ type Customer @table {
 type Store @table {
   id: UUID! @default(expr: "uuidV4()")
   name: String! @col(dataType: "varchar(100)")
-  address: String @col(dataType: "varchar(255)")
+  displayOrder: Int! @default(value: 0)
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -38,6 +41,7 @@ type Menu @table {
   description: String
   standardPrice: Int!
   durationMinutes: Int!
+  displayOrder: Int! @default(value: 0)
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -56,6 +60,19 @@ type Reservation @table {
   confirmationContactedAt: Timestamp
   receivedAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type ReservationChangeRequest @table {
+  id: UUID! @default(expr: "uuidV4()")
+  reservation: Reservation!
+  requestedDate: Date!
+  requestedTime: String! @col(dataType: "varchar(5)")
+  requestedPeople: Int!
+  requestedMenuItemsJson: String!
+  reason: String
+  status: ReservationChangeRequestStatus!
+  requestedAt: Timestamp! @default(expr: "request.time")
+  reviewedAt: Timestamp
 }
 
 type ReservationDetail @table {

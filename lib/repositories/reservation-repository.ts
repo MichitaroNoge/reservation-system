@@ -1,4 +1,4 @@
-import type { CreateReservationInput, Customer, Menu, Reservation, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import type { CreateReservationChangeRequestInput, CreateReservationInput, Customer, Menu, Reservation, ReservationChangeRequest, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
@@ -7,14 +7,27 @@ export type ReservationRepository = {
   updateReservationStatus(id: string, status: ReservationStatus): Promise<Reservation>;
   updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation>;
   assignStores(id: string, assignments: StoreAssignment[]): Promise<Reservation>;
+  listReservationChangeRequests(): Promise<ReservationChangeRequest[]>;
+  createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest>;
+  approveReservationChangeRequest(id: string): Promise<{ request: ReservationChangeRequest; reservation: Reservation }>;
+  rejectReservationChangeRequest(id: string): Promise<ReservationChangeRequest>;
   listCustomers(): Promise<Customer[]>;
+  listInactiveCustomers(): Promise<Customer[]>;
+  findCustomerForReservationAccount(firebaseUid: string, email: string): Promise<Customer | null>;
+  createCustomer(input: SaveCustomerInput): Promise<Customer>;
   updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer>;
   deleteCustomer(name: string): Promise<void>;
+  reactivateCustomer(id: string): Promise<Customer>;
   listStores(): Promise<Store[]>;
+  listInactiveStores(): Promise<Store[]>;
+  createStore(input: SaveStoreInput): Promise<Store>;
   updateStore(name: string, input: SaveStoreInput): Promise<Store>;
   deleteStore(name: string): Promise<void>;
+  reactivateStore(id: string): Promise<Store>;
   listMenus(): Promise<Menu[]>;
+  listInactiveMenus(): Promise<Menu[]>;
   createMenu(input: SaveMenuInput): Promise<Menu>;
   updateMenu(name: string, input: SaveMenuInput): Promise<Menu>;
   deleteMenu(name: string): Promise<void>;
+  reactivateMenu(id: string): Promise<Menu>;
 };

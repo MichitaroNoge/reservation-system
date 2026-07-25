@@ -1,13 +1,15 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { defaultReservationStatus, normalizeReservationStatus, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
 type Database = {
   reservations: Reservation[];
+  reservationChangeRequests?: ReservationChangeRequest[];
   menus: Menu[];
   stores: Store[];
+  customers?: Customer[];
 };
 
 const defaultStartTime = "10:00";
@@ -16,10 +18,12 @@ async function readDatabase(databasePath: string): Promise<Database> {
   try {
     const raw = await readFile(databasePath, "utf8");
     const database = JSON.parse(raw) as Database;
+    database.customers ??= [];
+    database.reservationChangeRequests ??= [];
     database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
     return database;
   } catch {
-    const initial = { reservations: seedReservations, menus: seedMenus, stores: seedStores };
+    const initial = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, customers: [] };
     await writeDatabase(databasePath, initial);
     return initial;
   }
@@ -36,6 +40,14 @@ function nextReservationId(reservations: Reservation[]) {
     return Number.isFinite(number) ? Math.max(current, number) : current;
   }, 1000);
   return `RSV-${max + 1}`;
+}
+
+function nextChangeRequestId(requests: ReservationChangeRequest[]) {
+  const max = requests.reduce((current, request) => {
+    const number = Number(request.id.replace("RCR-", ""));
+    return Number.isFinite(number) ? Math.max(current, number) : current;
+  }, 1000);
+  return `RCR-${max + 1}`;
 }
 
 function receivedLabel() {
@@ -63,6 +75,42 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
   return menuItems.reduce((total, name) => total + (menus.find((menu) => menu.name === name)?.price ?? 0), 0);
+}
+
+function normalizeContact(value: string | undefined) {
+  return (value ?? "").replace(/[\s-]/g, "").toLowerCase();
+}
+
+function reservationMatchesContact(reservation: Reservation, input: { email?: string; phone?: string }) {
+  return Boolean(
+    (input.email && normalizeContact(reservation.email) === normalizeContact(input.email))
+    || (input.phone && normalizeContact(reservation.phone) === normalizeContact(input.phone)),
+  );
+}
+
+function assertCanRequestReservationChange(reservation: Reservation) {
+  const allowedStatuses: readonly ReservationStatus[] = [
+    reservationStatusCodes.temporaryRequested,
+    reservationStatusCodes.temporaryConfirmed,
+    reservationStatusCodes.confirmedRequested,
+    reservationStatusCodes.confirmed,
+    reservationStatusCodes.waitingForVisit,
+  ];
+  if (!allowedStatuses.includes(reservation.status)) {
+    throw new Error(`Reservation change cannot be requested for status: ${reservation.status}`);
+  }
+}
+
+function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: string }>(items: T[]) {
+  return [...items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.name.localeCompare(b.name, "ja-JP", { numeric: true }));
+}
+
+function normalizeMenu(menu: Menu): Menu {
+  return { ...menu, displayOrder: menu.displayOrder ?? 0, active: menu.active ?? true };
+}
+
+function normalizeStore(store: Store): Store {
+  return { ...store, displayOrder: store.displayOrder ?? 0 };
 }
 
 export class FileReservationRepository implements ReservationRepository {
@@ -163,12 +211,95 @@ export class FileReservationRepository implements ReservationRepository {
     return reservation;
   }
 
+  async listReservationChangeRequests() {
+    const database = await this.readDatabase();
+    return database.reservationChangeRequests ?? [];
+  }
+
+  async createReservationChangeRequest(input: CreateReservationChangeRequestInput) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const reservation = database.reservations.find((item) => item.id.toLowerCase() === input.reservationId.toLowerCase());
+    if (!reservation || !reservationMatchesContact(reservation, input)) {
+      throw new Error(`Reservation not found: ${input.reservationId}`);
+    }
+    assertCanRequestReservationChange(reservation);
+    const request: ReservationChangeRequest = {
+      id: nextChangeRequestId(database.reservationChangeRequests),
+      reservationId: reservation.id,
+      customer: reservation.customer,
+      email: reservation.email,
+      phone: reservation.phone,
+      currentDate: reservation.date,
+      currentStartTime: reservation.startTime ?? defaultStartTime,
+      currentPeople: reservation.people,
+      currentMenuItems: reservation.menuItems ?? [],
+      requestedDate: input.requestedDate,
+      requestedStartTime: input.requestedStartTime,
+      requestedPeople: input.requestedPeople,
+      requestedMenuItems: input.requestedMenuItems,
+      reason: input.reason,
+      status: "requested",
+      requestedAt: new Date().toISOString(),
+      reviewedAt: null,
+    };
+    database.reservationChangeRequests = [request, ...database.reservationChangeRequests];
+    await this.writeDatabase(database);
+    return request;
+  }
+
+  async approveReservationChangeRequest(id: string) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const request = database.reservationChangeRequests.find((item) => item.id === id);
+    if (!request) throw new Error(`Reservation change request not found: ${id}`);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const reservation = database.reservations.find((item) => item.id === request.reservationId);
+    if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
+
+    const shouldResetAssignments = reservation.date !== request.requestedDate
+      || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime
+      || reservation.people !== request.requestedPeople;
+    reservation.date = request.requestedDate;
+    reservation.startTime = request.requestedStartTime;
+    reservation.people = request.requestedPeople;
+    reservation.menuItems = request.requestedMenuItems;
+    reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
+    if (shouldResetAssignments) {
+      reservation.store = null;
+      reservation.storeAssignments = [];
+    }
+    reservation.status = getAutomaticReservationStatus(reservation);
+    request.status = "approved";
+    request.reviewedAt = new Date().toISOString();
+
+    await this.writeDatabase(database);
+    return { request, reservation };
+  }
+
+  async rejectReservationChangeRequest(id: string) {
+    const database = await this.readDatabase();
+    database.reservationChangeRequests ??= [];
+    const request = database.reservationChangeRequests.find((item) => item.id === id);
+    if (!request) throw new Error(`Reservation change request not found: ${id}`);
+    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    request.status = "rejected";
+    request.reviewedAt = new Date().toISOString();
+    await this.writeDatabase(database);
+    return request;
+  }
+
   async listCustomers(): Promise<Customer[]> {
     const database = await this.readDatabase();
     const grouped = new Map<string, Customer>();
+    for (const customer of database.customers ?? []) {
+      grouped.set(customer.contact.toLowerCase(), customer);
+    }
     for (const reservation of database.reservations) {
-      const current = grouped.get(reservation.customer);
-      grouped.set(reservation.customer, {
+      const key = (reservation.email ?? reservation.customer).toLowerCase();
+      const current = grouped.get(key);
+      grouped.set(key, {
+        id: current?.id,
         name: reservation.customer,
         contact: reservation.email ?? "customer@example.jp",
         phone: reservation.phone,
@@ -179,12 +310,50 @@ export class FileReservationRepository implements ReservationRepository {
     return Array.from(grouped.values());
   }
 
+  async listInactiveCustomers(): Promise<Customer[]> {
+    return [];
+  }
+
+  async findCustomerForReservationAccount(_firebaseUid: string, email: string): Promise<Customer | null> {
+    const customers = await this.listCustomers();
+    return customers.find((customer) => customer.contact.toLowerCase() === email.toLowerCase()) ?? null;
+  }
+
+  async createCustomer(input: SaveCustomerInput): Promise<Customer> {
+    const database = await this.readDatabase();
+    database.customers ??= [];
+    if (database.customers.some((customer) => customer.contact.toLowerCase() === input.contact.toLowerCase())) {
+      throw new Error(`Customer already exists: ${input.contact}`);
+    }
+    const customer = {
+      id: `file-customer-${Date.now()}`,
+      name: input.name,
+      contact: input.contact,
+      phone: input.phone,
+      count: 0,
+      last: "-",
+    };
+    database.customers.push(customer);
+    await this.writeDatabase(database);
+    return customer;
+  }
+
   async updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer> {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
-    const targets = database.reservations.filter((reservation) => reservation.customer === decodedName);
-    if (!targets.length) throw new Error(`Customer not found: ${decodedName}`);
-    database.reservations = database.reservations.map((reservation) => reservation.customer === decodedName ? {
+    database.customers ??= [];
+    const customerIndex = database.customers.findIndex((customer) => customer.id === input.id || customer.name === decodedName || customer.contact === input.originalContact);
+    if (customerIndex >= 0) {
+      database.customers[customerIndex] = {
+        ...database.customers[customerIndex],
+        name: input.name,
+        contact: input.contact,
+        phone: input.phone,
+      };
+    }
+    const targets = database.reservations.filter((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact);
+    if (!targets.length && customerIndex < 0) throw new Error(`Customer not found: ${decodedName}`);
+    database.reservations = database.reservations.map((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact ? {
       ...reservation,
       customer: input.name,
       email: input.contact,
@@ -199,13 +368,31 @@ export class FileReservationRepository implements ReservationRepository {
   async deleteCustomer(name: string): Promise<void> {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
-    database.reservations = database.reservations.filter((reservation) => reservation.customer !== decodedName);
+    database.customers = (database.customers ?? []).filter((customer) => customer.name !== decodedName);
     await this.writeDatabase(database);
+  }
+
+  async reactivateCustomer(id: string): Promise<Customer> {
+    throw new Error(`Customer not found: ${id}`);
   }
 
   async listStores() {
     const database = await this.readDatabase();
-    return database.stores;
+    return sortByDisplayOrderThenName(database.stores.map(normalizeStore));
+  }
+
+  async listInactiveStores(): Promise<Store[]> {
+    return [];
+  }
+
+  async createStore(input: SaveStoreInput) {
+    const database = await this.readDatabase();
+    if (database.stores.some((store) => store.name === input.name)) {
+      throw new Error(`Store already exists: ${input.name}`);
+    }
+    database.stores.push(normalizeStore(input));
+    await this.writeDatabase(database);
+    return normalizeStore(input);
   }
 
   async updateStore(name: string, input: SaveStoreInput) {
@@ -213,7 +400,7 @@ export class FileReservationRepository implements ReservationRepository {
     const decodedName = decodeURIComponent(name);
     const index = database.stores.findIndex((store) => store.name === decodedName);
     if (index < 0) throw new Error(`Store not found: ${decodedName}`);
-    database.stores[index] = input;
+    database.stores[index] = normalizeStore(input);
     if (decodedName !== input.name) {
       database.reservations = database.reservations.map((reservation) => {
         const storeAssignments = (reservation.storeAssignments ?? []).map((assignment) => assignment.store === decodedName ? { ...assignment, store: input.name } : assignment);
@@ -222,41 +409,51 @@ export class FileReservationRepository implements ReservationRepository {
       });
     }
     await this.writeDatabase(database);
-    return input;
+    return normalizeStore(input);
   }
 
   async deleteStore(name: string) {
     const database = await this.readDatabase();
     const decodedName = decodeURIComponent(name);
     database.stores = database.stores.filter((store) => store.name !== decodedName);
-    database.reservations = database.reservations.map((reservation) => {
-      const storeAssignments = (reservation.storeAssignments ?? []).filter((assignment) => assignment.store !== decodedName);
-      const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-      return { ...reservation, storeAssignments, store };
-    });
     await this.writeDatabase(database);
+  }
+
+  async reactivateStore(id: string): Promise<Store> {
+    throw new Error(`Store not found: ${id}`);
   }
 
   async listMenus() {
     const database = await this.readDatabase();
-    return database.menus;
+    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu).filter((menu) => menu.active !== false));
+  }
+
+  async listInactiveMenus(): Promise<Menu[]> {
+    const database = await this.readDatabase();
+    return sortByDisplayOrderThenName(database.menus.map(normalizeMenu).filter((menu) => menu.active === false));
   }
 
   async createMenu(input: SaveMenuInput) {
     const database = await this.readDatabase();
-    if (database.menus.some((menu) => menu.name === input.name)) {
+    const existingIndex = database.menus.findIndex((menu) => menu.name === input.name);
+    const existing = existingIndex >= 0 ? normalizeMenu(database.menus[existingIndex]) : null;
+    if (existing?.active !== false) {
       throw new Error(`Menu already exists: ${input.name}`);
     }
-    database.menus = [...database.menus, input];
+    if (existing) {
+      database.menus[existingIndex] = normalizeMenu({ ...input, id: existing.id, active: true });
+    } else {
+      database.menus = [...database.menus, normalizeMenu(input)];
+    }
     await this.writeDatabase(database);
-    return input;
+    return normalizeMenu(input);
   }
 
   async updateMenu(name: string, input: SaveMenuInput) {
     const database = await this.readDatabase();
     const index = database.menus.findIndex((menu) => menu.name === name);
     if (index < 0) throw new Error(`Menu not found: ${name}`);
-    database.menus[index] = input;
+    database.menus[index] = normalizeMenu(input);
     if (name !== input.name) {
       database.reservations = database.reservations.map((reservation) => ({
         ...reservation,
@@ -268,17 +465,23 @@ export class FileReservationRepository implements ReservationRepository {
       totalAmount: calculateTotalAmount(reservation.menuItems, database.menus),
     }));
     await this.writeDatabase(database);
-    return input;
+    return normalizeMenu(input);
   }
 
   async deleteMenu(name: string) {
     const database = await this.readDatabase();
-    database.menus = database.menus.filter((menu) => menu.name !== name);
-    database.reservations = database.reservations.map((reservation) => ({
-      ...reservation,
-      menuItems: reservation.menuItems.filter((item) => item !== name),
-      totalAmount: calculateTotalAmount(reservation.menuItems.filter((item) => item !== name), database.menus),
-    }));
+    database.menus = database.menus.map((menu) => menu.name === name
+      ? normalizeMenu({ ...menu, id: menu.id ?? `file-menu-${encodeURIComponent(menu.name)}`, active: false })
+      : menu);
     await this.writeDatabase(database);
+  }
+
+  async reactivateMenu(id: string): Promise<Menu> {
+    const database = await this.readDatabase();
+    const index = database.menus.findIndex((menu) => menu.id === id);
+    if (index < 0) throw new Error(`Menu not found: ${id}`);
+    database.menus[index] = normalizeMenu({ ...database.menus[index], active: true });
+    await this.writeDatabase(database);
+    return normalizeMenu(database.menus[index]);
   }
 }

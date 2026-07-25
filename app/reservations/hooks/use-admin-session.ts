@@ -6,12 +6,18 @@ import { requestJson } from "../api-client";
 import { firebaseAuth } from "../firebase-client";
 import type { AdminSession } from "../types";
 
-export function useAdminSession() {
+export function useAdminSession(options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true;
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setAdminSession(null);
+      setAuthLoading(false);
+      return;
+    }
     return onAuthStateChanged(firebaseAuth, async (user) => {
       setAuthLoading(true);
       setAdminSession(null);
@@ -31,7 +37,7 @@ export function useAdminSession() {
         setAuthLoading(false);
       }
     });
-  }, []);
+  }, [enabled]);
 
   const getAdminToken = async () => {
     const user = firebaseAuth.currentUser;

@@ -11,6 +11,7 @@
 | `PATCH /api/reservations/:id/store` | 店舗割当更新 | `app/api/reservations/[id]/store/route.ts` |
 | `PATCH /api/reservations/:id/confirmation-contact` | 確認連絡日時更新 | `app/api/reservations/[id]/confirmation-contact/route.ts` |
 | `GET /api/customers` | 顧客一覧取得 | `app/api/customers/route.ts` |
+| `GET /api/customers/me` | ログイン済み顧客のCustomer取得 | `app/api/customers/me/route.ts` |
 | `PATCH /api/customers/:name` | 顧客更新 | `app/api/customers/[name]/route.ts` |
 | `DELETE /api/customers/:name` | 顧客削除 | `app/api/customers/[name]/route.ts` |
 | `GET /api/stores` | 店舗一覧取得 | `app/api/stores/route.ts` |

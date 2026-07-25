@@ -16,13 +16,13 @@ query ListReservations @auth(level: NO_ACCESS) {
       id
       quantity
       unitPrice
-      menu { id name description standardPrice durationMinutes }
+      menu { id name description standardPrice durationMinutes displayOrder }
     }
     storeAssignments_on_reservation {
       id
       people
       assignedAt
-      store { id name address }
+      store { id name displayOrder }
     }
   }
 }
@@ -45,13 +45,13 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
       id
       quantity
       unitPrice
-      menu { id name description standardPrice durationMinutes }
+      menu { id name description standardPrice durationMinutes displayOrder }
     }
     storeAssignments_on_reservation {
       id
       people
       assignedAt
-      store { id name address }
+      store { id name displayOrder }
     }
     visitRecord_on_reservation { id visitedAt actualPeople }
     billings_on_reservation { id billingType amount billingDate status }
@@ -76,19 +76,58 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
       id
       quantity
       unitPrice
-      menu { id name description standardPrice durationMinutes }
+      menu { id name description standardPrice durationMinutes displayOrder }
     }
     storeAssignments_on_reservation {
       id
       people
       assignedAt
-      store { id name address }
+      store { id name displayOrder }
+    }
+  }
+}
+
+query ListReservationChangeRequests @auth(level: NO_ACCESS) {
+  reservationChangeRequests(orderBy: {requestedAt: DESC}) {
+    id
+    requestedDate
+    requestedTime
+    requestedPeople
+    requestedMenuItemsJson
+    reason
+    status
+    requestedAt
+    reviewedAt
+    reservation {
+      id
+      reservationCode
+      usageDate
+      usageTime
+      expectedPeople
+      customer { id name phone email }
+      reservationDetails_on_reservation {
+        quantity
+        menu { name }
+      }
     }
   }
 }
 
 query ListCustomers @auth(level: NO_ACCESS) {
   customers(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
+    id
+    name
+    phone
+    email
+    firebaseUid
+    active
+    createdAt
+    reservations_on_customer { id reservationCode usageDate status }
+  }
+}
+
+query ListInactiveCustomers @auth(level: NO_ACCESS) {
+  customers(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
     id
     name
     phone
@@ -110,11 +149,52 @@ query GetCustomerByName($name: String!) @auth(level: NO_ACCESS) {
   }
 }
 
-query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
-  stores(where: {active: {eq: true}}, orderBy: {name: ASC}) {
+query GetCustomerById($id: UUID!) @auth(level: NO_ACCESS) {
+  customer(key: {id: $id}) {
     id
     name
-    address
+    phone
+    email
+    active
+  }
+}
+
+query GetCustomerByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
+  customers(where: {firebaseUid: {eq: $firebaseUid}, active: {eq: true}}, limit: 1) {
+    id
+    name
+    phone
+    email
+    firebaseUid
+    active
+  }
+}
+
+query GetCustomerByEmail($email: String!) @auth(level: NO_ACCESS) {
+  customers(where: {email: {eq: $email}, active: {eq: true}}, orderBy: {updatedAt: DESC}, limit: 1) {
+    id
+    name
+    phone
+    email
+    firebaseUid
+    active
+  }
+}
+
+query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
+  stores(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) {
+    id
+    name
+    displayOrder
+    active
+  }
+}
+
+query ListInactiveStores @auth(level: NO_ACCESS) {
+  stores(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
+    id
+    name
+    displayOrder
     active
   }
 }
@@ -123,18 +203,40 @@ query GetStoreByName($name: String!) @auth(level: PUBLIC, insecureReason: "Store
   stores(where: {name: {eq: $name}}, limit: 1) {
     id
     name
-    address
+    displayOrder
+    active
+  }
+}
+
+query GetStoreById($id: UUID!) @auth(level: NO_ACCESS) {
+  store(key: {id: $id}) {
+    id
+    name
+    displayOrder
     active
   }
 }
 
 query ListMenus @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
-  menus(where: {active: {eq: true}}, orderBy: {standardPrice: ASC}) {
+  menus(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) {
     id
     name
     description
     standardPrice
     durationMinutes
+    displayOrder
+    active
+  }
+}
+
+query ListInactiveMenus @auth(level: NO_ACCESS) {
+  menus(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
+    id
+    name
+    description
+    standardPrice
+    durationMinutes
+    displayOrder
     active
   }
 }
@@ -146,6 +248,7 @@ query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus 
     description
     standardPrice
     durationMinutes
+    displayOrder
     active
   }
 }

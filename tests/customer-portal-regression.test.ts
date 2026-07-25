@@ -13,6 +13,8 @@ test("customer reservation portal keeps account booking choices", async () => {
     "アカウント登録なしで予約する",
     "予約確認",
     "本予約への変更申請",
+    "予約内容変更申請",
+    "キャンセル申請",
     "/api/customers/me",
     "/api/customers/me/reservations",
   ]) {
@@ -21,6 +23,9 @@ test("customer reservation portal keeps account booking choices", async () => {
 
   assert.match(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must remain wired");
   assert.match(pageSource, /customerAccountMode[^;\n]+account/, "account reservation mode must remain wired");
+  assert.match(pageSource, /startConfirmedChangeFromReservation/, "confirmed reservation change must be available from account reservations");
+  assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
+  assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
 });

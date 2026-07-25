@@ -11,6 +11,7 @@ test("customer reservation portal keeps account booking choices", async () => {
     "ログイン",
     "アカウント登録して予約する",
     "アカウント登録なしで予約する",
+    "本予約への変更申請",
     "/api/customers/me",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);

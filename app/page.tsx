@@ -175,6 +175,12 @@ export default function Home() {
     setSelected(s => s?.id === reservation.id ? reservation : s);
     return reservation;
   };
+  const requestConfirmedReservationChange = async (input: { reservationId: string; email?: string; phone?: string }) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/confirmed-request", { method: "POST", body: JSON.stringify(input) });
+    setReservations(rs => rs.map(r => r.id === reservation.id ? reservation : r));
+    setSelected(s => s?.id === reservation.id ? reservation : s);
+    return reservation;
+  };
   const requestReservationChange = async (input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }) => {
     const { request } = await requestJson<{ request: ReservationChangeRequest }>("/api/reservations/change-requests", { method: "POST", body: JSON.stringify(input) });
     setReservationChangeRequests(requests => [request, ...requests.filter(item => item.id !== request.id)]);
@@ -381,7 +387,7 @@ export default function Home() {
     setView("reservations");
   };
 
-  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
+  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
   if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
   if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => setRole("customer")} error={authError} />;
 
@@ -548,7 +554,7 @@ function ReservationChangeRequestPage({ requests, onApproveChangeRequest, onReje
 
 function ReservationApprovalPage({ reservations, onSelect, updateStatus }: { reservations: Reservation[]; onSelect: (reservation: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void }) {
   const approveStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryConfirmed : reservation.status === STATUS.confirmedRequested ? STATUS.confirmed : reservation.status === STATUS.cancellationRequested ? STATUS.cancelled : null;
-  const rejectStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryRejected : reservation.status === STATUS.confirmedRequested ? STATUS.confirmedRejected : null;
+  const rejectStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryRejected : reservation.status === STATUS.confirmedRequested ? reservation.policyAgreement?.kind === "temporary" ? STATUS.temporaryConfirmed : STATUS.confirmedRejected : null;
   const approveLabel = (reservation: Reservation) => reservation.status === STATUS.cancellationRequested ? "キャンセル確定" : "承認";
   return <section className="panel management-panel change-request-screen"><div className="change-request-head"><h3>未対応の承認待ち</h3><span>{reservations.length}件</span></div>{reservations.length > 0 ? <div className="table-wrap"><table className="large-table change-request-table"><thead><tr><th>予約ID</th><th>ステータス</th><th>お客様</th><th>利用日時・人数</th><th>メニュー</th><th>担当店舗</th><th/></tr></thead><tbody>{reservations.map(reservation => {
     const nextApprovalStatus = approveStatus(reservation);
@@ -657,9 +663,9 @@ function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }:
   </div></aside></>;
 }
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
+function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
-  const [portalMode, setPortalMode] = useState<"home" | "reservation" | "change" | "cancellation">("home");
+  const [portalMode, setPortalMode] = useState<"home" | "reservation" | "confirmedChange" | "change" | "cancellation">("home");
   const [bookingMode, setBookingMode] = useState<"login" | "register" | "guest">("guest");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
@@ -667,12 +673,16 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
   const [cancellationForm, setCancellationForm] = useState({ reservationId: "", email: "", phone: "" });
   const [isSubmittingCancellation, setIsSubmittingCancellation] = useState(false);
   const [cancellationSubmitted, setCancellationSubmitted] = useState(false);
+  const [confirmedChangeForm, setConfirmedChangeForm] = useState({ reservationId: "", email: "", phone: "" });
+  const [isSubmittingConfirmedChange, setIsSubmittingConfirmedChange] = useState(false);
+  const [confirmedChangeSubmitted, setConfirmedChangeSubmitted] = useState(false);
   const [changeRequestForm, setChangeRequestForm] = useState({ reservationId: "", email: "", phone: "", requestedDate: form.date, requestedStartTime: form.startTime, requestedPeople: form.people, requestedMenuItems: form.menuItems, reason: "" });
   const [isSubmittingChangeRequest, setIsSubmittingChangeRequest] = useState(false);
   const [changeRequestSubmitted, setChangeRequestSubmitted] = useState(false);
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.startTime && form.people);
   const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && (cancellationForm.email.trim() || cancellationForm.phone.trim())) && !isSubmittingCancellation;
+  const canSubmitConfirmedChange = Boolean(confirmedChangeForm.reservationId.trim() && (confirmedChangeForm.email.trim() || confirmedChangeForm.phone.trim())) && !isSubmittingConfirmedChange;
   const canSubmitChangeRequest = Boolean(changeRequestForm.reservationId.trim() && (changeRequestForm.email.trim() || changeRequestForm.phone.trim()) && changeRequestForm.requestedDate && changeRequestForm.requestedStartTime && changeRequestForm.requestedPeople) && !isSubmittingChangeRequest;
 
   useEffect(() => {
@@ -752,6 +762,23 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
       setIsSubmittingCancellation(false);
     }
   };
+  const submitConfirmedChange = async () => {
+    if (!canSubmitConfirmedChange) return;
+    setIsSubmittingConfirmedChange(true);
+    try {
+      const reservation = await onSubmitConfirmedReservationChange({
+        reservationId: confirmedChangeForm.reservationId.trim(),
+        email: confirmedChangeForm.email.trim() || undefined,
+        phone: confirmedChangeForm.phone.trim() || undefined,
+      });
+      notify("本予約への変更申請を受け付けました（" + reservation.id + "）");
+      setConfirmedChangeSubmitted(true);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "本予約への変更申請の保存に失敗しました");
+    } finally {
+      setIsSubmittingConfirmedChange(false);
+    }
+  };
   const submitChangeRequest = async () => {
     if (!canSubmitChangeRequest) return;
     setIsSubmittingChangeRequest(true);
@@ -778,14 +805,15 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
     setPortalMode("home");
     setStep(1);
     setCancellationSubmitted(false);
+    setConfirmedChangeSubmitted(false);
     setChangeRequestSubmitted(false);
   };
 
   return <main className="customer-page restaurant-reservation">
     <header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><button onClick={onAdmin}>管理画面</button></nav></header>
-    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "cancellation" ? "キャンセル申請" : portalMode === "change" ? "予約内容変更申請" : "予約フォーム"}</h1></div></section>
+    <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "cancellation" ? "キャンセル申請" : portalMode === "confirmedChange" ? "本予約への変更申請" : portalMode === "change" ? "予約内容変更申請" : "予約フォーム"}</h1></div></section>
     <section className="booking-card">
-      {portalMode === "home" && <div className="form-body narrow portal-entry"><p className="form-kicker">REQUEST</p><h2>お手続きを選択</h2><div className="portal-entry-grid"><button type="button" onClick={() => { setPortalMode("reservation"); setStep(1); }}><strong>予約申請</strong><small>仮予約または本予約を申し込みます</small></button><button type="button" onClick={() => { setPortalMode("change"); setChangeRequestSubmitted(false); }}><strong>予約内容変更申請</strong><small>受付済みの予約について日時・人数・メニューの変更を申請します</small></button><button type="button" onClick={() => { setPortalMode("cancellation"); setCancellationSubmitted(false); }}><strong>キャンセル申請</strong><small>受付済みの予約のキャンセルを申請します</small></button></div></div>}
+      {portalMode === "home" && <div className="form-body narrow portal-entry"><p className="form-kicker">REQUEST</p><h2>お手続きを選択</h2><div className="portal-entry-grid"><button type="button" onClick={() => { setPortalMode("reservation"); setStep(1); }}><strong>予約申請</strong><small>仮予約または本予約を申し込みます</small></button><button type="button" onClick={() => { setPortalMode("confirmedChange"); setConfirmedChangeSubmitted(false); }}><strong>本予約への変更申請</strong><small>確定済みの仮予約を本予約へ変更申請します</small></button><button type="button" onClick={() => { setPortalMode("change"); setChangeRequestSubmitted(false); }}><strong>予約内容変更申請</strong><small>受付済みの予約について日時・人数・メニューの変更を申請します</small></button><button type="button" onClick={() => { setPortalMode("cancellation"); setCancellationSubmitted(false); }}><strong>キャンセル申請</strong><small>受付済みの予約のキャンセルを申請します</small></button></div></div>}
       {portalMode === "reservation" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button><div className="stepper">{["予約種別","日時・人数","お客様情報","受付完了"].map((label, index)=><div key={label} className={step >= index + 1 ? "active" : ""}><span>{step > index + 1 ? <Icon name="check"/> : index + 1}</span><small>{label}</small>{index < 3 && <i/>}</div>)}</div>
       {step === 1 && <div className="form-body narrow reservation-type-step"><p className="form-kicker">STEP 1</p><h2>予約種別を選択</h2><fieldset className="reservation-type-options"><legend>予約種別</legend><button type="button" className={form.status === STATUS.confirmedRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.confirmedRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>本予約を申し込む</strong><small>正式な予約として申請します</small></span></button><button type="button" className={form.status === STATUS.temporaryRequested ? "selected" : ""} onClick={() => setForm({ ...form, status: STATUS.temporaryRequested })}><span className="radio-mark" aria-hidden="true"/><span><strong>仮予約として相談する</strong><small>日程を仮押さえして相談します</small></span></button></fieldset><div className="form-nav"><span/><button className="next" onClick={() => setStep(2)}>日時へ <Icon name="arrow"/></button></div></div>}
       {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数</h2><div className="form-fields reservation-date-fields"><label>利用日<input type="date" value={form.date} onChange={event => setForm({ ...form, date: event.target.value })}/></label><label>開始時間<input type="time" value={form.startTime} onChange={event => setForm({ ...form, startTime: event.target.value })}/></label><label>人数<select value={form.people} onChange={event => setForm({ ...form, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/><div className="form-nav"><button onClick={() => setStep(1)}>戻る</button><button className="next" disabled={!form.date || !form.startTime} onClick={() => setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}
@@ -809,6 +837,7 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
         </section>
         <div className="form-fields single"><label>お名前<input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })}/></label><label>メールアドレス<input type="email" value={form.email} onChange={event => { setForm({ ...form, email: event.target.value }); setAccountEmail(event.target.value); }}/></label><label>電話番号<input value={form.phone} onChange={event => setForm({ ...form, phone: event.target.value })}/></label></div><div className="confirm-box"><span>{bookingFormDateTimeLabel(form)}・{form.people}名</span><strong>{menuSelectionLabel(form.menuItems)}</strong><small>{statusLabel(form.status ?? STATUS.confirmedRequested)}・{"¥"}{total.toLocaleString()}</small></div><div className="form-nav"><button onClick={() => setStep(2)}>戻る</button><button className="next" disabled={!canSubmit || (bookingMode !== "guest" && !customerUser)} onClick={submit}>この内容で申請する <Icon name="arrow"/></button></div></div>}
       {step === 4 && <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>予約申請を受け付けました</h2><p>内容を確認後、予約可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div>}</>}
+      {portalMode === "confirmedChange" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button>{confirmedChangeSubmitted ? <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>本予約への変更申請を受け付けました</h2><p>内容を確認後、本予約への変更可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div> : <div className="form-body narrow cancellation-form"><p className="form-kicker">CONFIRMED REQUEST</p><h2>本予約への変更申請</h2><div className="form-fields single"><label>予約ID<input value={confirmedChangeForm.reservationId} placeholder="例: RSV-1047" onChange={event => setConfirmedChangeForm({ ...confirmedChangeForm, reservationId: event.target.value })}/></label><label>メールアドレス<input type="email" value={confirmedChangeForm.email} onChange={event => setConfirmedChangeForm({ ...confirmedChangeForm, email: event.target.value })}/></label><label>電話番号<input value={confirmedChangeForm.phone} onChange={event => setConfirmedChangeForm({ ...confirmedChangeForm, phone: event.target.value })}/></label></div><p className="customer-mode-note">仮予約確定済みの予約だけ申請できます。予約時のメールアドレスまたは電話番号のどちらかが一致した場合に申請できます。</p><div className="form-nav"><button onClick={backToPortalHome}>戻る</button><button className="next" disabled={!canSubmitConfirmedChange} onClick={submitConfirmedChange}>{isSubmittingConfirmedChange ? "送信中" : "本予約への変更を申請する"} <Icon name="arrow"/></button></div></div>}</>}
       {portalMode === "change" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button>{changeRequestSubmitted ? <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>予約内容変更申請を受け付けました</h2><p>内容を確認後、変更可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div> : <div className="form-body narrow cancellation-form"><p className="form-kicker">CHANGE REQUEST</p><h2>予約内容変更申請</h2><div className="form-fields single"><label>予約ID<input value={changeRequestForm.reservationId} placeholder="例: RSV-1047" onChange={event => setChangeRequestForm({ ...changeRequestForm, reservationId: event.target.value })}/></label><label>メールアドレス<input type="email" value={changeRequestForm.email} onChange={event => setChangeRequestForm({ ...changeRequestForm, email: event.target.value })}/></label><label>電話番号<input value={changeRequestForm.phone} onChange={event => setChangeRequestForm({ ...changeRequestForm, phone: event.target.value })}/></label></div><div className="form-fields reservation-date-fields"><label>変更希望日<input type="date" value={changeRequestForm.requestedDate} onChange={event => setChangeRequestForm({ ...changeRequestForm, requestedDate: event.target.value })}/></label><label>開始時間<input type="time" value={changeRequestForm.requestedStartTime} onChange={event => setChangeRequestForm({ ...changeRequestForm, requestedStartTime: event.target.value })}/></label><label>人数<select value={changeRequestForm.requestedPeople} onChange={event => setChangeRequestForm({ ...changeRequestForm, requestedPeople: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={changeRequestForm.requestedMenuItems} onChange={requestedMenuItems => setChangeRequestForm({ ...changeRequestForm, requestedMenuItems })}/><div className="form-fields single"><label>変更理由<textarea value={changeRequestForm.reason} onChange={event => setChangeRequestForm({ ...changeRequestForm, reason: event.target.value })}/></label></div><p className="customer-mode-note">予約時のメールアドレスまたは電話番号のどちらかが一致した場合に申請できます。</p><div className="form-nav"><button onClick={backToPortalHome}>戻る</button><button className="next" disabled={!canSubmitChangeRequest} onClick={submitChangeRequest}>{isSubmittingChangeRequest ? "送信中" : "変更を申請する"} <Icon name="arrow"/></button></div></div>}</>}
       {portalMode === "cancellation" && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button>{cancellationSubmitted ? <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>キャンセル申請を受け付けました</h2><p>内容を確認後、キャンセル可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div> : <div className="form-body narrow cancellation-form"><p className="form-kicker">CANCEL REQUEST</p><h2>キャンセル申請</h2><div className="form-fields single"><label>予約ID<input value={cancellationForm.reservationId} placeholder="例: RSV-1047" onChange={event => setCancellationForm({ ...cancellationForm, reservationId: event.target.value })}/></label><label>メールアドレス<input type="email" value={cancellationForm.email} onChange={event => setCancellationForm({ ...cancellationForm, email: event.target.value })}/></label><label>電話番号<input value={cancellationForm.phone} onChange={event => setCancellationForm({ ...cancellationForm, phone: event.target.value })}/></label></div><p className="customer-mode-note">予約時のメールアドレスまたは電話番号のどちらかが一致した場合に申請できます。</p><div className="form-nav"><button onClick={backToPortalHome}>戻る</button><button className="next" disabled={!canSubmitCancellation} onClick={submitCancellation}>{isSubmittingCancellation ? "送信中" : "キャンセルを申請する"} <Icon name="arrow"/></button></div></div>}</>}
     </section>

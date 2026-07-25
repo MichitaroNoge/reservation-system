@@ -51,6 +51,23 @@ const baseReservations: Reservation[] = [
     received: "7月8日 09:42",
     phone: "090-1234-5678",
   },
+  {
+    id: "RSV-1049",
+    customer: "鈴木 由佳",
+    email: "yuka@example.jp",
+    date: "2026-07-30",
+    startTime: "18:00",
+    people: 2,
+    menuItems: ["季節のコース"],
+    totalAmount: 6600,
+    store: null,
+    storeAssignments: [],
+    status: reservationStatusCodes.temporaryConfirmed,
+    policyAgreement: { kind: "temporary", acceptedAt: "2026-07-01T00:00:00.000Z" },
+    confirmationContactedAt: null,
+    received: "7月9日 12:00",
+    phone: "070-3456-7890",
+  },
 ];
 
 test("important reservation workflows", async (t) => {
@@ -68,7 +85,7 @@ test("important reservation workflows", async (t) => {
       status: reservationStatusCodes.confirmedRequested,
     });
 
-    assert.equal(reservation.id, "RSV-1049");
+    assert.equal(reservation.id, "RSV-1050");
     assert.equal(reservation.startTime, "10:00");
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
     assert.equal(reservation.totalAmount, 9000);
@@ -91,6 +108,14 @@ test("important reservation workflows", async (t) => {
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmed, reservationStatusCodes.cancellationRequested), true);
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.waitingForVisit, reservationStatusCodes.cancellationRequested), true);
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.visited, reservationStatusCodes.cancellationRequested), false);
+  });
+
+  await t.test("allows customers to request confirmed reservation change from temporary reservation", async () => {
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.temporaryConfirmed, reservationStatusCodes.confirmedRequested), true);
+    assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmedRequested, reservationStatusCodes.temporaryConfirmed), true);
+
+    const reservation = await repository.updateReservationStatus("RSV-1049", reservationStatusCodes.confirmedRequested);
+    assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
   });
 
   await t.test("creates and approves reservation change requests", async () => {

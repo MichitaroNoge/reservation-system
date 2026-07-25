@@ -82,6 +82,14 @@ export function validateCancellationRequestInput(body: Record<string, unknown>) 
   return { reservationId, email, phone };
 }
 
+export function validateConfirmedReservationRequestInput(body: Record<string, unknown>) {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  return { reservationId, email, phone };
+}
+
 export function validateReservationChangeRequestInput(body: Record<string, unknown>): CreateReservationChangeRequestInput {
   const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
   const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");

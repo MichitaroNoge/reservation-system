@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, readJsonObject, validateCancellationRequestInput } from "@/lib/api-validation";
+import { findOwnedReservationByAuthenticatedCustomer } from "@/lib/customer-reservation-access";
 import { assertReservationStatusTransition, reservationStatusCodes } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
 
@@ -7,15 +8,22 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const input = validateCancellationRequestInput(await readJsonObject(request));
+    const body = await readJsonObject(request);
     const repository = getReservationRepository();
+    const reservationIdFromBody = typeof body.reservationId === "string" ? body.reservationId : "";
+    const ownedReservation = reservationIdFromBody
+      ? await findOwnedReservationByAuthenticatedCustomer(request, repository, reservationIdFromBody)
+      : null;
+    const input = validateCancellationRequestInput(body, { allowMissingContact: Boolean(ownedReservation) });
     const reservationId = normalizeReservationId(input.reservationId);
-    const current = (await repository.listReservations()).find((reservation) => normalizeReservationId(reservation.id) === reservationId);
+    const current = ownedReservation ?? (await repository.listReservations()).find((reservation) => normalizeReservationId(reservation.id) === reservationId);
     if (!current) return NextResponse.json({ error: "予約が見つかりません。予約IDを確認してください。" }, { status: 404 });
 
-    const emailMatches = Boolean(input.email && current.email?.toLowerCase() === input.email.toLowerCase());
-    const phoneMatches = Boolean(input.phone && normalizePhone(current.phone) === normalizePhone(input.phone));
-    if (!emailMatches && !phoneMatches) return NextResponse.json({ error: "予約時のメールアドレスまたは電話番号と一致しません。" }, { status: 400 });
+    if (!ownedReservation) {
+      const emailMatches = Boolean(input.email && current.email?.toLowerCase() === input.email.toLowerCase());
+      const phoneMatches = Boolean(input.phone && normalizePhone(current.phone) === normalizePhone(input.phone));
+      if (!emailMatches && !phoneMatches) return NextResponse.json({ error: "予約時のメールアドレスまたは電話番号と一致しません。" }, { status: 400 });
+    }
 
     try {
       assertReservationStatusTransition(current.status, reservationStatusCodes.cancellationRequested);

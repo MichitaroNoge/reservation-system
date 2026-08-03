@@ -173,20 +173,20 @@ export default function Home() {
     setReservations(rs => [reservation, ...rs.filter(r => r.id !== reservation.id)]);
     return reservation;
   };
-  const requestCancellation = async (input: { reservationId: string; email?: string; phone?: string }) => {
-    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/cancellation-request", { method: "POST", body: JSON.stringify(input) });
+  const requestCancellation = async (input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string }) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/cancellation-request", { method: "POST", body: JSON.stringify(input), authToken: options?.authToken });
     setReservations(rs => rs.map(r => r.id === reservation.id ? reservation : r));
     setSelected(s => s?.id === reservation.id ? reservation : s);
     return reservation;
   };
-  const requestConfirmedReservationChange = async (input: { reservationId: string; email?: string; phone?: string }) => {
-    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/confirmed-request", { method: "POST", body: JSON.stringify(input) });
+  const requestConfirmedReservationChange = async (input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string }) => {
+    const { reservation } = await requestJson<{ reservation: Reservation }>("/api/reservations/confirmed-request", { method: "POST", body: JSON.stringify(input), authToken: options?.authToken });
     setReservations(rs => rs.map(r => r.id === reservation.id ? reservation : r));
     setSelected(s => s?.id === reservation.id ? reservation : s);
     return reservation;
   };
-  const requestReservationChange = async (input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }) => {
-    const { request } = await requestJson<{ request: ReservationChangeRequest }>("/api/reservations/change-requests", { method: "POST", body: JSON.stringify(input) });
+  const requestReservationChange = async (input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string }) => {
+    const { request } = await requestJson<{ request: ReservationChangeRequest }>("/api/reservations/change-requests", { method: "POST", body: JSON.stringify(input), authToken: options?.authToken });
     setReservationChangeRequests(requests => [request, ...requests.filter(item => item.id !== request.id)]);
     return request;
   };
@@ -678,7 +678,7 @@ function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog }:
   </div></aside></>;
 }
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
+function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
   const [portalMode, setPortalMode] = useState<"home" | "account" | "reservation" | "confirmedChange" | "change" | "cancellation">("home");
   const [bookingMode, setBookingMode] = useState<"login" | "register" | "guest">("guest");
@@ -699,9 +699,10 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
   const [accountReservationError, setAccountReservationError] = useState("");
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const canSubmit = Boolean(form.name && form.email && form.phone && form.date && form.startTime && form.people);
-  const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && (cancellationForm.email.trim() || cancellationForm.phone.trim())) && !isSubmittingCancellation;
-  const canSubmitConfirmedChange = Boolean(confirmedChangeForm.reservationId.trim() && (confirmedChangeForm.email.trim() || confirmedChangeForm.phone.trim())) && !isSubmittingConfirmedChange;
-  const canSubmitChangeRequest = Boolean(changeRequestForm.reservationId.trim() && (changeRequestForm.email.trim() || changeRequestForm.phone.trim()) && changeRequestForm.requestedDate && changeRequestForm.requestedStartTime && changeRequestForm.requestedPeople) && !isSubmittingChangeRequest;
+  const canIdentifyReservation = (email: string, phone: string) => Boolean(customerUser || email.trim() || phone.trim());
+  const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && canIdentifyReservation(cancellationForm.email, cancellationForm.phone)) && !isSubmittingCancellation;
+  const canSubmitConfirmedChange = Boolean(confirmedChangeForm.reservationId.trim() && canIdentifyReservation(confirmedChangeForm.email, confirmedChangeForm.phone)) && !isSubmittingConfirmedChange;
+  const canSubmitChangeRequest = Boolean(changeRequestForm.reservationId.trim() && canIdentifyReservation(changeRequestForm.email, changeRequestForm.phone) && changeRequestForm.requestedDate && changeRequestForm.requestedStartTime && changeRequestForm.requestedPeople) && !isSubmittingChangeRequest;
 
   useEffect(() => {
     if (!customerUser) return;
@@ -798,11 +799,12 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
     if (!canSubmitCancellation) return;
     setIsSubmittingCancellation(true);
     try {
+      const authToken = customerUser ? await customerUser.getIdToken() : undefined;
       const reservation = await onSubmitCancellation({
         reservationId: cancellationForm.reservationId.trim(),
         email: cancellationForm.email.trim() || undefined,
         phone: cancellationForm.phone.trim() || undefined,
-      });
+      }, { authToken });
       notify("キャンセル申請を受け付けました（" + reservation.id + "）");
       setCancellationSubmitted(true);
     } catch (error) {
@@ -815,11 +817,12 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
     if (!canSubmitConfirmedChange) return;
     setIsSubmittingConfirmedChange(true);
     try {
+      const authToken = customerUser ? await customerUser.getIdToken() : undefined;
       const reservation = await onSubmitConfirmedReservationChange({
         reservationId: confirmedChangeForm.reservationId.trim(),
         email: confirmedChangeForm.email.trim() || undefined,
         phone: confirmedChangeForm.phone.trim() || undefined,
-      });
+      }, { authToken });
       notify("本予約への変更申請を受け付けました（" + reservation.id + "）");
       setConfirmedChangeSubmitted(true);
     } catch (error) {
@@ -832,6 +835,7 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
     if (!canSubmitChangeRequest) return;
     setIsSubmittingChangeRequest(true);
     try {
+      const authToken = customerUser ? await customerUser.getIdToken() : undefined;
       const request = await onSubmitChangeRequest({
         reservationId: changeRequestForm.reservationId.trim(),
         email: changeRequestForm.email.trim() || undefined,
@@ -841,7 +845,7 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
         requestedPeople: changeRequestForm.requestedPeople,
         requestedMenuItems: changeRequestForm.requestedMenuItems,
         reason: changeRequestForm.reason.trim() || undefined,
-      });
+      }, { authToken });
       notify("予約内容変更申請を受け付けました（" + request.reservationId + "）");
       setChangeRequestSubmitted(true);
     } catch (error) {

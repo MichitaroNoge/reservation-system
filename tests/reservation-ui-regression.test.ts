@@ -24,3 +24,17 @@ test("confirmed reservation request screen uses explicit request type", async ()
   assert.match(helperSource, /reservation\.requestType\s*===\s*"confirmed_from_temporary"/);
   assert.doesNotMatch(helperSource, /policyAgreement\?\.kind/);
 });
+
+test("customer request APIs use authenticated reservation ownership when available", async () => {
+  const routePaths = [
+    ["app", "api", "reservations", "confirmed-request", "route.ts"],
+    ["app", "api", "reservations", "cancellation-request", "route.ts"],
+    ["app", "api", "reservations", "change-requests", "route.ts"],
+  ];
+
+  for (const routePath of routePaths) {
+    const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");
+    assert.match(routeSource, /findOwnedReservationByAuthenticatedCustomer/);
+    assert.match(routeSource, /allowMissingContact:\s*Boolean\(ownedReservation\)/);
+  }
+});

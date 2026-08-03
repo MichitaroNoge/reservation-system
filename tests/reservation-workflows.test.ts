@@ -114,8 +114,19 @@ test("important reservation workflows", async (t) => {
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.temporaryConfirmed, reservationStatusCodes.confirmedRequested), true);
     assert.equal(canTransitionReservationStatus(reservationStatusCodes.confirmedRequested, reservationStatusCodes.temporaryConfirmed), true);
 
-    const reservation = await repository.updateReservationStatus("RSV-1049", reservationStatusCodes.confirmedRequested);
+    const reservation = await repository.updateReservationStatus("RSV-1049", reservationStatusCodes.confirmedRequested, {
+      requestType: "confirmed_from_temporary",
+    });
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
+    assert.equal(reservation.requestType, "confirmed_from_temporary");
+
+    const rejected = await repository.updateReservationStatus("RSV-1049", reservationStatusCodes.temporaryConfirmed);
+    assert.equal(rejected.status, reservationStatusCodes.temporaryConfirmed);
+    assert.equal(rejected.requestType, null);
+
+    const requestedAgain = await repository.updateReservationStatus("RSV-1049", reservationStatusCodes.confirmedRequested);
+    assert.equal(requestedAgain.status, reservationStatusCodes.confirmedRequested);
+    assert.equal(requestedAgain.requestType, "confirmed_from_temporary");
   });
 
   await t.test("does not expose account reservations by email-only match", async () => {

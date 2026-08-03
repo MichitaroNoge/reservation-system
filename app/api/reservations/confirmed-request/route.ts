@@ -23,7 +23,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "この予約は現在のステータスでは本予約への変更申請ができません。" }, { status: 400 });
     }
 
-    const reservation = await repository.updateReservationStatus(current.id, reservationStatusCodes.confirmedRequested);
+    const reservation = await repository.updateReservationStatus(current.id, reservationStatusCodes.confirmedRequested, {
+      requestType: "confirmed_from_temporary",
+    });
     return NextResponse.json({ reservation });
   } catch (error) {
     return apiErrorResponse(error);

@@ -54,6 +54,7 @@ type Reservation @table {
   usageDate: Date!
   usageTime: String! @col(dataType: "varchar(5)")
   status: ReservationStatus!
+  requestType: String @col(dataType: "varchar(50)")
   expectedPeople: Int!
   policyAgreementKind: String @col(dataType: "varchar(20)")
   policyAgreementAcceptedAt: Timestamp

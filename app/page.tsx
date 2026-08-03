@@ -24,7 +24,7 @@ const sortByDisplayOrderThenName = <T extends { displayOrder?: number; name: str
   [...items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.name.localeCompare(b.name, "ja-JP", { numeric: true }));
 
 const isConfirmedReservationChangeRequest = (reservation: Reservation) =>
-  reservation.status === STATUS.confirmedRequested && reservation.policyAgreement?.kind === "temporary";
+  reservation.status === STATUS.confirmedRequested && reservation.requestType === "confirmed_from_temporary";
 
 export default function Home() {
   const [role, setRole] = useState<"admin" | "customer">("admin");
@@ -569,7 +569,7 @@ function ConfirmedReservationRequestPage({ reservations, onSelect, updateStatus 
 
 function ReservationApprovalPage({ reservations, onSelect, updateStatus }: { reservations: Reservation[]; onSelect: (reservation: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void }) {
   const approveStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryConfirmed : reservation.status === STATUS.confirmedRequested ? STATUS.confirmed : reservation.status === STATUS.cancellationRequested ? STATUS.cancelled : null;
-  const rejectStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryRejected : reservation.status === STATUS.confirmedRequested ? reservation.policyAgreement?.kind === "temporary" ? STATUS.temporaryConfirmed : STATUS.confirmedRejected : null;
+  const rejectStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryRejected : reservation.status === STATUS.confirmedRequested ? isConfirmedReservationChangeRequest(reservation) ? STATUS.temporaryConfirmed : STATUS.confirmedRejected : null;
   const approveLabel = (reservation: Reservation) => reservation.status === STATUS.cancellationRequested ? "キャンセル確定" : "承認";
   return <section className="panel management-panel change-request-screen"><div className="change-request-head"><h3>未対応の承認待ち</h3><span>{reservations.length}件</span></div>{reservations.length > 0 ? <div className="table-wrap"><table className="large-table change-request-table"><thead><tr><th>予約ID</th><th>ステータス</th><th>お客様</th><th>利用日時・人数</th><th>メニュー</th><th>担当店舗</th><th/></tr></thead><tbody>{reservations.map(reservation => {
     const nextApprovalStatus = approveStatus(reservation);

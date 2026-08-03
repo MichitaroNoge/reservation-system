@@ -10,6 +10,12 @@ export type ReservationStatus =
   | "cancellation_requested"
   | "cancelled";
 
+export type ReservationRequestType = "confirmed_from_temporary";
+
+export function normalizeReservationRequestType(value: unknown): ReservationRequestType | null {
+  return value === "confirmed_from_temporary" ? value : null;
+}
+
 export const reservationStatuses = [
   "temporary_requested",
   "temporary_confirmed",
@@ -184,6 +190,7 @@ export type Reservation = {
   store: string | null;
   storeAssignments?: StoreAssignment[];
   status: ReservationStatus;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
   received: string;
@@ -278,6 +285,7 @@ export type CreateReservationInput = {
   menu?: string;
   menuItems?: string[];
   status?: ReservationStatus;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   customerFirebaseUid?: string;
   customerAccountMode?: "account" | "guest" | "admin";

@@ -116,6 +116,7 @@ export interface CreateReservationVariables {
   usageTime: string;
   expectedPeople: number;
   status: ReservationStatus;
+  requestType?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -256,6 +257,7 @@ export interface GetReservationByCodeData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -305,6 +307,7 @@ export interface GetReservationData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -522,6 +525,7 @@ export interface ListReservationsData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -701,6 +705,7 @@ export interface UpdateReservationStatusData {
 export interface UpdateReservationStatusVariables {
   id: UUIDString;
   status: ReservationStatus;
+  requestType?: string | null;
 }
 
 export interface UpdateReservationVariables {

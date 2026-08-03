@@ -1,5 +1,5 @@
 import type { User } from "firebase/auth";
-import type { ReservationChangeRequest as DomainReservationChangeRequest, ReservationStatus } from "@/lib/domain";
+import type { ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
 
 export type Status = ReservationStatus;
 export type StoreAssignment = { store: string; people: number };
@@ -17,6 +17,7 @@ export type Reservation = {
   store: string | null;
   storeAssignments?: StoreAssignment[];
   status: Status;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
   received: string;

@@ -2,6 +2,7 @@ import type { CreateReservationChangeRequestInput, CreateReservationInput, Custo
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
+  listReservationsForReservationAccount(firebaseUid: string): Promise<Reservation[]>;
   createReservation(input: CreateReservationInput): Promise<Reservation>;
   updateReservation(id: string, input: UpdateReservationInput): Promise<Reservation>;
   updateReservationStatus(id: string, status: ReservationStatus): Promise<Reservation>;

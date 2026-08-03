@@ -133,6 +133,10 @@ export class FileReservationRepository implements ReservationRepository {
     return database.reservations;
   }
 
+  async listReservationsForReservationAccount(_firebaseUid: string) {
+    return [];
+  }
+
   async createReservation(input: CreateReservationInput) {
     const database = await this.readDatabase();
     const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];

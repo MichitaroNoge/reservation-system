@@ -110,6 +110,15 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return data.reservations.map(toReservation);
   }
 
+  async listReservationsForReservationAccount(firebaseUid: string) {
+    const customer = await this.findDataConnectCustomerByFirebaseUid(firebaseUid);
+    if (!customer) return [];
+    const { data } = await listReservations(this.connection());
+    return data.reservations
+      .filter((reservation) => reservation.customer.id === customer.id)
+      .map(toReservation);
+  }
+
   async createReservation(input: CreateReservationInput) {
     const menuItems = input.menuItems ?? (input.menu ? [input.menu] : []);
     const reservationCode = await this.nextReservationCode();

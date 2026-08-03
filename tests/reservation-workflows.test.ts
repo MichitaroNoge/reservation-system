@@ -118,6 +118,12 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
   });
 
+  await t.test("does not expose account reservations by email-only match", async () => {
+    const reservations = await repository.listReservationsForReservationAccount("firebase-uid-without-link");
+
+    assert.deepEqual(reservations, []);
+  });
+
   await t.test("creates and approves reservation change requests", async () => {
     const request = await repository.createReservationChangeRequest({
       reservationId: "RSV-1048",

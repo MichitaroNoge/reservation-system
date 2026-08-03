@@ -653,7 +653,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
         {r.status === STATUS.temporaryRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.temporaryConfirmed)}><Icon name="check"/>仮予約を承認する</button>}
         {r.status === STATUS.temporaryRequested && <button className="full-action danger" onClick={() => updateStatus(r.id, STATUS.temporaryRejected)}><Icon name="close"/>仮予約を却下する</button>}
         {r.status === STATUS.confirmedRequested && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.confirmed)}><Icon name="check"/>本予約を承認する</button>}
-        {r.status === STATUS.confirmedRequested && <button className="full-action danger" onClick={() => updateStatus(r.id, STATUS.confirmedRejected)}><Icon name="close"/>本予約を却下する</button>}
+        {r.status === STATUS.confirmedRequested && <button className="full-action danger" onClick={() => updateStatus(r.id, isConfirmedReservationChangeRequest(r) ? STATUS.temporaryConfirmed : STATUS.confirmedRejected)}><Icon name="close"/>{isConfirmedReservationChangeRequest(r) ? "本予約への変更申請を却下する" : "本予約を却下する"}</button>}
         {r.status === STATUS.waitingForVisit && <button className="full-action" onClick={() => updateStatus(r.id, STATUS.visited)}><Icon name="check"/>来店済みにする</button>}
         {r.status === STATUS.cancellationRequested && <button className="full-action danger" onClick={() => { updateStatus(r.id, STATUS.cancelled); onClose(); }}>キャンセルを確定する</button>}
         {nextActionComments.length > 0 && <div className="next-action-notes">{nextActionComments.map(comment => <div className="next-action-note" key={comment.title}><strong>{comment.title}</strong><span>{comment.text}</span></div>)}</div>}

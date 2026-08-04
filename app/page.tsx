@@ -14,7 +14,7 @@ import { Icon, InfoMetric, Stat, Task } from "./reservations/components/common";
 import { CustomerManagement } from "./reservations/components/customer-management";
 import { MenuManagement } from "./reservations/components/menu-management";
 import { StoreManagement } from "./reservations/components/store-management";
-import { DEFAULT_START_TIME, STATUS, VISIT_MENU_NAME, approvalStatuses, defaultMenus, defaultStores, initialReservations, statusClass, statusOptions } from "./reservations/constants";
+import { DEFAULT_START_TIME, STATUS, VISIT_MENU_NAME, approvalStatuses, cancellationApprovalStatuses, defaultMenus, defaultStores, initialReservations, reservationApprovalStatuses, statusClass, statusOptions } from "./reservations/constants";
 import { assignmentLabel, bookingFormDateTimeLabel, buildCustomers, dateHeadingLabel, daysUntilVisit, isConfirmationContactDue, isTemporaryReservationExpired, menuSelectionLabel, monthIso, policyAgreementLabel, reservationDateTimeLabel, reservationDisplayLabel, reservationMenuLabel, reservationStartTime, selectedMenuTotal, statusLabel, todayIso } from "./reservations/formatters";
 import { useAdminSession } from "./reservations/hooks/use-admin-session";
 import { useCustomerSession } from "./reservations/hooks/use-customer-session";
@@ -87,7 +87,8 @@ export default function Home() {
   const reservationCustomers = useMemo(() => buildCustomers(reservations), [reservations]);
   const customers = customerList.length ? customerList : reservationCustomers;
   const taskCounts = useMemo(() => ({
-    approvals: reservations.filter(reservation => approvalStatuses.includes(reservation.status) && !isConfirmedReservationChangeRequest(reservation)).length,
+    reservationApprovals: reservations.filter(reservation => reservationApprovalStatuses.includes(reservation.status) && !isConfirmedReservationChangeRequest(reservation)).length,
+    cancellationApprovals: reservations.filter(reservation => cancellationApprovalStatuses.includes(reservation.status)).length,
     confirmedReservationRequests: reservations.filter(isConfirmedReservationChangeRequest).length,
     temporaryExpired: reservations.filter(isTemporaryReservationExpired).length,
     storeUnassigned: reservations.filter(reservation => isConfirmedReservation(reservation) && !reservationAssignments(reservation).length).length,
@@ -398,11 +399,11 @@ export default function Home() {
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>R</span><strong>Reserve</strong><small>Operations</small></div>
-      <nav><p>メニュー</p><button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><Icon name="grid"/>ダッシュボード</button><button className={view === "reservations" ? "active" : ""} onClick={() => openReservations("すべて")}><Icon name="calendar"/>予約一覧</button><button className={view === "reservationApprovals" ? "active" : ""} onClick={() => setView("reservationApprovals")}><Icon name="check"/>承認待ち{taskCounts.approvals > 0 && <i>{taskCounts.approvals}</i>}</button><button className={view === "confirmedReservationRequests" ? "active" : ""} onClick={() => setView("confirmedReservationRequests")}><Icon name="check"/>本予約申請{taskCounts.confirmedReservationRequests > 0 && <i>{taskCounts.confirmedReservationRequests}</i>}</button><button className={view === "reservationChangeRequests" ? "active" : ""} onClick={() => setView("reservationChangeRequests")}><Icon name="check"/>変更申請{taskCounts.changeRequests > 0 && <i>{taskCounts.changeRequests}</i>}</button><button className={view === "confirmationContacts" ? "active" : ""} onClick={() => setView("confirmationContacts")}><Icon name="check"/>確認連絡{taskCounts.preContactDue > 0 && <i>{taskCounts.preContactDue}</i>}</button><button className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><Icon name="users"/>顧客管理</button><button className={view === "stores" ? "active" : ""} onClick={() => setView("stores")}><Icon name="store"/>店舗管理</button><button className={view === "menus" ? "active" : ""} onClick={() => setView("menus")}><Icon name="menu"/>メニュー管理</button><button className={view === "billing" ? "active" : ""} onClick={() => setView("billing")}><Icon name="chart"/>利用実績・請求</button></nav>
+      <nav><p>メニュー</p><button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><Icon name="grid"/>ダッシュボード</button><button className={view === "reservations" ? "active" : ""} onClick={() => openReservations("すべて")}><Icon name="calendar"/>予約一覧</button><button className={view === "reservationApprovals" ? "active" : ""} onClick={() => setView("reservationApprovals")}><Icon name="check"/>予約承認{taskCounts.reservationApprovals > 0 && <i>{taskCounts.reservationApprovals}</i>}</button><button className={view === "cancellationApprovals" ? "active" : ""} onClick={() => setView("cancellationApprovals")}><Icon name="check"/>キャンセル承認{taskCounts.cancellationApprovals > 0 && <i>{taskCounts.cancellationApprovals}</i>}</button><button className={view === "confirmedReservationRequests" ? "active" : ""} onClick={() => setView("confirmedReservationRequests")}><Icon name="check"/>本予約申請{taskCounts.confirmedReservationRequests > 0 && <i>{taskCounts.confirmedReservationRequests}</i>}</button><button className={view === "reservationChangeRequests" ? "active" : ""} onClick={() => setView("reservationChangeRequests")}><Icon name="check"/>変更申請{taskCounts.changeRequests > 0 && <i>{taskCounts.changeRequests}</i>}</button><button className={view === "confirmationContacts" ? "active" : ""} onClick={() => setView("confirmationContacts")}><Icon name="check"/>確認連絡{taskCounts.preContactDue > 0 && <i>{taskCounts.preContactDue}</i>}</button><button className={view === "customers" ? "active" : ""} onClick={() => setView("customers")}><Icon name="users"/>顧客管理</button><button className={view === "stores" ? "active" : ""} onClick={() => setView("stores")}><Icon name="store"/>店舗管理</button><button className={view === "menus" ? "active" : ""} onClick={() => setView("menus")}><Icon name="menu"/>メニュー管理</button><button className={view === "billing" ? "active" : ""} onClick={() => setView("billing")}><Icon name="chart"/>利用実績・請求</button></nav>
       <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"承認待ち",confirmedReservationRequests:"本予約への変更申請",reservationChangeRequests:"変更申請",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
+      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約への変更申請",reservationChangeRequests:"変更申請",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
       {view === "dashboard" ? <main className="dashboard">
         <section className="welcome"><div><p>おはようございます</p><h2>今日も予約状況を確認しましょう</h2></div><div className="pulse"><span/>システム正常稼働中</div></section>
         <section className="dashboard-block dashboard-info-block"><div className="dashboard-block-head"><h3>情報</h3><p>予約状況の概要と本日の予定を確認できます</p></div><div className="info-dashboard-grid"><div className="info-summary-list">
@@ -410,7 +411,8 @@ export default function Home() {
           <InfoMetric label="今月の予約" value={String(dashboardCounts.month)} color="green" />
         </div><div className="today-reservation-list"><div className="today-reservation-head"><div><h3>本日の予約</h3><p>{dateHeadingLabel(todayIso())}</p></div><button onClick={() => openReservations("すべて", todayIso())}>予約一覧で見る <Icon name="arrow"/></button></div>{todayReservations.length ? <div className="timeline">{todayReservations.map((reservation, index)=><Fragment key={reservation.id}><span>{reservationStartTime(reservation)}</span><i className={["blue","green","violet"][index % 3]}/><div><strong>{reservation.customer} 様</strong><small>{assignmentLabel(reservation) || "店舗未割当"}・{reservationMenuLabel(reservation)}</small></div></Fragment>)}</div> : <div className="empty-panel"><p>本日の予約はありません。</p></div>}</div></div></section>
         <section className="dashboard-block"><div className="dashboard-block-head"><h3>タスク</h3><p>対応が必要な予約業務です</p></div><div className="task-card-grid">
-          <Task color="amber" title="予約・キャンセルの承認" count={taskCounts.approvals} text="仮予約・本予約・キャンセル申請を確認しましょう" onClick={() => setView("reservationApprovals")} />
+          <Task color="amber" title="予約の承認" count={taskCounts.reservationApprovals} text="仮予約・本予約の申請を確認しましょう" onClick={() => setView("reservationApprovals")} />
+          <Task color="red" title="キャンセルの承認" count={taskCounts.cancellationApprovals} text="キャンセル申請を確認しましょう" onClick={() => setView("cancellationApprovals")} />
           <Task color="amber" title="本予約への変更申請" count={taskCounts.confirmedReservationRequests} text="仮予約から本予約への変更申請を確認しましょう" onClick={() => setView("confirmedReservationRequests")} />
           <Task color="violet" title="予約変更申請の承認" count={taskCounts.changeRequests} text="予約内容の変更申請を確認しましょう" onClick={() => setView("reservationChangeRequests")} />
           <Task color="amber" title="本予約の催促" count={taskCounts.temporaryExpired} text="期限切れの仮予約へ本予約申請を依頼しましょう" onClick={() => openReservations("仮予約確定（期限切れ）")} />
@@ -477,8 +479,12 @@ function ManagementPage({ view, reservations, reservationChangeRequests, confirm
     () => reservations.filter(isConfirmedReservationChangeRequest),
     [reservations],
   );
-  const pendingApprovalReservations = useMemo(
-    () => reservations.filter((reservation) => approvalStatuses.includes(reservation.status) && !isConfirmedReservationChangeRequest(reservation)),
+  const pendingReservationApprovalReservations = useMemo(
+    () => reservations.filter((reservation) => reservationApprovalStatuses.includes(reservation.status) && !isConfirmedReservationChangeRequest(reservation)),
+    [reservations],
+  );
+  const pendingCancellationApprovalReservations = useMemo(
+    () => reservations.filter((reservation) => cancellationApprovalStatuses.includes(reservation.status)),
     [reservations],
   );
   const toggleReservationSort = (key: ReservationSortKey) => {
@@ -490,6 +496,7 @@ function ManagementPage({ view, reservations, reservationChangeRequests, confirm
   const pageDescriptions: Record<Exclude<View, "dashboard">, string> = {
     reservations: "",
     reservationApprovals: "",
+    cancellationApprovals: "",
     confirmedReservationRequests: "",
     reservationChangeRequests: "",
     confirmationContacts: "",
@@ -499,9 +506,10 @@ function ManagementPage({ view, reservations, reservationChangeRequests, confirm
     billing: "来店実績、売上、請求書の発行状況を管理します。",
   };
   return <main className="management">
-    {view !== "reservations" && view !== "reservationApprovals" && view !== "confirmedReservationRequests" && view !== "reservationChangeRequests" && view !== "confirmationContacts" && view !== "customers" && view !== "stores" && view !== "menus" && <section className="page-title compact"><span>{pageDescriptions[view]}</span><button onClick={() => notify(view === "billing" ? "請求データをCSV出力しました" : "新規登録画面を準備しました")}><Icon name={view === "billing" ? "chart" : "plus"}/>{view === "billing" ? "CSV出力" : "新規登録"}</button></section>}
+    {view !== "reservations" && view !== "reservationApprovals" && view !== "cancellationApprovals" && view !== "confirmedReservationRequests" && view !== "reservationChangeRequests" && view !== "confirmationContacts" && view !== "customers" && view !== "stores" && view !== "menus" && <section className="page-title compact"><span>{pageDescriptions[view]}</span><button onClick={() => notify(view === "billing" ? "請求データをCSV出力しました" : "新規登録画面を準備しました")}><Icon name={view === "billing" ? "chart" : "plus"}/>{view === "billing" ? "CSV出力" : "新規登録"}</button></section>}
     {view === "confirmationContacts" && <ConfirmationContactPage reservations={confirmationContactTargets} windowDays={confirmationContactWindowDays} setWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={onBulkConfirmationContact} onSelect={onSelect} />}
-    {view === "reservationApprovals" && <ReservationApprovalPage reservations={pendingApprovalReservations} onSelect={onSelect} updateStatus={updateStatus} />}
+    {view === "reservationApprovals" && <ReservationApprovalPage reservations={pendingReservationApprovalReservations} onSelect={onSelect} updateStatus={updateStatus} />}
+    {view === "cancellationApprovals" && <CancellationApprovalPage reservations={pendingCancellationApprovalReservations} onSelect={onSelect} updateStatus={updateStatus} />}
     {view === "confirmedReservationRequests" && <ConfirmedReservationRequestPage reservations={pendingConfirmedReservationRequests} onSelect={onSelect} updateStatus={updateStatus} />}
     {view === "reservationChangeRequests" && <ReservationChangeRequestPage requests={pendingChangeRequests} onApproveChangeRequest={onApproveChangeRequest} onRejectChangeRequest={onRejectChangeRequest} />}
     {view === "reservations" && <section className="panel management-panel">
@@ -633,14 +641,17 @@ function ConfirmedReservationRequestPage({ reservations, onSelect, updateStatus 
 }
 
 function ReservationApprovalPage({ reservations, onSelect, updateStatus }: { reservations: Reservation[]; onSelect: (reservation: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void }) {
-  const approveStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryConfirmed : reservation.status === STATUS.confirmedRequested ? STATUS.confirmed : reservation.status === STATUS.cancellationRequested ? STATUS.cancelled : null;
+  const approveStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryConfirmed : reservation.status === STATUS.confirmedRequested ? STATUS.confirmed : null;
   const rejectStatus = (reservation: Reservation): Status | null => reservation.status === STATUS.temporaryRequested ? STATUS.temporaryRejected : reservation.status === STATUS.confirmedRequested ? isConfirmedReservationChangeRequest(reservation) ? STATUS.temporaryConfirmed : STATUS.confirmedRejected : null;
-  const approveLabel = (reservation: Reservation) => reservation.status === STATUS.cancellationRequested ? "キャンセル確定" : "承認";
-  return <section className="panel management-panel change-request-screen"><div className="change-request-head"><h3>未対応の承認待ち</h3><span>{reservations.length}件</span></div>{reservations.length > 0 ? <div className="table-wrap"><table className="large-table change-request-table"><thead><tr><th>予約ID</th><th>ステータス</th><th>お客様</th><th>利用日時・人数</th><th>メニュー</th><th>担当店舗</th><th/></tr></thead><tbody>{reservations.map(reservation => {
+  return <section className="panel management-panel change-request-screen"><div className="change-request-head"><h3>未対応の予約承認</h3><span>{reservations.length}件</span></div>{reservations.length > 0 ? <div className="table-wrap"><table className="large-table change-request-table"><thead><tr><th>予約ID</th><th>ステータス</th><th>お客様</th><th>利用日時・人数</th><th>メニュー</th><th>担当店舗</th><th/></tr></thead><tbody>{reservations.map(reservation => {
     const nextApprovalStatus = approveStatus(reservation);
     const nextRejectStatus = rejectStatus(reservation);
-    return <tr key={reservation.id}><td onClick={() => onSelect(reservation)}><strong>{reservation.id}</strong><small>{reservation.received}</small></td><td><span className={"badge " + statusClass[reservation.status]}><i/>{reservationDisplayLabel(reservation)}</span></td><td><strong>{reservation.customer}</strong><small>{reservation.phone}</small></td><td><strong>{reservationDateTimeLabel(reservation)}</strong><small>{reservation.people}名</small></td><td>{reservationMenuLabel(reservation)}</td><td>{assignmentLabel(reservation) ? <strong>{assignmentLabel(reservation)}</strong> : <span className="unassigned">未割当</span>}</td><td><div className="row-actions compact">{nextRejectStatus && <button type="button" onClick={() => updateStatus(reservation.id, nextRejectStatus)}>却下</button>}{nextApprovalStatus && <button type="button" className="primary" onClick={() => updateStatus(reservation.id, nextApprovalStatus)}>{approveLabel(reservation)}</button>}</div></td></tr>;
-  })}</tbody></table></div> : <div className="empty-table compact">承認待ちの予約はありません。</div>}</section>;
+    return <tr key={reservation.id}><td onClick={() => onSelect(reservation)}><strong>{reservation.id}</strong><small>{reservation.received}</small></td><td><span className={"badge " + statusClass[reservation.status]}><i/>{reservationDisplayLabel(reservation)}</span></td><td><strong>{reservation.customer}</strong><small>{reservation.phone}</small></td><td><strong>{reservationDateTimeLabel(reservation)}</strong><small>{reservation.people}名</small></td><td>{reservationMenuLabel(reservation)}</td><td>{assignmentLabel(reservation) ? <strong>{assignmentLabel(reservation)}</strong> : <span className="unassigned">未割当</span>}</td><td><div className="row-actions compact">{nextRejectStatus && <button type="button" onClick={() => updateStatus(reservation.id, nextRejectStatus)}>却下</button>}{nextApprovalStatus && <button type="button" className="primary" onClick={() => updateStatus(reservation.id, nextApprovalStatus)}>承認</button>}</div></td></tr>;
+  })}</tbody></table></div> : <div className="empty-table compact">未対応の予約承認はありません。</div>}</section>;
+}
+
+function CancellationApprovalPage({ reservations, onSelect, updateStatus }: { reservations: Reservation[]; onSelect: (reservation: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void }) {
+  return <section className="panel management-panel change-request-screen"><div className="change-request-head"><h3>未対応のキャンセル承認</h3><span>{reservations.length}件</span></div>{reservations.length > 0 ? <div className="table-wrap"><table className="large-table change-request-table"><thead><tr><th>予約ID</th><th>ステータス</th><th>お客様</th><th>利用日時・人数</th><th>メニュー</th><th>担当店舗</th><th/></tr></thead><tbody>{reservations.map(reservation => <tr key={reservation.id}><td onClick={() => onSelect(reservation)}><strong>{reservation.id}</strong><small>{reservation.received}</small></td><td><span className={"badge " + statusClass[reservation.status]}><i/>{reservationDisplayLabel(reservation)}</span></td><td><strong>{reservation.customer}</strong><small>{reservation.phone}</small></td><td><strong>{reservationDateTimeLabel(reservation)}</strong><small>{reservation.people}名</small></td><td>{reservationMenuLabel(reservation)}</td><td>{assignmentLabel(reservation) ? <strong>{assignmentLabel(reservation)}</strong> : <span className="unassigned">未割当</span>}</td><td><div className="row-actions compact"><button type="button" className="primary" onClick={() => updateStatus(reservation.id, STATUS.cancelled)}>キャンセル確定</button></div></td></tr>)}</tbody></table></div> : <div className="empty-table compact">未対応のキャンセル承認はありません。</div>}</section>;
 }
 
 function MenuPicker({ menuCatalog, selected, onChange }: { menuCatalog: Menu[]; selected: string[]; onChange: (items: string[]) => void }) {

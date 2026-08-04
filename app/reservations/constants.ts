@@ -41,4 +41,6 @@ export const statusClass: Record<Status, string> = {
   cancelled: "red",
 };
 export const statusOptions: Status[] = [...reservationStatuses];
-export const approvalStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested, STATUS.cancellationRequested];
+export const reservationApprovalStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested];
+export const cancellationApprovalStatuses: readonly Status[] = [STATUS.cancellationRequested];
+export const approvalStatuses: readonly Status[] = [...reservationApprovalStatuses, ...cancellationApprovalStatuses];

@@ -38,3 +38,14 @@ test("customer request APIs use authenticated reservation ownership when availab
     assert.match(routeSource, /allowMissingContact:\s*Boolean\(ownedReservation\)/);
   }
 });
+
+test("reservation and cancellation approval screens stay separated", async () => {
+  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const typeSource = await readFile(path.join(process.cwd(), "app", "reservations", "types.ts"), "utf8");
+
+  assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
+  assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
+  assert.match(pageSource, /title="キャンセルの承認"[\s\S]*setView\("cancellationApprovals"\)/);
+  assert.match(pageSource, /function ReservationApprovalPage/);
+  assert.match(pageSource, /function CancellationApprovalPage/);
+});

@@ -11,7 +11,7 @@ test("reservation drawer rejects confirmed change requests back to temporary con
     /isConfirmedReservationChangeRequest\(r\)\s*\?\s*STATUS\.temporaryConfirmed\s*:\s*STATUS\.confirmedRejected/,
     "confirmed reservation change rejection in the drawer must return to temporary confirmation",
   );
-  assert.match(pageSource, /本予約への変更申請を却下する/);
+  assert.match(pageSource, /本予約変更を却下する/);
 });
 
 test("confirmed reservation request screen uses explicit request type", async () => {
@@ -46,6 +46,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
   assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
   assert.match(pageSource, /title="キャンセルの承認"[\s\S]*setView\("cancellationApprovals"\)/);
+  assert.match(pageSource, /title="本予約変更承認"[\s\S]*setView\("confirmedReservationRequests"\)/);
+  assert.match(pageSource, /title="予約変更承認"[\s\S]*setView\("reservationChangeRequests"\)/);
+  assert.match(pageSource, /未対応の本予約変更承認/);
+  assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /function ReservationApprovalPage/);
   assert.match(pageSource, /function CancellationApprovalPage/);
 });

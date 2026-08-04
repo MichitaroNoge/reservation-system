@@ -26,6 +26,9 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /startConfirmedChangeFromReservation/, "confirmed reservation change must be available from account reservations");
   assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
+  assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
+  assert.match(pageSource, /function CustomerRequestForms/, "customer request forms should stay split from CustomerPortal");
+  assert.match(pageSource, /function ReservationActionButtons/, "reservation action buttons should stay split from CustomerPortal");
   assert.match(pageSource, /onSubmitCancellation[\s\S]*\{ authToken \}/, "customer cancellation requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitConfirmedReservationChange[\s\S]*\{ authToken \}/, "confirmed reservation change requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitChangeRequest[\s\S]*\{ authToken \}/, "reservation change requests must send the Firebase token when logged in");

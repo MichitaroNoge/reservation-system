@@ -58,7 +58,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
   assert.match(commonSource, /count \? "has-count" : "no-count"/);
-  assert.match(styleSource, /\.task-card-grid\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(240px,1fr\)\)/);
+  assert.match(styleSource, /\.task-card-grid\{display:grid;grid-template-columns:repeat\(auto-fill,minmax\(240px,1fr\)\)/);
   assert.match(styleSource, /\.task-card-grid \.task small\{display:none\}/);
   assert.match(styleSource, /\.task-card-grid \.task\.no-count/);
   assert.match(pageSource, /function CancellationApprovalPage/);

@@ -61,6 +61,7 @@ import {
 } from "@reservation-system/dataconnect-admin";
 import {
   getAutomaticReservationStatus,
+  normalizeReservationRequestType,
   normalizeReservationStatus,
   reservationStatusCodes,
   toDataConnectReservationStatus,
@@ -110,6 +111,15 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return data.reservations.map(toReservation);
   }
 
+  async listReservationsForReservationAccount(firebaseUid: string) {
+    const customer = await this.findDataConnectCustomerByFirebaseUid(firebaseUid);
+    if (!customer) return [];
+    const { data } = await listReservations(this.connection());
+    return data.reservations
+      .filter((reservation) => reservation.customer.id === customer.id)
+      .map(toReservation);
+  }
+
   async createReservation(input: CreateReservationInput) {
     const menuItems = input.menuItems ?? (input.menu ? [input.menu] : []);
     const reservationCode = await this.nextReservationCode();
@@ -122,6 +132,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       usageTime: input.startTime ?? "10:00",
       expectedPeople: input.people,
       status,
+      requestType: input.requestType ?? null,
       policyAgreementKind: input.policyAgreement?.kind,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt,
     });
@@ -161,13 +172,21 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.getReservationWithInternalId(id);
   }
 
-  async updateReservationStatus(id: string, status: ReservationStatus) {
+  async updateReservationStatus(id: string, status: ReservationStatus, options?: { requestType?: Reservation["requestType"] }) {
     const current = await this.getReservationWithInternalId(id);
+    const nextRequestType = options && "requestType" in options
+      ? options.requestType ?? null
+      : current.status === reservationStatusCodes.temporaryConfirmed && status === reservationStatusCodes.confirmedRequested
+        ? "confirmed_from_temporary"
+        : status === reservationStatusCodes.confirmedRequested
+        ? current.requestType ?? null
+        : null;
     await updateReservationStatus(this.connection(), {
       id: current.dataConnectId,
       status: toSdkReservationStatus(status),
+      requestType: nextRequestType,
     });
-    return { ...current, status };
+    return this.getReservationWithInternalId(id);
   }
 
   async updateConfirmationContact(id: string, contactedAt: string | null) {
@@ -653,6 +672,7 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     store: storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null,
     storeAssignments,
     status: normalizeReservationStatus(reservation.status),
+    requestType: normalizeReservationRequestType(reservation.requestType),
     policyAgreement: reservation.policyAgreementKind && reservation.policyAgreementAcceptedAt
       ? { kind: reservation.policyAgreementKind === "temporary" ? "temporary" : "confirmed", acceptedAt: reservation.policyAgreementAcceptedAt }
       : undefined,

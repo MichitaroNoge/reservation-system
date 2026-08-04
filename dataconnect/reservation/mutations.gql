@@ -52,6 +52,7 @@ mutation CreateReservation(
   $usageTime: String!
   $expectedPeople: Int!
   $status: ReservationStatus!
+  $requestType: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
 )
@@ -63,6 +64,7 @@ mutation CreateReservation(
     usageTime: $usageTime
     expectedPeople: $expectedPeople
     status: $status
+    requestType: $requestType
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
   })
@@ -98,10 +100,11 @@ mutation UpdateReservation(
   })
 }
 
-mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!)
+mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!, $requestType: String)
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     status: $status
+    requestType: $requestType
     updatedAt_expr: "request.time"
   })
 }

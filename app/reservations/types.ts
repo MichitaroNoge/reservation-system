@@ -1,5 +1,5 @@
 import type { User } from "firebase/auth";
-import type { ReservationChangeRequest as DomainReservationChangeRequest, ReservationStatus } from "@/lib/domain";
+import type { ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
 
 export type Status = ReservationStatus;
 export type StoreAssignment = { store: string; people: number };
@@ -17,6 +17,7 @@ export type Reservation = {
   store: string | null;
   storeAssignments?: StoreAssignment[];
   status: Status;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
   received: string;
@@ -33,7 +34,7 @@ export type StoreForm = Store;
 export type AdminSession = { user: User; email: string | null };
 export type ApiRequestInit = RequestInit & { authToken?: string };
 export type ReservationSubmitOptions = { authToken?: string; forceAdmin?: boolean; customerAccountMode?: "account" | "guest" };
-export type View = "dashboard" | "reservations" | "reservationApprovals" | "reservationChangeRequests" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
+export type View = "dashboard" | "reservations" | "reservationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
 export type ReservationFilter =
   | "すべて"
   | "承認待ち"

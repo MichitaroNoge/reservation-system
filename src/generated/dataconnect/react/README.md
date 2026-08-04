@@ -178,6 +178,7 @@ export interface ListReservationsData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -294,6 +295,7 @@ export interface GetReservationData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -429,6 +431,7 @@ export interface GetReservationByCodeData {
     usageDate: DateString;
     usageTime: string;
     status: ReservationStatus;
+    requestType?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -2327,6 +2330,7 @@ export interface CreateReservationVariables {
   usageTime: string;
   expectedPeople: number;
   status: ReservationStatus;
+  requestType?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -2384,12 +2388,13 @@ export default function CreateReservationComponent() {
     usageTime: ..., 
     expectedPeople: ..., 
     status: ..., 
+    requestType: ..., // optional
     policyAgreementKind: ..., // optional
     policyAgreementAcceptedAt: ..., // optional
   };
   mutation.mutate(createReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., status: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., status: ..., requestType: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2725,6 +2730,7 @@ The `UpdateReservationStatus` Mutation requires an argument of type `UpdateReser
 export interface UpdateReservationStatusVariables {
   id: UUIDString;
   status: ReservationStatus;
+  requestType?: string | null;
 }
 ```
 ### Return Type
@@ -2776,10 +2782,11 @@ export default function UpdateReservationStatusComponent() {
   const updateReservationStatusVars: UpdateReservationStatusVariables = {
     id: ..., 
     status: ..., 
+    requestType: ..., // optional
   };
   mutation.mutate(updateReservationStatusVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., status: ..., });
+  mutation.mutate({ id: ..., status: ..., requestType: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

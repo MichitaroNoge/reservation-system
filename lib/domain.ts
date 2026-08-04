@@ -10,6 +10,12 @@ export type ReservationStatus =
   | "cancellation_requested"
   | "cancelled";
 
+export type ReservationRequestType = "confirmed_from_temporary";
+
+export function normalizeReservationRequestType(value: unknown): ReservationRequestType | null {
+  return value === "confirmed_from_temporary" ? value : null;
+}
+
 export const reservationStatuses = [
   "temporary_requested",
   "temporary_confirmed",
@@ -56,6 +62,7 @@ export type ReservationStatusTransitionReason =
   | "reject_temporary"
   | "approve_confirmed"
   | "reject_confirmed"
+  | "request_confirmed"
   | "request_cancellation"
   | "ready_for_visit"
   | "readiness_incomplete"
@@ -73,8 +80,10 @@ export type ReservationStatusTransition = {
 export const reservationStatusTransitions = [
   { from: "temporary_requested", to: "temporary_confirmed", reason: "approve_temporary", label: "仮予約を承認する" },
   { from: "temporary_requested", to: "temporary_rejected", reason: "reject_temporary", label: "仮予約を却下する" },
+  { from: "temporary_confirmed", to: "confirmed_requested", reason: "request_confirmed", label: "本予約への変更を申請する" },
   { from: "confirmed_requested", to: "confirmed", reason: "approve_confirmed", label: "本予約を承認する" },
   { from: "confirmed_requested", to: "confirmed_rejected", reason: "reject_confirmed", label: "本予約を却下する" },
+  { from: "confirmed_requested", to: "temporary_confirmed", reason: "reject_confirmed", label: "本予約への変更申請を却下する" },
   { from: "temporary_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
   { from: "temporary_confirmed", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
   { from: "confirmed_requested", to: "cancellation_requested", reason: "request_cancellation", label: "キャンセルを申請する" },
@@ -181,6 +190,7 @@ export type Reservation = {
   store: string | null;
   storeAssignments?: StoreAssignment[];
   status: ReservationStatus;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
   received: string;
@@ -275,6 +285,7 @@ export type CreateReservationInput = {
   menu?: string;
   menuItems?: string[];
   status?: ReservationStatus;
+  requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   customerFirebaseUid?: string;
   customerAccountMode?: "account" | "guest" | "admin";

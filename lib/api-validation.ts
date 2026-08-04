@@ -74,19 +74,27 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   return input;
 }
 
-export function validateCancellationRequestInput(body: Record<string, unknown>) {
+export function validateCancellationRequestInput(body: Record<string, unknown>, options?: { allowMissingContact?: boolean }) {
   const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
   const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
   const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
-  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  if (!options?.allowMissingContact && !email && !phone) throw new ApiValidationError("email or phone is required.");
   return { reservationId, email, phone };
 }
 
-export function validateReservationChangeRequestInput(body: Record<string, unknown>): CreateReservationChangeRequestInput {
+export function validateConfirmedReservationRequestInput(body: Record<string, unknown>, options?: { allowMissingContact?: boolean }) {
   const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
   const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
   const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
-  if (!email && !phone) throw new ApiValidationError("email or phone is required.");
+  if (!options?.allowMissingContact && !email && !phone) throw new ApiValidationError("email or phone is required.");
+  return { reservationId, email, phone };
+}
+
+export function validateReservationChangeRequestInput(body: Record<string, unknown>, options?: { allowMissingContact?: boolean }): CreateReservationChangeRequestInput {
+  const reservationId = requireNonEmptyString(body.reservationId, "reservationId", 30);
+  const email = body.email === undefined || body.email === "" ? undefined : requireEmail(body.email, "email");
+  const phone = body.phone === undefined || body.phone === "" ? undefined : requirePhone(body.phone, "phone");
+  if (!options?.allowMissingContact && !email && !phone) throw new ApiValidationError("email or phone is required.");
   return {
     reservationId,
     email,

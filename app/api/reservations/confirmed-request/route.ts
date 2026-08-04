@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiErrorResponse, readJsonObject, validateCancellationRequestInput } from "@/lib/api-validation";
+import { apiErrorResponse, readJsonObject, validateConfirmedReservationRequestInput } from "@/lib/api-validation";
 import { findOwnedReservationByAuthenticatedCustomer } from "@/lib/customer-reservation-access";
 import { assertReservationStatusTransition, reservationStatusCodes } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const ownedReservation = reservationIdFromBody
       ? await findOwnedReservationByAuthenticatedCustomer(request, repository, reservationIdFromBody)
       : null;
-    const input = validateCancellationRequestInput(body, { allowMissingContact: Boolean(ownedReservation) });
+    const input = validateConfirmedReservationRequestInput(body, { allowMissingContact: Boolean(ownedReservation) });
     const reservationId = normalizeReservationId(input.reservationId);
     const current = ownedReservation ?? (await repository.listReservations()).find((reservation) => normalizeReservationId(reservation.id) === reservationId);
     if (!current) return NextResponse.json({ error: "予約が見つかりません。予約IDを確認してください。" }, { status: 404 });
@@ -26,11 +26,14 @@ export async function POST(request: Request) {
     }
 
     try {
-      assertReservationStatusTransition(current.status, reservationStatusCodes.cancellationRequested);
+      assertReservationStatusTransition(current.status, reservationStatusCodes.confirmedRequested);
     } catch {
-      return NextResponse.json({ error: "この予約は現在のステータスではキャンセル申請できません。" }, { status: 400 });
+      return NextResponse.json({ error: "この予約は現在のステータスでは本予約への変更申請ができません。" }, { status: 400 });
     }
-    const reservation = await repository.updateReservationStatus(current.id, reservationStatusCodes.cancellationRequested);
+
+    const reservation = await repository.updateReservationStatus(current.id, reservationStatusCodes.confirmedRequested, {
+      requestType: "confirmed_from_temporary",
+    });
     return NextResponse.json({ reservation });
   } catch (error) {
     return apiErrorResponse(error);

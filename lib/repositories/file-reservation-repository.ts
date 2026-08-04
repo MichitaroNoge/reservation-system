@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -70,7 +70,7 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
       ? [{ store: reservation.store, people: reservation.people }]
       : [];
   const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-  return { ...reservation, startTime: reservation.startTime ?? defaultStartTime, menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status) };
+  return { ...reservation, startTime: reservation.startTime ?? defaultStartTime, menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -133,6 +133,10 @@ export class FileReservationRepository implements ReservationRepository {
     return database.reservations;
   }
 
+  async listReservationsForReservationAccount(_firebaseUid: string) {
+    return [];
+  }
+
   async createReservation(input: CreateReservationInput) {
     const database = await this.readDatabase();
     const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];
@@ -148,6 +152,7 @@ export class FileReservationRepository implements ReservationRepository {
       store: null,
       storeAssignments: [],
       status: input.status ? normalizeReservationStatus(input.status) : defaultReservationStatus,
+      requestType: input.requestType ?? null,
       policyAgreement: input.policyAgreement,
       confirmationContactedAt: null,
       received: receivedLabel(),
@@ -176,11 +181,20 @@ export class FileReservationRepository implements ReservationRepository {
     return reservation;
   }
 
-  async updateReservationStatus(id: string, status: ReservationStatus) {
+  async updateReservationStatus(id: string, status: ReservationStatus, options?: { requestType?: Reservation["requestType"] }) {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
-    reservation.status = normalizeReservationStatus(status);
+    const previousStatus = reservation.status;
+    const nextStatus = normalizeReservationStatus(status);
+    reservation.status = nextStatus;
+    if (options && "requestType" in options) {
+      reservation.requestType = options.requestType ?? null;
+    } else if (previousStatus === reservationStatusCodes.temporaryConfirmed && nextStatus === reservationStatusCodes.confirmedRequested) {
+      reservation.requestType = "confirmed_from_temporary";
+    } else if (nextStatus !== reservationStatusCodes.confirmedRequested) {
+      reservation.requestType = null;
+    }
     await this.writeDatabase(database);
     return reservation;
   }

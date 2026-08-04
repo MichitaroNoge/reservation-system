@@ -22,5 +22,5 @@ export function InfoMetric({ icon, label, value, color }: { icon?: string; label
 }
 
 export function Task({ color, title, count, text, onClick }: { color: string; title: string; count?: number; text: string; onClick?: () => void }) {
-  return <button className={`task ${count ? "has-count" : ""}`} onClick={onClick}><i className={color}/><div><strong>{title}{count !== undefined && <span className="task-count">{count}件</span>}</strong><small>{text}</small></div><Icon name="arrow"/></button>;
+  return <button className={`task ${count ? "has-count" : "no-count"}`} onClick={onClick}><i className={color}/><div><strong>{title}{count !== undefined && <span className="task-count">{count}件</span>}</strong><small>{text}</small></div><Icon name="arrow"/></button>;
 }

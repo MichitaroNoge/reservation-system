@@ -41,6 +41,8 @@ test("customer request APIs use authenticated reservation ownership when availab
 
 test("reservation and cancellation approval screens stay separated", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const commonSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "common.tsx"), "utf8");
+  const styleSource = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
   const typeSource = await readFile(path.join(process.cwd(), "app", "reservations", "types.ts"), "utf8");
 
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
@@ -55,5 +57,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
+  assert.match(commonSource, /count \? "has-count" : "no-count"/);
+  assert.match(styleSource, /\.task-card-grid\{display:grid;grid-template-columns:repeat\(auto-fit,minmax\(240px,1fr\)\)/);
+  assert.match(styleSource, /\.task-card-grid \.task small\{display:none\}/);
+  assert.match(styleSource, /\.task-card-grid \.task\.no-count/);
   assert.match(pageSource, /function CancellationApprovalPage/);
 });

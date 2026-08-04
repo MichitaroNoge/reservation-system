@@ -405,20 +405,25 @@ export default function Home() {
     <div className="workspace">
       <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
       {view === "dashboard" ? <main className="dashboard">
-        <section className="welcome"><div><p>おはようございます</p><h2>今日も予約状況を確認しましょう</h2></div><div className="pulse"><span/>システム正常稼働中</div></section>
         <section className="dashboard-block dashboard-info-block"><div className="dashboard-block-head"><h3>情報</h3><p>予約状況の概要と本日の予定を確認できます</p></div><div className="info-dashboard-grid"><div className="info-summary-list">
           <InfoMetric label="本日の予約" value={String(dashboardCounts.today)} color="blue" />
           <InfoMetric label="今月の予約" value={String(dashboardCounts.month)} color="green" />
         </div><div className="today-reservation-list"><div className="today-reservation-head"><div><h3>本日の予約</h3><p>{dateHeadingLabel(todayIso())}</p></div><button onClick={() => openReservations("すべて", todayIso())}>予約一覧で見る <Icon name="arrow"/></button></div>{todayReservations.length ? <div className="timeline">{todayReservations.map((reservation, index)=><Fragment key={reservation.id}><span>{reservationStartTime(reservation)}</span><i className={["blue","green","violet"][index % 3]}/><div><strong>{reservation.customer} 様</strong><small>{assignmentLabel(reservation) || "店舗未割当"}・{reservationMenuLabel(reservation)}</small></div></Fragment>)}</div> : <div className="empty-panel"><p>本日の予約はありません。</p></div>}</div></div></section>
-        <section className="dashboard-block"><div className="dashboard-block-head"><h3>タスク</h3><p>対応が必要な予約業務です</p></div><div className="task-card-grid">
-          <Task color="amber" title="予約の承認" count={taskCounts.reservationApprovals} text="仮予約・本予約の申請を確認しましょう" onClick={() => setView("reservationApprovals")} />
-          <Task color="amber" title="本予約変更承認" count={taskCounts.confirmedReservationRequests} text="仮予約から本予約への変更依頼を確認しましょう" onClick={() => setView("confirmedReservationRequests")} />
-          <Task color="violet" title="予約変更承認" count={taskCounts.changeRequests} text="予約内容の変更依頼を確認しましょう" onClick={() => setView("reservationChangeRequests")} />
-          <Task color="red" title="キャンセルの承認" count={taskCounts.cancellationApprovals} text="キャンセル申請を確認しましょう" onClick={() => setView("cancellationApprovals")} />
-          <Task color="blue" title="確認連絡" count={taskCounts.preContactDue} text={"食事日まで" + confirmationContactWindowDays + "日未満のお客様へ確認連絡を行いましょう"} onClick={() => setView("confirmationContacts")} />
-          <Task color="amber" title="本予約の催促" count={taskCounts.temporaryExpired} text="期限切れの仮予約へ本予約への変更を依頼しましょう" onClick={() => openReservations("仮予約確定（期限切れ）")} />
-          <Task color="violet" title="店舗割当" count={taskCounts.storeUnassigned} text="店舗割当を行いましょう" onClick={() => openReservations("本予約確定（店舗未割当）")} />
-          <Task color="green" title="メニュー確定の催促" count={taskCounts.menuUnselected} text="メニューが未確定のお客様を確認しましょう" onClick={() => openReservations("本予約確定（メニュー未確定）")} />
+        <section className="dashboard-block"><div className="dashboard-block-head"><h3>タスク</h3><p>対応が必要な予約業務です</p></div><div className="task-group-list">
+          <div className="task-group"><h4>承認系</h4><div className="task-card-grid">
+            <Task color="amber" title="予約の承認" count={taskCounts.reservationApprovals} text="仮予約・本予約の申請を確認しましょう" onClick={() => setView("reservationApprovals")} />
+            <Task color="amber" title="本予約変更承認" count={taskCounts.confirmedReservationRequests} text="仮予約から本予約への変更依頼を確認しましょう" onClick={() => setView("confirmedReservationRequests")} />
+            <Task color="violet" title="予約変更承認" count={taskCounts.changeRequests} text="予約内容の変更依頼を確認しましょう" onClick={() => setView("reservationChangeRequests")} />
+            <Task color="red" title="キャンセルの承認" count={taskCounts.cancellationApprovals} text="キャンセル申請を確認しましょう" onClick={() => setView("cancellationApprovals")} />
+          </div></div>
+          <div className="task-group"><h4>内部業務系</h4><div className="task-card-grid">
+            <Task color="blue" title="確認連絡" count={taskCounts.preContactDue} text={"食事日まで" + confirmationContactWindowDays + "日未満のお客様へ確認連絡を行いましょう"} onClick={() => setView("confirmationContacts")} />
+            <Task color="violet" title="店舗割当" count={taskCounts.storeUnassigned} text="店舗割当を行いましょう" onClick={() => openReservations("本予約確定（店舗未割当）")} />
+          </div></div>
+          <div className="task-group"><h4>催促系</h4><div className="task-card-grid">
+            <Task color="amber" title="本予約の催促" count={taskCounts.temporaryExpired} text="期限切れの仮予約へ本予約への変更を依頼しましょう" onClick={() => openReservations("仮予約確定（期限切れ）")} />
+            <Task color="green" title="メニュー確定の催促" count={taskCounts.menuUnselected} text="メニューが未確定のお客様を確認しましょう" onClick={() => openReservations("本予約確定（メニュー未確定）")} />
+          </div></div>
         </div></section>
       </main> : <ManagementPage view={view} reservations={reservations} reservationChangeRequests={reservationChangeRequests} confirmationContactTargets={confirmationContactTargets} confirmationContactWindowDays={confirmationContactWindowDays} setConfirmationContactWindowDays={setConfirmationContactWindowDays} isBulkContacting={isBulkContacting} onBulkConfirmationContact={bulkUpdateConfirmationContacts} customers={customers} inactiveCustomers={inactiveCustomerList} stores={stores} inactiveStores={inactiveStoreList} menus={menuCatalog} inactiveMenus={inactiveMenuList} reservationFilter={reservationFilter} setReservationFilter={setReservationFilter} reservationDateFromFilter={reservationDateFromFilter} setReservationDateFromFilter={setReservationDateFromFilter} reservationDateToFilter={reservationDateToFilter} setReservationDateToFilter={setReservationDateToFilter} reservationSearch={reservationSearch} setReservationSearch={setReservationSearch} onSelect={setSelected} updateStatus={updateStatus} notify={notify} onSaveMenu={saveMenu} onDeleteMenu={deleteMenu} onReactivateMenu={reactivateMenu} onCreateCustomer={createCustomer} onSaveCustomer={saveCustomer} onDeleteCustomer={deleteCustomer} onReactivateCustomer={reactivateCustomer} onCreateStore={createStore} onSaveStore={saveStore} onDeleteStore={deleteStore} onReactivateStore={reactivateStore} onOpenNewReservation={() => setIsNewReservationOpen(true)} onApproveChangeRequest={approveReservationChangeRequest} onRejectChangeRequest={rejectReservationChangeRequest} />}
     </div>

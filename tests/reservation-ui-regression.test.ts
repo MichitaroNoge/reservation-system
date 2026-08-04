@@ -50,6 +50,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /title="予約変更承認"[\s\S]*setView\("reservationChangeRequests"\)/);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
+  assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
   assert.match(pageSource, /function CancellationApprovalPage/);
 });

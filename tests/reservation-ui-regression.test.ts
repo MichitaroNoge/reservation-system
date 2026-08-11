@@ -91,7 +91,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /view === "masters" \|\| view === "customers" \|\| view === "stores" \|\| view === "menus"/);
   assert.doesNotMatch(pageSource, /<Icon name="users"\/>顧客管理<\/button><button className=\{view === "stores"/);
   assert.match(pageSource, /function MasterManagementPage/);
-  assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><small>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*onSelectMasterView\("menus"\)/);
+  assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><\/span>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*<span><strong>店舗管理<\/strong><\/span>[\s\S]*onSelectMasterView\("menus"\)[\s\S]*<span><strong>メニュー管理<\/strong><\/span>/);
+  assert.doesNotMatch(pageSource, /<small>予約者の連絡先/);
+  assert.doesNotMatch(pageSource, /<small>店舗情報/);
+  assert.doesNotMatch(pageSource, /<small>予約フォームに表示するメニュー/);
   assert.match(styleSource, /\.master-link-grid button\{[\s\S]*grid-template-columns:42px minmax\(0,1fr\) 18px/);
   assert.match(pageSource, /isMasterChildView = view === "customers" \|\| view === "stores" \|\| view === "menus"/);
   assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ管理/);

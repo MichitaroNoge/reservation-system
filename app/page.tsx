@@ -660,7 +660,7 @@ function ReservationChangeRequestPage({ requests, onApproveChangeRequest, onReje
 }
 
 function MasterManagementPage({ onSelectMasterView }: { onSelectMasterView: (view: "customers" | "stores" | "menus") => void }) {
-  return <section className="master-management-page"><div className="master-link-grid"><button type="button" onClick={() => onSelectMasterView("customers")}><Icon name="users"/><span><strong>顧客管理</strong><small>予約者の連絡先、削除済み顧客の復活を管理します</small></span><Icon name="arrow"/></button><button type="button" onClick={() => onSelectMasterView("stores")}><Icon name="store"/><span><strong>店舗管理</strong><small>店舗情報、表示順、削除済み店舗の復活を管理します</small></span><Icon name="arrow"/></button><button type="button" onClick={() => onSelectMasterView("menus")}><Icon name="menu"/><span><strong>メニュー管理</strong><small>予約フォームに表示するメニュー、金額、表示順を管理します</small></span><Icon name="arrow"/></button></div></section>;
+  return <section className="master-management-page"><div className="master-link-grid"><button type="button" onClick={() => onSelectMasterView("customers")}><Icon name="users"/><span><strong>顧客管理</strong></span><Icon name="arrow"/></button><button type="button" onClick={() => onSelectMasterView("stores")}><Icon name="store"/><span><strong>店舗管理</strong></span><Icon name="arrow"/></button><button type="button" onClick={() => onSelectMasterView("menus")}><Icon name="menu"/><span><strong>メニュー管理</strong></span><Icon name="arrow"/></button></div></section>;
 }
 
 function ConfirmedReservationRequestPage({ reservations, onSelect, updateStatus }: { reservations: Reservation[]; onSelect: (reservation: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void }) {

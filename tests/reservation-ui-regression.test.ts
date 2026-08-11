@@ -84,6 +84,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(formatterSource, /year.+month.+day.+weekday/s);
   assert.doesNotMatch(pageSource, /<nav><p>メニュー<\/p>/);
   assert.match(pageSource, /マスタ管理/);
+  assert.match(commonSource, /settings:/);
+  assert.match(pageSource, /<Icon name="settings"\/>マスタ管理/);
   assert.match(pageSource, /view === "masters" \|\| view === "customers" \|\| view === "stores" \|\| view === "menus"/);
   assert.doesNotMatch(pageSource, /<Icon name="users"\/>顧客管理<\/button><button className=\{view === "stores"/);
   assert.match(pageSource, /function MasterManagementPage/);

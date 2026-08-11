@@ -134,7 +134,6 @@ export function CustomerManagement({
       <div className="customer-management-bar">
         <div>
           <strong>{customers.length}件</strong>
-          <span>有効な顧客</span>
         </div>
         <div className="customer-management-actions">
           {inactiveCustomers.length ? (
@@ -212,7 +211,6 @@ export function CustomerManagement({
           <div className="subsection-head">
             <div>
               <h3>削除済み顧客</h3>
-              <p>必要な顧客だけ有効に戻せます。</p>
             </div>
             <span>{inactiveCustomers.length}件</span>
           </div>

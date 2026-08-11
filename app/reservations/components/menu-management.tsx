@@ -116,7 +116,6 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
       <div className="menu-management-bar">
         <div>
           <strong>{menus.length}件</strong>
-          <span>登録済みメニュー</span>
         </div>
         <div className="menu-management-actions">
           {inactiveMenus.length ? (
@@ -172,7 +171,6 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
           <div className="subsection-head">
             <div>
               <h3>削除済みメニュー</h3>
-              <p>必要なメニューだけ有効に戻せます。</p>
             </div>
             <span>{inactiveMenus.length}件</span>
           </div>

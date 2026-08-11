@@ -66,6 +66,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   const formatterSource = await readFile(path.join(process.cwd(), "app", "reservations", "formatters.ts"), "utf8");
   const styleSource = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
   const typeSource = await readFile(path.join(process.cwd(), "app", "reservations", "types.ts"), "utf8");
+  const customerManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "customer-management.tsx"), "utf8");
+  const storeManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "store-management.tsx"), "utf8");
+  const menuManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "menu-management.tsx"), "utf8");
 
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
   assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
@@ -96,6 +99,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /<small>店舗情報/);
   assert.doesNotMatch(pageSource, /<small>予約フォームに表示するメニュー/);
   assert.match(styleSource, /\.master-link-grid button\{[\s\S]*grid-template-columns:42px minmax\(0,1fr\) 18px/);
+  assert.doesNotMatch(customerManagementSource, /<span>有効な顧客<\/span>|必要な顧客だけ有効に戻せます。/);
+  assert.doesNotMatch(storeManagementSource, /<span>有効な店舗<\/span>|必要な店舗だけ有効に戻せます。/);
+  assert.doesNotMatch(menuManagementSource, /<span>登録済みメニュー<\/span>|必要なメニューだけ有効に戻せます。/);
   assert.match(pageSource, /isMasterChildView = view === "customers" \|\| view === "stores" \|\| view === "menus"/);
   assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ管理/);
   assert.match(pageSource, /onSelectMasterView\("masters"\)/);

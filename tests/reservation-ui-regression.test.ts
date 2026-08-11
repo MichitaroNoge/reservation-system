@@ -91,6 +91,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /function MasterManagementPage/);
   assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><small>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*onSelectMasterView\("menus"\)/);
   assert.match(styleSource, /\.master-link-grid button\{[\s\S]*grid-template-columns:42px minmax\(0,1fr\) 18px/);
+  assert.match(pageSource, /isMasterChildView = view === "customers" \|\| view === "stores" \|\| view === "menus"/);
+  assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ管理/);
+  assert.match(pageSource, /onSelectMasterView\("masters"\)/);
+  assert.match(styleSource, /\.breadcrumb-back/);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

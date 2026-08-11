@@ -82,6 +82,12 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /fullDateHeadingLabel\(todayIso\(\)\)/);
   assert.match(formatterSource, /export function fullDateHeadingLabel/);
   assert.match(formatterSource, /year.+month.+day.+weekday/s);
+  assert.doesNotMatch(pageSource, /<nav><p>メニュー<\/p>/);
+  assert.match(pageSource, /マスタ管理/);
+  assert.match(pageSource, /view === "masters" \|\| view === "customers" \|\| view === "stores" \|\| view === "menus"/);
+  assert.doesNotMatch(pageSource, /<Icon name="users"\/>顧客管理<\/button><button className=\{view === "stores"/);
+  assert.match(pageSource, /function MasterManagementPage/);
+  assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*onSelectMasterView\("stores"\)[\s\S]*onSelectMasterView\("menus"\)/);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

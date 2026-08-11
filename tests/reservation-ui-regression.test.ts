@@ -97,6 +97,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.breadcrumb-back/);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
+  assert.match(pageSource, /未対応の予約承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);
   assert.match(pageSource, /未対応の本予約変更承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);
   assert.match(pageSource, /未対応の予約変更承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{requests\.length\}<\/strong><span>件<\/span><\/div>/);
   assert.match(pageSource, /未対応のキャンセル承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);

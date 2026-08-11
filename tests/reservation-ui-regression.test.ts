@@ -63,6 +63,7 @@ test("customer request APIs use authenticated reservation ownership when availab
 test("reservation and cancellation approval screens stay separated", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
   const commonSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "common.tsx"), "utf8");
+  const formatterSource = await readFile(path.join(process.cwd(), "app", "reservations", "formatters.ts"), "utf8");
   const styleSource = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
   const typeSource = await readFile(path.join(process.cwd(), "app", "reservations", "types.ts"), "utf8");
 
@@ -77,6 +78,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /<h3>情報<\/h3>/);
   assert.doesNotMatch(pageSource, /予約状況の概要と本日の予定を確認できます/);
   assert.doesNotMatch(pageSource, /対応が必要な予約業務です/);
+  assert.doesNotMatch(pageSource, /2026年7月8日（水）/);
+  assert.match(pageSource, /fullDateHeadingLabel\(todayIso\(\)\)/);
+  assert.match(formatterSource, /export function fullDateHeadingLabel/);
+  assert.match(formatterSource, /year.+month.+day.+weekday/s);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

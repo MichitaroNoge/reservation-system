@@ -75,6 +75,12 @@ export function dateHeadingLabel(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
 }
 
+export function fullDateHeadingLabel(date: string) {
+  const [year, month, day] = date.split("-");
+  const weekday = new Date(`${date}T00:00:00`).toLocaleDateString("ja-JP", { weekday: "short" });
+  return `${Number(year)}年${Number(month)}月${Number(day)}日（${weekday}）`;
+}
+
 export function selectedMenuTotal(menuItems: string[], menuCatalog: { name: string; price: number }[]) {
   return menuItems.reduce((total, name) => total + (menuCatalog.find((menu) => menu.name === name)?.price ?? 0), 0);
 }

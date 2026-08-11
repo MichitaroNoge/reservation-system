@@ -15,7 +15,7 @@ import { CustomerManagement } from "./reservations/components/customer-managemen
 import { MenuManagement } from "./reservations/components/menu-management";
 import { StoreManagement } from "./reservations/components/store-management";
 import { DEFAULT_START_TIME, STATUS, VISIT_MENU_NAME, approvalStatuses, cancellationApprovalStatuses, defaultMenus, defaultStores, initialReservations, reservationApprovalStatuses, statusClass, statusOptions } from "./reservations/constants";
-import { assignmentLabel, bookingFormDateTimeLabel, buildCustomers, dateHeadingLabel, daysUntilVisit, isConfirmationContactDue, isTemporaryReservationExpired, menuSelectionLabel, monthIso, policyAgreementLabel, reservationDateTimeLabel, reservationDisplayLabel, reservationMenuLabel, reservationStartTime, selectedMenuTotal, statusLabel, todayIso } from "./reservations/formatters";
+import { assignmentLabel, bookingFormDateTimeLabel, buildCustomers, dateHeadingLabel, daysUntilVisit, fullDateHeadingLabel, isConfirmationContactDue, isTemporaryReservationExpired, menuSelectionLabel, monthIso, policyAgreementLabel, reservationDateTimeLabel, reservationDisplayLabel, reservationMenuLabel, reservationStartTime, selectedMenuTotal, statusLabel, todayIso } from "./reservations/formatters";
 import { useAdminSession } from "./reservations/hooks/use-admin-session";
 import { useCustomerSession } from "./reservations/hooks/use-customer-session";
 import type { BookingForm, Customer, CustomerForm, Menu, MenuForm, Reservation, ReservationChangeRequest, ReservationFilter, ReservationSortKey, ReservationSubmitOptions, SortDirection, Status, Store, StoreAssignment, StoreForm, View } from "./reservations/types";
@@ -417,7 +417,7 @@ export default function Home() {
       <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
+      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>{fullDateHeadingLabel(todayIso())}</p></div></header>
       {view === "dashboard" ? <main className="dashboard">
         <section className="dashboard-block dashboard-info-block"><div className="info-dashboard-grid"><div className="info-summary-list">
           <InfoMetric label="本日の予約" value={String(dashboardCounts.today)} color="blue" />

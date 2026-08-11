@@ -3,6 +3,27 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 
+test("customer pages expose direct entry links for the official website", async () => {
+  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const directPages = [
+    [["app", "reserve", "page.tsx"], "customerMode=reservation"],
+    [["app", "customer", "page.tsx"], "customerMode=home"],
+    [["app", "customer", "reservations", "page.tsx"], "customerMode=account"],
+    [["app", "customer", "change-request", "page.tsx"], "customerMode=change"],
+    [["app", "customer", "cancellation-request", "page.tsx"], "customerMode=cancellation"],
+    [["app", "customer", "confirmed-request", "page.tsx"], "customerMode=confirmedChange"],
+  ] as const;
+
+  assert.match(pageSource, /customerPortalModeFromSearch/);
+  assert.match(pageSource, /setRole\("customer"\)/);
+  assert.match(pageSource, /initialMode=\{customerEntryMode\}/);
+
+  for (const [routePath, query] of directPages) {
+    const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");
+    assert.match(routeSource, new RegExp(query));
+  }
+});
+
 test("reservation drawer rejects confirmed change requests back to temporary confirmation", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
 

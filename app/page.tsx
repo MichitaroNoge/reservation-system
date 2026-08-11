@@ -26,6 +26,11 @@ const sortByDisplayOrderThenName = <T extends { displayOrder?: number; name: str
 const isConfirmedReservationChangeRequest = (reservation: Reservation) =>
   reservation.status === STATUS.confirmedRequested && reservation.requestType === "confirmed_from_temporary";
 
+const customerPortalModeFromSearch = (value: string | null): CustomerPortalMode | null => {
+  if (value === "home" || value === "account" || value === "reservation" || value === "confirmedChange" || value === "change" || value === "cancellation") return value;
+  return null;
+};
+
 export default function Home() {
   const [role, setRole] = useState<"admin" | "customer">("admin");
   const { adminSession, authError, authLoading, getAdminToken, loginAdmin, signOutAdmin } = useAdminSession({ enabled: role === "admin" });
@@ -51,6 +56,15 @@ export default function Home() {
   const [isBulkContacting, setIsBulkContacting] = useState(false);
   const [confirmationContactWindowDays, setConfirmationContactWindowDays] = useState(7);
   const [adminForm, setAdminForm] = useState<BookingForm>({ menuItems: [], date: "2026-07-12", startTime: DEFAULT_START_TIME, people: 2, name: "", email: "", phone: "", status: STATUS.confirmed });
+  const [customerEntryMode, setCustomerEntryMode] = useState<CustomerPortalMode>("home");
+
+  useEffect(() => {
+    const directMode = customerPortalModeFromSearch(new URLSearchParams(window.location.search).get("customerMode"));
+    if (!directMode) return;
+    setRole("customer");
+    setCustomerEntryMode(directMode);
+    if (directMode === "reservation") setFormStep(1);
+  }, []);
 
   useEffect(() => {
     requestJson<{ menus: Menu[] }>("/api/menus")
@@ -392,7 +406,7 @@ export default function Home() {
     setView("reservations");
   };
 
-  if (role === "customer") return <CustomerPortal form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
+  if (role === "customer") return <CustomerPortal initialMode={customerEntryMode} form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
   if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
   if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => setRole("customer")} error={authError} />;
 
@@ -763,9 +777,9 @@ type CustomerPortalMode = "home" | "account" | "reservation" | "confirmedChange"
 type CustomerContactRequestForm = { reservationId: string; email: string; phone: string };
 type CustomerReservationChangeRequestForm = CustomerContactRequestForm & { requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason: string };
 
-function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
+function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { initialMode: CustomerPortalMode; form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
-  const [portalMode, setPortalMode] = useState<CustomerPortalMode>("home");
+  const [portalMode, setPortalMode] = useState<CustomerPortalMode>(initialMode);
   const [bookingMode, setBookingMode] = useState<"login" | "register" | "guest">("guest");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
@@ -788,6 +802,11 @@ function CustomerPortal({ form, setForm, step, setStep, onAdmin, notify, toast, 
   const canSubmitCancellation = Boolean(cancellationForm.reservationId.trim() && canIdentifyReservation(cancellationForm.email, cancellationForm.phone)) && !isSubmittingCancellation;
   const canSubmitConfirmedChange = Boolean(confirmedChangeForm.reservationId.trim() && canIdentifyReservation(confirmedChangeForm.email, confirmedChangeForm.phone)) && !isSubmittingConfirmedChange;
   const canSubmitChangeRequest = Boolean(changeRequestForm.reservationId.trim() && canIdentifyReservation(changeRequestForm.email, changeRequestForm.phone) && changeRequestForm.requestedDate && changeRequestForm.requestedStartTime && changeRequestForm.requestedPeople) && !isSubmittingChangeRequest;
+
+  useEffect(() => {
+    setPortalMode(initialMode);
+    if (initialMode === "reservation") setStep(1);
+  }, [initialMode, setStep]);
 
   useEffect(() => {
     if (!customerUser) return;

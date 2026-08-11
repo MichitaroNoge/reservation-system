@@ -417,7 +417,7 @@ export default function Home() {
       <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
-      <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",masters:"マスタ管理",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>{fullDateHeadingLabel(todayIso())}</p></div></header>
+      <header className="topbar"><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",masters:"マスタ管理",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><div className="topbar-meta"><span>管理画面</span><strong>{fullDateHeadingLabel(todayIso())}</strong></div></header>
       {view === "dashboard" ? <main className="dashboard">
         <section className="dashboard-block dashboard-info-block"><div className="info-dashboard-grid"><div className="info-summary-list">
           <InfoMetric label="本日の予約" value={String(dashboardCounts.today)} color="blue" />

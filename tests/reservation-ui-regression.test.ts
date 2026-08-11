@@ -80,6 +80,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /対応が必要な予約業務です/);
   assert.doesNotMatch(pageSource, /2026年7月8日（水）/);
   assert.match(pageSource, /fullDateHeadingLabel\(todayIso\(\)\)/);
+  assert.match(pageSource, /className="topbar-meta"[\s\S]*fullDateHeadingLabel\(todayIso\(\)\)/);
+  assert.match(styleSource, /\.topbar-meta/);
   assert.match(formatterSource, /export function fullDateHeadingLabel/);
   assert.match(formatterSource, /year.+month.+day.+weekday/s);
   assert.doesNotMatch(pageSource, /<nav><p>メニュー<\/p>/);

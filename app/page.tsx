@@ -423,7 +423,7 @@ export default function Home() {
           <InfoMetric label="本日の予約" value={String(dashboardCounts.today)} color="blue" />
           <InfoMetric label="今月の予約" value={String(dashboardCounts.month)} color="green" />
         </div><div className="today-reservation-list"><div className="today-reservation-head"><div><h3>本日の予約</h3><p>{dateHeadingLabel(todayIso())}</p></div><button onClick={() => openReservations("すべて", todayIso())}>予約一覧で見る <Icon name="arrow"/></button></div>{todayReservations.length ? <div className="timeline">{todayReservations.map((reservation, index)=><Fragment key={reservation.id}><span>{reservationStartTime(reservation)}</span><i className={["blue","green","violet"][index % 3]}/><div><strong>{reservation.customer} 様</strong><small>{assignmentLabel(reservation) || "店舗未割当"}・{reservationMenuLabel(reservation)}</small></div></Fragment>)}</div> : <div className="empty-panel"><p>本日の予約はありません。</p></div>}</div></div></section>
-        <section className="dashboard-block"><div className="dashboard-block-head"><h3>タスク</h3><p>対応が必要な予約業務です</p></div><div className="task-group-list">
+        <section className="dashboard-block"><div className="dashboard-block-head"><h3>タスク</h3></div><div className="task-group-list">
           <div className="task-group"><h4>承認系</h4><div className="task-card-grid">
             <Task color="amber" title="予約の承認" count={taskCounts.reservationApprovals} text="仮予約・本予約の申請を確認しましょう" onClick={() => setView("reservationApprovals")} />
             <Task color="amber" title="本予約変更承認" count={taskCounts.confirmedReservationRequests} text="仮予約から本予約への変更依頼を確認しましょう" onClick={() => setView("confirmedReservationRequests")} />

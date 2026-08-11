@@ -74,6 +74,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /title="予約変更承認"[\s\S]*title="キャンセルの承認"[\s\S]*title="確認連絡"[\s\S]*title="本予約の催促"/);
   assert.match(pageSource, /承認系[\s\S]*予約の承認[\s\S]*内部業務系[\s\S]*確認連絡[\s\S]*催促系[\s\S]*本予約の催促/);
   assert.doesNotMatch(pageSource, /今日も予約状況を確認しましょう/);
+  assert.doesNotMatch(pageSource, /<h3>情報<\/h3>/);
+  assert.doesNotMatch(pageSource, /予約状況の概要と本日の予定を確認できます/);
   assert.match(pageSource, /未対応の本予約変更承認/);
   assert.match(pageSource, /未対応の予約変更承認/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

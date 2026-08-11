@@ -419,7 +419,7 @@ export default function Home() {
     <div className="workspace">
       <header className="topbar"><div><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><p>2026年7月8日（水）</p></div></header>
       {view === "dashboard" ? <main className="dashboard">
-        <section className="dashboard-block dashboard-info-block"><div className="dashboard-block-head"><h3>情報</h3><p>予約状況の概要と本日の予定を確認できます</p></div><div className="info-dashboard-grid"><div className="info-summary-list">
+        <section className="dashboard-block dashboard-info-block"><div className="info-dashboard-grid"><div className="info-summary-list">
           <InfoMetric label="本日の予約" value={String(dashboardCounts.today)} color="blue" />
           <InfoMetric label="今月の予約" value={String(dashboardCounts.month)} color="green" />
         </div><div className="today-reservation-list"><div className="today-reservation-head"><div><h3>本日の予約</h3><p>{dateHeadingLabel(todayIso())}</p></div><button onClick={() => openReservations("すべて", todayIso())}>予約一覧で見る <Icon name="arrow"/></button></div>{todayReservations.length ? <div className="timeline">{todayReservations.map((reservation, index)=><Fragment key={reservation.id}><span>{reservationStartTime(reservation)}</span><i className={["blue","green","violet"][index % 3]}/><div><strong>{reservation.customer} 様</strong><small>{assignmentLabel(reservation) || "店舗未割当"}・{reservationMenuLabel(reservation)}</small></div></Fragment>)}</div> : <div className="empty-panel"><p>本日の予約はありません。</p></div>}</div></div></section>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { reservationStatusCodes, type Reservation } from "../lib/domain";
 import type { EmailClient, SendEmailInput } from "../lib/email/resend-email-client";
-import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
+import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
 import type { ReservationRepository } from "../lib/repositories/reservation-repository";
 
 const now = new Date("2026-08-14T00:00:00+09:00");
@@ -61,6 +61,44 @@ test("confirmation email service does not send again after a successful run", as
   assert.equal(emailClient.sent.length, 1);
   assert.equal(second.sent, 0);
   assert.equal(second.due, 0);
+});
+
+test("manual confirmation contact sends an email before marking contacted", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-MANUAL", date: "2026-08-30" }),
+  ]);
+  const emailClient = new RecordingEmailClient();
+
+  const updated = await sendConfirmationEmailForReservation(repository, "RSV-MANUAL", { now, emailClient });
+
+  assert.equal(emailClient.sent.length, 1);
+  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL" }));
+  assert.equal(updated.confirmationContactedAt, now.toISOString());
+});
+
+test("manual confirmation contact does not update contacted when email send fails", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-MANUAL-FAIL", date: "2026-08-30" }),
+  ]);
+  const emailClient = new RecordingEmailClient(new Error("Resend unavailable"));
+
+  await assert.rejects(
+    () => sendConfirmationEmailForReservation(repository, "RSV-MANUAL-FAIL", { now, emailClient }),
+    /Resend unavailable/,
+  );
+  assert.equal(repository.get("RSV-MANUAL-FAIL")?.confirmationContactedAt, null);
+});
+
+test("manual confirmation contact does not send again when already contacted", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-MANUAL-SENT", date: "2026-08-30", confirmationContactedAt: now.toISOString() }),
+  ]);
+  const emailClient = new RecordingEmailClient();
+
+  const existing = await sendConfirmationEmailForReservation(repository, "RSV-MANUAL-SENT", { now, emailClient });
+
+  assert.equal(emailClient.sent.length, 0);
+  assert.equal(existing.confirmationContactedAt, now.toISOString());
 });
 
 class RecordingEmailClient implements EmailClient {

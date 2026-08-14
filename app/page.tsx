@@ -265,7 +265,7 @@ export default function Home() {
       notify("確認連絡を未実施に戻したため、本予約確定に戻しました");
       return;
     }
-    notify(contactedAt ? "確認連絡済みに更新しました" : "確認連絡を未実施に戻しました");
+    notify(contactedAt ? "確認メールを送信しました" : "確認連絡を未実施に戻しました");
   };
   const bulkUpdateConfirmationContacts = async () => {
     if (!confirmationContactTargets.length || isBulkContacting) return;
@@ -275,9 +275,9 @@ export default function Home() {
     try {
       const contactedAt = new Date().toISOString();
       const updated = await Promise.all(confirmationContactTargets.map(reservation => saveConfirmationContact(reservation.id, contactedAt)));
-      notify(`${updated.length}件を確認連絡済みにしました`);
+      notify(`${updated.length}件の確認メールを送信しました`);
     } catch {
-      notify("一括確認連絡の保存に失敗しました");
+      notify("確認メールの一括送信に失敗しました");
     } finally {
       setIsBulkContacting(false);
     }

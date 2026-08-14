@@ -69,6 +69,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   const customerManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "customer-management.tsx"), "utf8");
   const storeManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "store-management.tsx"), "utf8");
   const menuManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "menu-management.tsx"), "utf8");
+  const confirmationContactRouteSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "[id]", "confirmation-contact", "route.ts"), "utf8");
 
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
   assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
@@ -115,6 +116,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head \.result-count strong\{font-size:23px/);
   assert.match(styleSource, /\.change-request-head\{[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
+  assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
+  assert.match(pageSource, /確認メールを送信しました/);
+  assert.match(pageSource, /確認メールの一括送信に失敗しました/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
   assert.match(commonSource, /count \? "has-count" : "no-count"/);

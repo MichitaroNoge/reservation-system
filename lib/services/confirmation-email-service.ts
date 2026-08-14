@@ -45,15 +45,7 @@ export async function sendDueConfirmationEmails(
     }
 
     try {
-      const content = buildConfirmationEmailContent(reservation);
-      await emailClient.send({
-        to: reservation.email,
-        subject: content.subject,
-        text: content.text,
-        html: content.html,
-        idempotencyKey: confirmationEmailIdempotencyKey(reservation),
-      });
-      await repository.updateConfirmationContact(reservation.id, now.toISOString());
+      await sendConfirmationEmailForReservation(repository, reservation.id, { now, emailClient });
       result.sent += 1;
     } catch (error) {
       result.failed += 1;
@@ -65,6 +57,29 @@ export async function sendDueConfirmationEmails(
   }
 
   return result;
+}
+
+export async function sendConfirmationEmailForReservation(
+  repository: ReservationRepository,
+  reservationId: string,
+  options: Omit<ConfirmationEmailServiceOptions, "daysBefore"> = {},
+) {
+  const now = options.now ?? new Date();
+  const emailClient = options.emailClient ?? new ResendEmailClient();
+  const reservation = (await repository.listReservations()).find((item) => item.id === reservationId);
+  if (!reservation) throw new Error(`Reservation not found: ${reservationId}`);
+  if (reservation.confirmationContactedAt) return reservation;
+  if (!reservation.email) throw new Error(`Reservation email is required: ${reservation.id}`);
+
+  const content = buildConfirmationEmailContent(reservation);
+  await emailClient.send({
+    to: reservation.email,
+    subject: content.subject,
+    text: content.text,
+    html: content.html,
+    idempotencyKey: confirmationEmailIdempotencyKey(reservation),
+  });
+  return repository.updateConfirmationContact(reservation.id, now.toISOString());
 }
 
 export function isConfirmationEmailDue(reservation: Reservation, now: Date, daysBefore = confirmationEmailDaysBefore()) {

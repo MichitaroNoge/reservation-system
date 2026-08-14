@@ -181,6 +181,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
         : status === reservationStatusCodes.confirmedRequested
         ? current.requestType ?? null
         : null;
+    if (nextRequestType === null) {
+      await this.updateReservationStatusClearingRequestType(current.dataConnectId, status);
+      return this.getReservationWithInternalId(id);
+    }
     await updateReservationStatus(this.connection(), {
       id: current.dataConnectId,
       status: toSdkReservationStatus(status),
@@ -646,11 +650,24 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     await this.connection().executeGraphql<void, { id: string }>(
       `mutation ClearConfirmationContact($id: UUID!) {
         reservation_update(key: {id: $id}, data: {
-          confirmationContactedAt_expr: "null"
+          confirmationContactedAt: null
           updatedAt_expr: "request.time"
         })
       }`,
       { variables: { id } },
+    );
+  }
+
+  private async updateReservationStatusClearingRequestType(id: string, status: ReservationStatus) {
+    await this.connection().executeGraphql<void, { id: string; status: ReturnType<typeof toSdkReservationStatus> }>(
+      `mutation UpdateReservationStatusClearingRequestType($id: UUID!, $status: ReservationStatus!) {
+        reservation_update(key: {id: $id}, data: {
+          status: $status
+          requestType: null
+          updatedAt_expr: "request.time"
+        })
+      }`,
+      { variables: { id, status: toSdkReservationStatus(status) } },
     );
   }
 

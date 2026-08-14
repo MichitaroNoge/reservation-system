@@ -122,8 +122,11 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.match(confirmationContactRouteSource, /await repository\.updateReservationStatus\(id, automaticStatus\)/);
   assert.match(dataConnectRepositorySource, /contactedAt === null[\s\S]*clearConfirmationContact/);
-  assert.match(dataConnectRepositorySource, /confirmationContactedAt_expr: "null"/);
+  assert.match(dataConnectRepositorySource, /confirmationContactedAt: null/);
+  assert.match(dataConnectRepositorySource, /nextRequestType === null[\s\S]*updateReservationStatusClearingRequestType/);
+  assert.match(dataConnectRepositorySource, /requestType: null/);
   assert.match(dataConnectMutationsSource, /mutation ClearConfirmationContact/);
+  assert.match(dataConnectMutationsSource, /mutation UpdateReservationStatusClearingRequestType/);
   assert.match(pageSource, /setReservations\(rs => rs\.map\(r => r\.id === id \? reservation : r\)\)/);
   assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);
   assert.match(pageSource, /const updateConfirmationContact = async[\s\S]*try \{[\s\S]*catch \(error\)/);

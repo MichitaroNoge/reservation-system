@@ -116,6 +116,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head \.result-count strong\{font-size:23px/);
   assert.match(styleSource, /\.change-request-head\{[\s\S]*justify-content:flex-end[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
+  assert.match(styleSource, /\.management table td small\{font-size:12px;color:#263149\}/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);
   assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);

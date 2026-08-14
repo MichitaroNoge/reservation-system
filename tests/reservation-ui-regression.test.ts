@@ -110,14 +110,11 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ管理/);
   assert.match(pageSource, /onSelectMasterView\("masters"\)/);
   assert.match(styleSource, /\.breadcrumb-back/);
-  assert.match(pageSource, /未対応の本予約変更承認/);
-  assert.match(pageSource, /未対応の予約変更承認/);
-  assert.match(pageSource, /未対応の予約承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);
-  assert.match(pageSource, /未対応の本予約変更承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);
-  assert.match(pageSource, /未対応の予約変更承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{requests\.length\}<\/strong><span>件<\/span><\/div>/);
-  assert.match(pageSource, /未対応のキャンセル承認<\/h3><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div>/);
+  assert.doesNotMatch(pageSource, /<h3>未対応の(?:予約承認|本予約変更承認|予約変更承認|キャンセル承認)<\/h3>/);
+  assert.match(pageSource, /<div className="change-request-head"><div className="result-count"><span>該当<\/span><strong>\{reservations\.length\}<\/strong><span>件<\/span><\/div><\/div>/);
+  assert.match(pageSource, /<div className="change-request-head"><div className="result-count"><span>該当<\/span><strong>\{requests\.length\}<\/strong><span>件<\/span><\/div><\/div>/);
   assert.match(styleSource, /\.change-request-head \.result-count strong\{font-size:23px/);
-  assert.match(styleSource, /\.change-request-head\{[\s\S]*background:#fbfcfe/);
+  assert.match(styleSource, /\.change-request-head\{[\s\S]*justify-content:flex-end[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);

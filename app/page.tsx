@@ -258,16 +258,21 @@ export default function Home() {
     return reservation;
   };
   const updateConfirmationContact = async (id: string, contactedAt: string | null) => {
-    const reservation = await saveConfirmationContact(id, contactedAt);
-    if (contactedAt && reservation.status === STATUS.waitingForVisit) {
-      notify("メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました");
-      return;
+    try {
+      const reservation = await saveConfirmationContact(id, contactedAt);
+      if (contactedAt && reservation.status === STATUS.waitingForVisit) {
+        notify("メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました");
+        return;
+      }
+      if (!contactedAt && reservation.status === STATUS.confirmed) {
+        notify("確認連絡を未実施に戻したため、本予約確定に戻しました");
+        return;
+      }
+      notify(contactedAt ? "確認メールを送信しました" : "確認連絡を未実施に戻しました");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "確認メールの送信に失敗しました";
+      notify(contactedAt ? message : "確認連絡の更新に失敗しました");
     }
-    if (!contactedAt && reservation.status === STATUS.confirmed) {
-      notify("確認連絡を未実施に戻したため、本予約確定に戻しました");
-      return;
-    }
-    notify(contactedAt ? "確認メールを送信しました" : "確認連絡を未実施に戻しました");
   };
   const bulkUpdateConfirmationContacts = async () => {
     if (!confirmationContactTargets.length || isBulkContacting) return;

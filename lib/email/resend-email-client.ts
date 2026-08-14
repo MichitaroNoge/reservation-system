@@ -12,6 +12,15 @@ export type EmailClient = {
   send(input: SendEmailInput): Promise<{ id: string }>;
 };
 
+export class EmailDeliveryError extends Error {
+  statusCode = 502;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "EmailDeliveryError";
+  }
+}
+
 export class ResendEmailClient implements EmailClient {
   private resend: Resend;
   private from: string;
@@ -21,8 +30,8 @@ export class ResendEmailClient implements EmailClient {
     const apiKey = options?.apiKey ?? process.env.RESEND_API_KEY;
     const from = options?.from ?? process.env.RESEND_FROM_EMAIL;
     const replyTo = options?.replyTo ?? process.env.RESEND_REPLY_TO_EMAIL;
-    if (!apiKey) throw new Error("RESEND_API_KEY is required.");
-    if (!from) throw new Error("RESEND_FROM_EMAIL is required.");
+    if (!apiKey) throw new EmailDeliveryError("RESEND_API_KEY が未設定です。");
+    if (!from) throw new EmailDeliveryError("RESEND_FROM_EMAIL が未設定です。");
     this.resend = new Resend(apiKey);
     this.from = from;
     this.replyTo = replyTo || undefined;
@@ -42,8 +51,8 @@ export class ResendEmailClient implements EmailClient {
         idempotencyKey: input.idempotencyKey,
       },
     );
-    if (error) throw new Error(error.message);
-    if (!data?.id) throw new Error("Resend did not return an email id.");
+    if (error) throw new EmailDeliveryError(`確認メールの送信に失敗しました: ${error.message}`);
+    if (!data?.id) throw new EmailDeliveryError("確認メールの送信結果を確認できませんでした。");
     return { id: data.id };
   }
 }

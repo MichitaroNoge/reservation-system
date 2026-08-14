@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { reservationStatusCodes, type Reservation } from "../lib/domain";
-import type { EmailClient, SendEmailInput } from "../lib/email/resend-email-client";
+import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
 import type { ReservationRepository } from "../lib/repositories/reservation-repository";
 
@@ -99,6 +99,13 @@ test("manual confirmation contact does not send again when already contacted", a
 
   assert.equal(emailClient.sent.length, 0);
   assert.equal(existing.confirmationContactedAt, now.toISOString());
+});
+
+test("email delivery errors can be returned as API errors", () => {
+  const error = new EmailDeliveryError("確認メールの送信に失敗しました");
+
+  assert.equal(error.name, "EmailDeliveryError");
+  assert.equal(error.statusCode, 502);
 });
 
 class RecordingEmailClient implements EmailClient {

@@ -270,8 +270,8 @@ export default function Home() {
       }
       notify(contactedAt ? "確認メールを送信しました" : "確認連絡を未実施に戻しました");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "確認メールの送信に失敗しました";
-      notify(contactedAt ? message : "確認連絡の更新に失敗しました");
+      const message = error instanceof Error ? error.message : "確認連絡の更新に失敗しました";
+      notify(message);
     }
   };
   const bulkUpdateConfirmationContacts = async () => {

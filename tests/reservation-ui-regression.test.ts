@@ -122,7 +122,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /setReservations\(rs => rs\.map\(r => r\.id === id \? reservation : r\)\)/);
   assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);
   assert.match(pageSource, /const updateConfirmationContact = async[\s\S]*try \{[\s\S]*catch \(error\)/);
-  assert.match(pageSource, /notify\(contactedAt \? message : "確認連絡の更新に失敗しました"\)/);
+  assert.match(pageSource, /notify\(message\)/);
   assert.match(pageSource, /確認メールを送信しました/);
   assert.match(pageSource, /確認メールの一括送信に失敗しました/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

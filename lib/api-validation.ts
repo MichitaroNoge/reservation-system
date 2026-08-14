@@ -22,8 +22,24 @@ export function apiErrorResponse(error: unknown) {
     console.error(error);
     return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
   }
+  if (isDataConnectError(error)) {
+    console.error(error);
+    return Response.json({ error: `Data Connectの更新に失敗しました: ${dataConnectErrorMessage(error)}` }, { status: 502 });
+  }
   console.error(error);
   return Response.json({ error: "Internal server error" }, { status: 500 });
+}
+
+function isDataConnectError(error: unknown): error is Error {
+  return error instanceof Error && /DataConnect|data connect|partial-error|unauthorized/i.test(`${error.name} ${error.message}`);
+}
+
+function dataConnectErrorMessage(error: Error) {
+  const responseErrors = typeof error === "object" && error && "response" in error
+    ? (error as { response?: { errors?: { message?: unknown }[] } }).response?.errors
+    : undefined;
+  const firstMessage = Array.isArray(responseErrors) ? responseErrors.find((item) => typeof item.message === "string")?.message : undefined;
+  return firstMessage || error.message;
 }
 
 export async function readJsonObject(request: Request) {

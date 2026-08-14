@@ -711,6 +711,8 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
   const [isSavingReservation, setIsSavingReservation] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isManualStatusOpen, setIsManualStatusOpen] = useState(false);
+  const [isConfirmingConfirmationEmail, setIsConfirmingConfirmationEmail] = useState(false);
+  const [isSendingConfirmationEmail, setIsSendingConfirmationEmail] = useState(false);
   const [manualStatus, setManualStatus] = useState<Status>(r.status);
   const [manualStatusReason, setManualStatusReason] = useState("");
   const [assignmentDraft, setAssignmentDraft] = useState<StoreAssignment[]>(reservationAssignments(r).length ? reservationAssignments(r) : [{ store: "", people: r.people }]);
@@ -729,6 +731,8 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
     setIsEditingReservation(false);
     setIsAssigning(false);
     setIsManualStatusOpen(false);
+    setIsConfirmingConfirmationEmail(false);
+    setIsSendingConfirmationEmail(false);
     setManualStatus(r.status);
     setManualStatusReason("");
   }, [r.id, r.status]);
@@ -760,6 +764,16 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
     setIsManualStatusOpen(false);
     setManualStatusReason("");
   };
+  const sendConfirmationEmail = async () => {
+    if (isSendingConfirmationEmail) return;
+    setIsSendingConfirmationEmail(true);
+    try {
+      await updateConfirmationContact(r.id, new Date().toISOString());
+      setIsConfirmingConfirmationEmail(false);
+    } finally {
+      setIsSendingConfirmationEmail(false);
+    }
+  };
 
   return <><div className="drawer-shade" onClick={onClose}/><aside className="drawer"><header><div><span className={"badge " + statusClass[r.status]}><i/>{reservationDisplayLabel(r)}</span><h2>{r.id}</h2></div><button onClick={onClose}><Icon name="close"/></button></header><div className="drawer-body">
     {isEditingReservation ? <section className="drawer-primary-action"><p className="section-label">予約内容を編集</p><div className="drawer-form single"><label>お名前<input value={editForm.name} onChange={event => setEditForm({ ...editForm, name: event.target.value })}/></label><label>メールアドレス<input type="email" value={editForm.email} onChange={event => setEditForm({ ...editForm, email: event.target.value })}/></label><label>電話番号<input value={editForm.phone} onChange={event => setEditForm({ ...editForm, phone: event.target.value })}/></label></div><div className="drawer-form"><label>利用日<input type="date" value={editForm.date} onChange={event => setEditForm({ ...editForm, date: event.target.value })}/></label><label>開始時間<input type="time" value={editForm.startTime} onChange={event => setEditForm({ ...editForm, startTime: event.target.value })}/></label><label>人数<select value={editForm.people} onChange={event => setEditForm({ ...editForm, people: Number(event.target.value) })}>{[1,2,3,4,5,6].map(value => <option key={value}>{value}</option>)}</select></label></div><MenuPicker menuCatalog={menuCatalog} selected={editForm.menuItems} onChange={menuItems => setEditForm({ ...editForm, menuItems })}/><div className="reservation-summary"><strong>{menuSelectionLabel(editForm.menuItems)}</strong><span>{bookingFormDateTimeLabel(editForm)}・{editForm.people}名</span><small>{"¥"}{selectedMenuTotal(editForm.menuItems, menuCatalog).toLocaleString()}</small></div><div className="drawer-actions"><button onClick={cancelReservationEdit} disabled={isSavingReservation}>キャンセル</button><button className="approve" disabled={!canSaveReservation} onClick={saveReservationEdit}><Icon name="check"/>{isSavingReservation ? "保存中" : "保存する"}</button></div></section> : !isAssigning ? <>
@@ -775,7 +789,7 @@ function ReservationDrawer({ reservation: r, onClose, updateStatus, updateConfir
       <section><p className="section-label">お客様情報</p><div className="customer-card"><span>{r.customer.slice(0,1)}</span><div><strong>{r.customer} 様</strong><small>{r.phone}<br/>{r.email ?? "customer@example.jp"}</small></div></div></section>
       <section><p className="section-label">予約内容</p><dl><div><dt>利用日時</dt><dd>{reservationDateTimeLabel(r)}</dd></div><div><dt>予定人数</dt><dd>{r.people}名</dd></div><div><dt>メニュー</dt><dd>{reservationMenuLabel(r)}</dd></div><div><dt>金額</dt><dd>{"¥"}{(r.totalAmount ?? 0).toLocaleString()}</dd></div><div><dt>同意確認</dt><dd>{policyAgreementLabel(r)}</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsEditingReservation(true)}>予約内容を編集</button></section>
       <section><p className="section-label">店舗割当</p><dl><div><dt>割当状況</dt><dd>{assignmentLabel(r) || "未割当"}</dd></div><div><dt>割当人数</dt><dd>{reservationAssignments(r).reduce((total, assignment) => total + assignment.people, 0)}名 / {r.people}名</dd></div></dl><button className="edit-reservation-button" onClick={() => setIsAssigning(true)}>店舗割当を編集</button></section>
-      {canUpdateConfirmationContact && <section><p className="section-label">確認連絡</p><dl><div><dt>連絡状況</dt><dd>{r.confirmationContactedAt ? "連絡済み" : "未連絡"}</dd></div></dl>{r.confirmationContactedAt ? <button className="edit-reservation-button" onClick={() => updateConfirmationContact(r.id, null)}>未連絡に戻す</button> : <button className="full-action" onClick={() => updateConfirmationContact(r.id, new Date().toISOString())}><Icon name="check"/>確認メール送信</button>}</section>}
+      {canUpdateConfirmationContact && <section><p className="section-label">確認連絡</p><dl><div><dt>連絡状況</dt><dd>{r.confirmationContactedAt ? "連絡済み" : "未連絡"}</dd></div></dl>{r.confirmationContactedAt ? <button className="edit-reservation-button" onClick={() => updateConfirmationContact(r.id, null)}>未連絡に戻す</button> : isConfirmingConfirmationEmail ? <div className="confirmation-send-confirm"><strong>確認メールを送信しますか？</strong><span>{r.customer} 様（{r.email ?? "メールアドレス未登録"}）へ確認メールを送信します。</span><small>{r.id}・{reservationDateTimeLabel(r)}</small><div><button type="button" disabled={isSendingConfirmationEmail} onClick={() => setIsConfirmingConfirmationEmail(false)}>キャンセル</button><button type="button" className="approve" disabled={isSendingConfirmationEmail || !r.email} onClick={sendConfirmationEmail}><Icon name="check"/>{isSendingConfirmationEmail ? "送信中" : "送信する"}</button></div></div> : <button className="full-action" onClick={() => setIsConfirmingConfirmationEmail(true)}><Icon name="check"/>確認メール送信</button>}</section>}
       <section><p className="section-label">例外操作</p><button className="exception-toggle" type="button" onClick={() => setIsManualStatusOpen(current => !current)}><span><strong>任意のステータスに変更</strong><small>管理者判断で通常の遷移以外にも変更できます</small></span><Icon name="arrow"/></button>{isManualStatusOpen && <div className="manual-status-panel drawer-form"><label>変更先ステータス<select value={manualStatus} onChange={event => setManualStatus(event.target.value as Status)}>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label><label>変更理由<textarea value={manualStatusReason} onChange={event => setManualStatusReason(event.target.value)} placeholder="例: お客様から電話で変更依頼があったため"/></label><button className="full-action manual-status-submit" disabled={!canSaveManualStatus} onClick={saveManualStatus}><Icon name="check"/>ステータスを変更する</button></div>}</section>
     </> : <section className="drawer-primary-action"><p className="section-label">店舗割当を編集</p><div className="assignment-editor">{assignmentDraft.map((assignment, index) => <div className="assignment-row" key={index}><select value={assignment.store} onChange={event => updateAssignment(index, { store: event.target.value })}><option value="">店舗を選択</option>{stores.map(store => <option key={store.name} value={store.name}>{store.name}</option>)}</select><input type="number" min="1" max={r.people} value={assignment.people || ""} onChange={event => updateAssignment(index, { people: Number(event.target.value) })}/><span>名</span><button onClick={() => removeAssignment(index)}>削除</button></div>)}</div><button className="edit-reservation-button" onClick={addAssignment}>割当行を追加</button><div className={assignmentDraft.length === 0 || assignedPeople === r.people ? "assignment-total ok" : "assignment-total warn"}>{assignmentDraft.length === 0 ? "未割当として保存できます" : <>割当合計 {assignedPeople}名 / 予約人数 {r.people}名</>}</div><div className="drawer-actions"><button onClick={() => setIsAssigning(false)}>キャンセル</button><button className="approve" disabled={!canSaveAssignments} onClick={saveAssignments}><Icon name="check"/>保存する</button></div></section>}
   </div></aside></>;

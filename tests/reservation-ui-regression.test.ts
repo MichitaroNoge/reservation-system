@@ -70,6 +70,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   const storeManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "store-management.tsx"), "utf8");
   const menuManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "menu-management.tsx"), "utf8");
   const confirmationContactRouteSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "[id]", "confirmation-contact", "route.ts"), "utf8");
+  const dataConnectRepositorySource = await readFile(path.join(process.cwd(), "lib", "repositories", "firebase-sql-connect-repository.ts"), "utf8");
+  const dataConnectMutationsSource = await readFile(path.join(process.cwd(), "dataconnect", "reservation", "mutations.gql"), "utf8");
 
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
   assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
@@ -119,6 +121,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.match(confirmationContactRouteSource, /await repository\.updateReservationStatus\(id, automaticStatus\)/);
+  assert.match(dataConnectRepositorySource, /contactedAt === null[\s\S]*clearConfirmationContact/);
+  assert.match(dataConnectRepositorySource, /confirmationContactedAt_expr: "null"/);
+  assert.match(dataConnectMutationsSource, /mutation ClearConfirmationContact/);
   assert.match(pageSource, /setReservations\(rs => rs\.map\(r => r\.id === id \? reservation : r\)\)/);
   assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);
   assert.match(pageSource, /const updateConfirmationContact = async[\s\S]*try \{[\s\S]*catch \(error\)/);

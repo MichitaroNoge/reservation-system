@@ -191,6 +191,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateConfirmationContact(id: string, contactedAt: string | null) {
     const current = await this.getReservationWithInternalId(id);
+    if (contactedAt === null) {
+      await this.clearConfirmationContact(current.dataConnectId);
+      return this.getReservationWithInternalId(id);
+    }
     await updateConfirmationContact(this.connection(), {
       id: current.dataConnectId,
       confirmationContactedAt: contactedAt,
@@ -636,6 +640,18 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const activeMenus = await this.listDataConnectMenus();
     const { data } = await listInactiveMenus(this.connection());
     return [...activeMenus, ...data.menus];
+  }
+
+  private async clearConfirmationContact(id: string) {
+    await this.connection().executeGraphql<void, { id: string }>(
+      `mutation ClearConfirmationContact($id: UUID!) {
+        reservation_update(key: {id: $id}, data: {
+          confirmationContactedAt_expr: "null"
+          updatedAt_expr: "request.time"
+        })
+      }`,
+      { variables: { id } },
+    );
   }
 
   private async nextReservationCode() {

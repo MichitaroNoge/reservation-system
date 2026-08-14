@@ -117,6 +117,14 @@ mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timesta
   })
 }
 
+mutation ClearConfirmationContact($id: UUID!)
+@auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: {
+    confirmationContactedAt_expr: "null"
+    updatedAt_expr: "request.time"
+  })
+}
+
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!)
 @auth(level: NO_ACCESS) {
   storeAssignment_insert(data: {

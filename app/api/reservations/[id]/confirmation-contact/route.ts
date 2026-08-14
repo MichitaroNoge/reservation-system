@@ -14,7 +14,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const nextContactedAt = validateConfirmationContactedAt(contactedAt);
     const repository = getReservationRepository();
     const reservation = nextContactedAt
-      ? await sendConfirmationEmailForReservation(repository, id, { now: new Date(nextContactedAt) })
+      ? await sendConfirmationEmailForReservation(repository, id, {
+        now: new Date(nextContactedAt),
+        idempotencyKeyScope: `manual/${nextContactedAt}`,
+      })
       : await repository.updateConfirmationContact(id, null);
     return NextResponse.json({ reservation });
   } catch (error) {

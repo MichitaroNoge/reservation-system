@@ -76,6 +76,30 @@ test("manual confirmation contact sends an email before marking contacted", asyn
   assert.equal(updated.confirmationContactedAt, now.toISOString());
 });
 
+test("manual confirmation contact can use a scoped idempotency key for resend after clearing", async () => {
+  const later = new Date("2026-08-14T00:05:00+09:00");
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-MANUAL-RESEND", date: "2026-08-30" }),
+  ]);
+  const emailClient = new RecordingEmailClient();
+
+  await sendConfirmationEmailForReservation(repository, "RSV-MANUAL-RESEND", {
+    now,
+    emailClient,
+    idempotencyKeyScope: `manual/${now.toISOString()}`,
+  });
+  await repository.updateConfirmationContact("RSV-MANUAL-RESEND", null);
+  await sendConfirmationEmailForReservation(repository, "RSV-MANUAL-RESEND", {
+    now: later,
+    emailClient,
+    idempotencyKeyScope: `manual/${later.toISOString()}`,
+  });
+
+  assert.equal(emailClient.sent.length, 2);
+  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL-RESEND" }, `manual/${now.toISOString()}`));
+  assert.equal(emailClient.sent[1].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL-RESEND" }, `manual/${later.toISOString()}`));
+});
+
 test("manual confirmation contact does not update contacted when email send fails", async () => {
   const repository = new MemoryReservationRepository([
     reservation({ id: "RSV-MANUAL-FAIL", date: "2026-08-30" }),

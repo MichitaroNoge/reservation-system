@@ -16,6 +16,7 @@ export type ConfirmationEmailServiceOptions = {
   now?: Date;
   daysBefore?: number;
   emailClient?: EmailClient;
+  idempotencyKeyScope?: string;
 };
 
 const defaultDaysBefore = 6;
@@ -77,7 +78,7 @@ export async function sendConfirmationEmailForReservation(
     subject: content.subject,
     text: content.text,
     html: content.html,
-    idempotencyKey: confirmationEmailIdempotencyKey(reservation),
+    idempotencyKey: confirmationEmailIdempotencyKey(reservation, options.idempotencyKeyScope),
   });
   return repository.updateConfirmationContact(reservation.id, now.toISOString());
 }
@@ -96,8 +97,8 @@ export function confirmationEmailScheduledAt(reservation: Pick<Reservation, "dat
   return date;
 }
 
-export function confirmationEmailIdempotencyKey(reservation: Pick<Reservation, "id">) {
-  return `reservation-confirmation/${reservation.id}`;
+export function confirmationEmailIdempotencyKey(reservation: Pick<Reservation, "id">, scope?: string) {
+  return scope ? `reservation-confirmation/${reservation.id}/${scope}` : `reservation-confirmation/${reservation.id}`;
 }
 
 export function confirmationEmailDaysBefore() {

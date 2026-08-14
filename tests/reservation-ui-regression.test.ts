@@ -72,6 +72,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   const confirmationContactRouteSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "[id]", "confirmation-contact", "route.ts"), "utf8");
   const dataConnectRepositorySource = await readFile(path.join(process.cwd(), "lib", "repositories", "firebase-sql-connect-repository.ts"), "utf8");
   const dataConnectMutationsSource = await readFile(path.join(process.cwd(), "dataconnect", "reservation", "mutations.gql"), "utf8");
+  const resendClientSource = await readFile(path.join(process.cwd(), "lib", "email", "resend-email-client.ts"), "utf8");
 
   assert.match(typeSource, /"reservationApprovals"\s*\|\s*"cancellationApprovals"/);
   assert.match(pageSource, /title="予約の承認"[\s\S]*setView\("reservationApprovals"\)/);
@@ -119,6 +120,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head\{[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
+  assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);
   assert.doesNotMatch(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.doesNotMatch(confirmationContactRouteSource, /updateReservationStatus\(id, automaticStatus\)/);
   assert.match(dataConnectRepositorySource, /contactedAt === null[\s\S]*clearConfirmationContact/);
@@ -131,6 +133,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /notify\(message\)/);
   assert.match(pageSource, /確認メールを送信しました/);
   assert.match(pageSource, /確認メールの一括送信に失敗しました/);
+  assert.match(resendClientSource, /確認メールの送信に失敗しました/);
+  assert.doesNotMatch(resendClientSource, /遒ｺ隱|縺|繧|螟/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
   assert.match(commonSource, /count \? "has-count" : "no-count"/);

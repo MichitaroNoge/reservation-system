@@ -253,9 +253,13 @@ export default function Home() {
       method: "PATCH",
       body: JSON.stringify({ contactedAt }),
     });
-    setReservations(rs => rs.map(r => r.id === id ? reservation : r));
-    setSelected(s => s?.id === id ? reservation : s);
-    return reservation;
+    const current = reservations.find(r => r.id === id) ?? selected;
+    const normalizedReservation = !contactedAt && current?.status === STATUS.waitingForVisit
+      ? { ...reservation, status: STATUS.confirmed }
+      : reservation;
+    setReservations(rs => rs.map(r => r.id === id ? normalizedReservation : r));
+    setSelected(s => s?.id === id ? normalizedReservation : s);
+    return normalizedReservation;
   };
   const updateConfirmationContact = async (id: string, contactedAt: string | null) => {
     try {

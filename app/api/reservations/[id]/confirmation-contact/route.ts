@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateConfirmationContactedAt } from "@/lib/api-validation";
-import { getAutomaticReservationStatus } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
 import { sendConfirmationEmailForReservation } from "@/lib/services/confirmation-email-service";
 
@@ -14,13 +13,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const { contactedAt } = await readJsonObject(request);
     const nextContactedAt = validateConfirmationContactedAt(contactedAt);
     const repository = getReservationRepository();
-    let reservation = nextContactedAt
+    const reservation = nextContactedAt
       ? await sendConfirmationEmailForReservation(repository, id, { now: new Date(nextContactedAt) })
       : await repository.updateConfirmationContact(id, null);
-    const automaticStatus = getAutomaticReservationStatus(reservation);
-    if (automaticStatus !== reservation.status) {
-      reservation = await repository.updateReservationStatus(id, automaticStatus);
-    }
     return NextResponse.json({ reservation });
   } catch (error) {
     return apiErrorResponse(error);

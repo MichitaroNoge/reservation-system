@@ -109,15 +109,6 @@ mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!, $reque
   })
 }
 
-mutation UpdateReservationStatusClearingRequestType($id: UUID!, $status: ReservationStatus!)
-@auth(level: NO_ACCESS) {
-  reservation_update(key: {id: $id}, data: {
-    status: $status
-    requestType: null
-    updatedAt_expr: "request.time"
-  })
-}
-
 mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timestamp)
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {

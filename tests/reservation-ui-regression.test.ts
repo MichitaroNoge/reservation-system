@@ -120,6 +120,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head\{[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
+  assert.match(confirmationContactRouteSource, /sendEmail !== false/);
   assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);
   assert.doesNotMatch(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.doesNotMatch(confirmationContactRouteSource, /updateReservationStatus\(id, automaticStatus\)/);
@@ -134,6 +135,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /確認メールを送信しました/);
   assert.match(pageSource, /確認メールの一括送信に失敗しました/);
   assert.match(pageSource, /確認メール送信/);
+  assert.match(pageSource, /手動で確認済みにする/);
+  assert.match(pageSource, /sendEmail: false/);
   assert.match(pageSource, /確認メール一括送信/);
   assert.match(pageSource, /送信中/);
   assert.match(pageSource, /確認メールを送信しますか？/);

@@ -117,6 +117,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head\{[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
+  assert.match(confirmationContactRouteSource, /getAutomaticReservationStatus/);
+  assert.match(confirmationContactRouteSource, /await repository\.updateReservationStatus\(id, automaticStatus\)/);
+  assert.match(pageSource, /setReservations\(rs => rs\.map\(r => r\.id === id \? reservation : r\)\)/);
+  assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);
   assert.match(pageSource, /確認メールを送信しました/);
   assert.match(pageSource, /確認メールの一括送信に失敗しました/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

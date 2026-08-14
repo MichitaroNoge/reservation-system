@@ -253,7 +253,9 @@ export default function Home() {
       method: "PATCH",
       body: JSON.stringify({ contactedAt }),
     });
-    return applyAutomaticStatus(reservation);
+    setReservations(rs => rs.map(r => r.id === id ? reservation : r));
+    setSelected(s => s?.id === id ? reservation : s);
+    return reservation;
   };
   const updateConfirmationContact = async (id: string, contactedAt: string | null) => {
     const reservation = await saveConfirmationContact(id, contactedAt);

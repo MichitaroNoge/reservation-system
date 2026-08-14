@@ -133,6 +133,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /notify\(message\)/);
   assert.match(pageSource, /確認メールを送信しました/);
   assert.match(pageSource, /確認メールの一括送信に失敗しました/);
+  assert.match(pageSource, /確認メール送信/);
+  assert.match(pageSource, /確認メール一括送信/);
+  assert.match(pageSource, /送信中/);
+  assert.doesNotMatch(pageSource, /確認連絡済みにする|一括更新|更新中/);
   assert.match(resendClientSource, /確認メールの送信に失敗しました/);
   assert.doesNotMatch(resendClientSource, /遒ｺ隱|縺|繧|螟/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);

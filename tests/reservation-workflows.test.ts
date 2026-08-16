@@ -83,6 +83,8 @@ test("important reservation workflows", async (t) => {
       email: "yui@example.jp",
       phone: "080-1111-2222",
       address: "東京都渋谷区1-2-3",
+      paymentCondition: "invoice",
+      remarks: "領収書の宛名を確認する",
       menuItems: ["季節のコース", "記念日プレート"],
       status: reservationStatusCodes.confirmedRequested,
     });
@@ -94,6 +96,8 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.totalAmount, 9000);
     assert.equal(reservation.store, null);
     assert.equal(reservation.address, "東京都渋谷区1-2-3");
+    assert.equal(reservation.paymentCondition, "invoice");
+    assert.equal(reservation.remarks, "領収書の宛名を確認する");
 
     const customers = await repository.listCustomers();
     const customer = customers.find((item) => item.contact === "yui@example.jp");
@@ -122,6 +126,13 @@ test("important reservation workflows", async (t) => {
 
     const manual = await repository.updateReservation(reservation.id, { endTime: "20:30" });
     assert.equal(manual.endTime, "20:30");
+
+    const updatedPayment = await repository.updateReservation(reservation.id, {
+      paymentCondition: "onsite_card",
+      remarks: "カード払い希望",
+    });
+    assert.equal(updatedPayment.paymentCondition, "onsite_card");
+    assert.equal(updatedPayment.remarks, "カード払い希望");
   });
 
   await t.test("uses default end time when selected menu has no configured duration", async () => {

@@ -68,6 +68,8 @@ type Reservation @table {
   groupNameKana: String @col(dataType: "varchar(100)")
   groupType: String @col(dataType: "varchar(100)")
   groupTypeOther: String @col(dataType: "varchar(100)")
+  paymentCondition: String @col(dataType: "varchar(30)")
+  remarks: String
   expectedPeople: Int!
   policyAgreementKind: String @col(dataType: "varchar(20)")
   policyAgreementAcceptedAt: Timestamp

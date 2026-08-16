@@ -1,4 +1,4 @@
-﻿import { normalizeReservationStatus, reservationStatuses, type CreateReservationInput, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
+﻿import { normalizeReservationStatus, paymentConditions, reservationStatuses, type CreateReservationInput, type PaymentCondition, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
 
 import type { CreateReservationChangeRequestInput, CustomerAccountType, ReservationBookingType } from "./domain";
 
@@ -77,6 +77,8 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
     groupNameKana: optionalTrimmedString(body.groupNameKana, "groupNameKana", 100),
     groupType: optionalTrimmedString(body.groupType, "groupType", 100),
     groupTypeOther: optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100),
+    paymentCondition: validatePaymentCondition(body.paymentCondition),
+    remarks: optionalTrimmedString(body.remarks, "remarks", 1000),
     menu: body.menu === undefined ? undefined : requireNonEmptyString(body.menu, "menu", 100),
     menuItems,
     status,
@@ -112,6 +114,8 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.groupNameKana !== undefined) input.groupNameKana = optionalTrimmedString(body.groupNameKana, "groupNameKana", 100);
   if (body.groupType !== undefined) input.groupType = optionalTrimmedString(body.groupType, "groupType", 100);
   if (body.groupTypeOther !== undefined) input.groupTypeOther = optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100);
+  if (body.paymentCondition !== undefined) input.paymentCondition = validatePaymentCondition(body.paymentCondition);
+  if (body.remarks !== undefined) input.remarks = requireString(body.remarks, "remarks", 1000).trim();
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
   return input;
 }
@@ -202,6 +206,12 @@ function validateReservationBookingType(value: unknown): ReservationBookingType 
   if (value === undefined || value === null || value === "") return undefined;
   if (value === "individual" || value === "travel_agency_group") return value;
   throw new ApiValidationError("bookingType must be individual or travel_agency_group.");
+}
+
+function validatePaymentCondition(value: unknown): PaymentCondition | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value === "string" && paymentConditions.includes(value as PaymentCondition)) return value as PaymentCondition;
+  throw new ApiValidationError("paymentCondition must be a valid payment condition code.");
 }
 
 function assertGroupReservationFields(input: CreateReservationInput) {

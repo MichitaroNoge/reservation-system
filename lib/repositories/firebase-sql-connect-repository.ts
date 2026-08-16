@@ -62,6 +62,7 @@ import {
 import {
   calculateReservationEndTime,
   getAutomaticReservationStatus,
+  normalizePaymentCondition,
   normalizeReservationRequestType,
   normalizeReservationStatus,
   reservationStatusCodes,
@@ -145,6 +146,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       groupNameKana: input.groupNameKana ?? null,
       groupType: input.groupType ?? null,
       groupTypeOther: input.groupTypeOther ?? null,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition),
+      remarks: input.remarks ?? null,
       policyAgreementKind: input.policyAgreement?.kind,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt,
     });
@@ -190,6 +193,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       groupNameKana: input.groupNameKana ?? current.groupNameKana ?? null,
       groupType: input.groupType ?? current.groupType ?? null,
       groupTypeOther: input.groupTypeOther ?? current.groupTypeOther ?? null,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition ?? current.paymentCondition),
+      remarks: input.remarks ?? current.remarks ?? null,
     });
     if (input.menuItems !== undefined) {
       await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
@@ -739,6 +744,8 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     groupNameKana: dataConnectStringField(reservation, "groupNameKana"),
     groupType: dataConnectStringField(reservation, "groupType"),
     groupTypeOther: dataConnectStringField(reservation, "groupTypeOther"),
+    paymentCondition: normalizePaymentCondition(dataConnectStringField(reservation, "paymentCondition")),
+    remarks: dataConnectStringField(reservation, "remarks"),
     date: reservation.usageDate,
     startTime: reservation.usageTime,
     endTime: dataConnectStringField(reservation, "usageEndTime") ?? calculateReservationEndTime(reservation.usageTime, menuItems, (reservation.reservationDetails_on_reservation ?? []).map((detail) => ({

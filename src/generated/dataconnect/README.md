@@ -153,6 +153,8 @@ export interface ListReservationsData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -305,6 +307,8 @@ export interface GetReservationData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -481,6 +485,8 @@ export interface GetReservationByCodeData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -2927,6 +2933,8 @@ export interface CreateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -2964,6 +2972,8 @@ const createReservationVars: CreateReservationVariables = {
   groupNameKana: ..., // optional
   groupType: ..., // optional
   groupTypeOther: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -2972,7 +2982,7 @@ const createReservationVars: CreateReservationVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await createReservation(createReservationVars);
 // Variables can be defined inline as well.
-const { data } = await createReservation({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const { data } = await createReservation({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3011,6 +3021,8 @@ const createReservationVars: CreateReservationVariables = {
   groupNameKana: ..., // optional
   groupType: ..., // optional
   groupTypeOther: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -3018,7 +3030,7 @@ const createReservationVars: CreateReservationVariables = {
 // Call the `createReservationRef()` function to get a reference to the mutation.
 const ref = createReservationRef(createReservationVars);
 // Variables can be defined inline as well.
-const ref = createReservationRef({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const ref = createReservationRef({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3311,6 +3323,8 @@ export interface UpdateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
 }
 ```
 ### Return Type
@@ -3343,13 +3357,15 @@ const updateReservationVars: UpdateReservationVariables = {
   groupNameKana: ..., // optional
   groupType: ..., // optional
   groupTypeOther: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
 };
 
 // Call the `updateReservation()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateReservation(updateReservationVars);
 // Variables can be defined inline as well.
-const { data } = await updateReservation({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., });
+const { data } = await updateReservation({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3385,12 +3401,14 @@ const updateReservationVars: UpdateReservationVariables = {
   groupNameKana: ..., // optional
   groupType: ..., // optional
   groupTypeOther: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
 };
 
 // Call the `updateReservationRef()` function to get a reference to the mutation.
 const ref = updateReservationRef(updateReservationVars);
 // Variables can be defined inline as well.
-const ref = updateReservationRef({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., });
+const ref = updateReservationRef({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);

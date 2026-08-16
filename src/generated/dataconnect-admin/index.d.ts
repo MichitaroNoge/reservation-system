@@ -131,6 +131,8 @@ export interface CreateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -297,6 +299,8 @@ export interface GetReservationByCodeData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -360,6 +364,8 @@ export interface GetReservationData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -603,6 +609,8 @@ export interface ListReservationsData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -811,6 +819,8 @@ export interface UpdateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
 }
 
 export interface UpdateStoreData {

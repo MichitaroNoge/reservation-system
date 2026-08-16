@@ -15,6 +15,8 @@ query ListReservations @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt
@@ -54,6 +56,8 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt
@@ -95,6 +99,8 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt

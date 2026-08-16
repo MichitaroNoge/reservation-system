@@ -189,6 +189,8 @@ export interface ListReservationsData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -319,6 +321,8 @@ export interface GetReservationData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -468,6 +472,8 @@ export interface GetReservationByCodeData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -2432,6 +2438,8 @@ export interface CreateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -2499,12 +2507,14 @@ export default function CreateReservationComponent() {
     groupNameKana: ..., // optional
     groupType: ..., // optional
     groupTypeOther: ..., // optional
+    paymentCondition: ..., // optional
+    remarks: ..., // optional
     policyAgreementKind: ..., // optional
     policyAgreementAcceptedAt: ..., // optional
   };
   mutation.mutate(createReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2751,6 +2761,8 @@ export interface UpdateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
 }
 ```
 ### Return Type
@@ -2813,10 +2825,12 @@ export default function UpdateReservationComponent() {
     groupNameKana: ..., // optional
     groupType: ..., // optional
     groupTypeOther: ..., // optional
+    paymentCondition: ..., // optional
+    remarks: ..., // optional
   };
   mutation.mutate(updateReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., });
+  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

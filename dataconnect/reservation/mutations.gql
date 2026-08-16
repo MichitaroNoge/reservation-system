@@ -74,6 +74,8 @@ mutation CreateReservation(
   $groupNameKana: String
   $groupType: String
   $groupTypeOther: String
+  $paymentCondition: String
+  $remarks: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
 )
@@ -95,6 +97,8 @@ mutation CreateReservation(
     groupNameKana: $groupNameKana
     groupType: $groupType
     groupTypeOther: $groupTypeOther
+    paymentCondition: $paymentCondition
+    remarks: $remarks
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
   })
@@ -129,6 +133,8 @@ mutation UpdateReservation(
   $groupNameKana: String
   $groupType: String
   $groupTypeOther: String
+  $paymentCondition: String
+  $remarks: String
 )
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
@@ -144,6 +150,8 @@ mutation UpdateReservation(
     groupNameKana: $groupNameKana
     groupType: $groupType
     groupTypeOther: $groupTypeOther
+    paymentCondition: $paymentCondition
+    remarks: $remarks
     updatedAt_expr: "request.time"
   })
 }

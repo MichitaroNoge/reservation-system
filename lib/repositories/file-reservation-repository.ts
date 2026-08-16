@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -71,7 +71,7 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
       : [];
   const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
   const startTime = reservation.startTime ?? defaultStartTime;
-  return { ...reservation, startTime, endTime: reservation.endTime ?? calculateReservationEndTime(startTime, menuItems, menus), menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
+  return { ...reservation, startTime, endTime: reservation.endTime ?? calculateReservationEndTime(startTime, menuItems, menus), menuItems, totalAmount, storeAssignments, store, paymentCondition: normalizePaymentCondition(reservation.paymentCondition), status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -155,6 +155,8 @@ export class FileReservationRepository implements ReservationRepository {
       groupNameKana: input.groupNameKana,
       groupType: input.groupType,
       groupTypeOther: input.groupTypeOther,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition),
+      remarks: input.remarks,
       date: input.date,
       startTime,
       endTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, database.menus),
@@ -214,6 +216,8 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.groupNameKana !== undefined) reservation.groupNameKana = input.groupNameKana;
     if (input.groupType !== undefined) reservation.groupType = input.groupType;
     if (input.groupTypeOther !== undefined) reservation.groupTypeOther = input.groupTypeOther;
+    if (input.paymentCondition !== undefined) reservation.paymentCondition = normalizePaymentCondition(input.paymentCondition);
+    if (input.remarks !== undefined) reservation.remarks = input.remarks;
     if (input.menuItems !== undefined) {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);

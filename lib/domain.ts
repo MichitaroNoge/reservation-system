@@ -13,6 +13,43 @@ export type ReservationStatus =
 export type ReservationRequestType = "confirmed_from_temporary";
 export type CustomerAccountType = "individual" | "travel_agency";
 export type ReservationBookingType = "individual" | "travel_agency_group";
+export type PaymentCondition =
+  | "onsite_cash"
+  | "onsite_card"
+  | "onsite_cashless"
+  | "invoice"
+  | "prepaid"
+  | "other";
+
+export const paymentConditions = [
+  "onsite_cash",
+  "onsite_card",
+  "onsite_cashless",
+  "invoice",
+  "prepaid",
+  "other",
+] as const satisfies readonly PaymentCondition[];
+
+export const defaultPaymentCondition: PaymentCondition = "onsite_cash";
+
+export const paymentConditionLabels: Record<PaymentCondition, string> = {
+  onsite_cash: "現地払い（現金）",
+  onsite_card: "現地払い（クレジットカード）",
+  onsite_cashless: "現地払い（電子マネー・QR）",
+  invoice: "請求書払い",
+  prepaid: "事前決済",
+  other: "その他",
+};
+
+export function normalizePaymentCondition(value: unknown): PaymentCondition {
+  return typeof value === "string" && paymentConditions.includes(value as PaymentCondition)
+    ? value as PaymentCondition
+    : defaultPaymentCondition;
+}
+
+export function paymentConditionLabel(value: PaymentCondition | undefined) {
+  return paymentConditionLabels[normalizePaymentCondition(value)];
+}
 
 export function normalizeReservationRequestType(value: unknown): ReservationRequestType | null {
   return value === "confirmed_from_temporary" ? value : null;
@@ -192,6 +229,8 @@ export type Reservation = {
   groupNameKana?: string;
   groupType?: string;
   groupTypeOther?: string;
+  paymentCondition?: PaymentCondition;
+  remarks?: string;
   date: string;
   startTime?: string;
   endTime?: string;
@@ -328,9 +367,11 @@ export type CreateReservationInput = {
   groupNameKana?: string;
   groupType?: string;
   groupTypeOther?: string;
+  paymentCondition?: PaymentCondition;
+  remarks?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther" | "paymentCondition" | "remarks">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];

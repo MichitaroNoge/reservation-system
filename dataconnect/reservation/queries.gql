@@ -15,6 +15,8 @@ query ListReservations @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    tcCount
+    dgCount
     paymentCondition
     remarks
     expectedPeople
@@ -56,6 +58,8 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    tcCount
+    dgCount
     paymentCondition
     remarks
     expectedPeople
@@ -99,6 +103,8 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
     groupNameKana
     groupType
     groupTypeOther
+    tcCount
+    dgCount
     paymentCondition
     remarks
     expectedPeople

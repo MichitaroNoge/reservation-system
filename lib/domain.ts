@@ -229,6 +229,8 @@ export type Reservation = {
   groupNameKana?: string;
   groupType?: string;
   groupTypeOther?: string;
+  tcCount?: number;
+  dgCount?: number;
   paymentCondition?: PaymentCondition;
   remarks?: string;
   date: string;
@@ -367,11 +369,13 @@ export type CreateReservationInput = {
   groupNameKana?: string;
   groupType?: string;
   groupTypeOther?: string;
+  tcCount?: number;
+  dgCount?: number;
   paymentCondition?: PaymentCondition;
   remarks?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther" | "paymentCondition" | "remarks">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther" | "tcCount" | "dgCount" | "paymentCondition" | "remarks">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];

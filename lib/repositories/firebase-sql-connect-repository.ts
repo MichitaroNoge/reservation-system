@@ -146,6 +146,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       groupNameKana: input.groupNameKana ?? null,
       groupType: input.groupType ?? null,
       groupTypeOther: input.groupTypeOther ?? null,
+      tcCount: input.tcCount ?? 0,
+      dgCount: input.dgCount ?? 0,
       paymentCondition: normalizePaymentCondition(input.paymentCondition),
       remarks: input.remarks ?? null,
       policyAgreementKind: input.policyAgreement?.kind,
@@ -193,6 +195,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       groupNameKana: input.groupNameKana ?? current.groupNameKana ?? null,
       groupType: input.groupType ?? current.groupType ?? null,
       groupTypeOther: input.groupTypeOther ?? current.groupTypeOther ?? null,
+      tcCount: input.tcCount ?? current.tcCount ?? 0,
+      dgCount: input.dgCount ?? current.dgCount ?? 0,
       paymentCondition: normalizePaymentCondition(input.paymentCondition ?? current.paymentCondition),
       remarks: input.remarks ?? current.remarks ?? null,
     });
@@ -744,6 +748,8 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     groupNameKana: dataConnectStringField(reservation, "groupNameKana"),
     groupType: dataConnectStringField(reservation, "groupType"),
     groupTypeOther: dataConnectStringField(reservation, "groupTypeOther"),
+    tcCount: dataConnectNumberField(reservation, "tcCount") ?? 0,
+    dgCount: dataConnectNumberField(reservation, "dgCount") ?? 0,
     paymentCondition: normalizePaymentCondition(dataConnectStringField(reservation, "paymentCondition")),
     remarks: dataConnectStringField(reservation, "remarks"),
     date: reservation.usageDate,
@@ -818,6 +824,12 @@ function dataConnectStringField(source: unknown, field: string) {
   if (typeof source !== "object" || source === null || !(field in source)) return undefined;
   const value = (source as Record<string, unknown>)[field];
   return typeof value === "string" ? value : undefined;
+}
+
+function dataConnectNumberField(source: unknown, field: string) {
+  if (typeof source !== "object" || source === null || !(field in source)) return undefined;
+  const value = (source as Record<string, unknown>)[field];
+  return typeof value === "number" ? value : undefined;
 }
 
 function toStore(store: DataConnectStore): Store {

@@ -74,6 +74,8 @@ mutation CreateReservation(
   $groupNameKana: String
   $groupType: String
   $groupTypeOther: String
+  $tcCount: Int = 0
+  $dgCount: Int = 0
   $paymentCondition: String
   $remarks: String
   $policyAgreementKind: String
@@ -97,6 +99,8 @@ mutation CreateReservation(
     groupNameKana: $groupNameKana
     groupType: $groupType
     groupTypeOther: $groupTypeOther
+    tcCount: $tcCount
+    dgCount: $dgCount
     paymentCondition: $paymentCondition
     remarks: $remarks
     policyAgreementKind: $policyAgreementKind
@@ -133,6 +137,8 @@ mutation UpdateReservation(
   $groupNameKana: String
   $groupType: String
   $groupTypeOther: String
+  $tcCount: Int = 0
+  $dgCount: Int = 0
   $paymentCondition: String
   $remarks: String
 )
@@ -150,6 +156,8 @@ mutation UpdateReservation(
     groupNameKana: $groupNameKana
     groupType: $groupType
     groupTypeOther: $groupTypeOther
+    tcCount: $tcCount
+    dgCount: $dgCount
     paymentCondition: $paymentCondition
     remarks: $remarks
     updatedAt_expr: "request.time"

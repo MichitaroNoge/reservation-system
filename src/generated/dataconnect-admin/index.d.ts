@@ -131,6 +131,8 @@ export interface CreateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
   paymentCondition?: string | null;
   remarks?: string | null;
   policyAgreementKind?: string | null;
@@ -299,6 +301,8 @@ export interface GetReservationByCodeData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -364,6 +368,8 @@ export interface GetReservationData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -609,6 +615,8 @@ export interface ListReservationsData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -819,6 +827,8 @@ export interface UpdateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
   paymentCondition?: string | null;
   remarks?: string | null;
 }

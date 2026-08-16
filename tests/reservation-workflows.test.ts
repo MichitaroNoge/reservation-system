@@ -168,6 +168,8 @@ test("important reservation workflows", async (t) => {
       groupName: "○○小学校 修学旅行",
       groupNameKana: "まるまるしょうがっこう しゅうがくりょこう",
       groupType: "小学校",
+      tcCount: 2,
+      dgCount: 1,
       menuItems: ["季節のコース"],
       status: reservationStatusCodes.confirmedRequested,
     });
@@ -179,6 +181,12 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.dayContactName, "佐藤花子");
     assert.equal(reservation.groupName, "○○小学校 修学旅行");
     assert.equal(reservation.groupType, "小学校");
+    assert.equal(reservation.tcCount, 2);
+    assert.equal(reservation.dgCount, 1);
+
+    const updated = await repository.updateReservation(reservation.id, { tcCount: 3, dgCount: 0 });
+    assert.equal(updated.tcCount, 3);
+    assert.equal(updated.dgCount, 0);
 
     const customer = (await repository.listCustomers()).find((item) => item.contact === "agency@example.jp");
     assert.equal(customer?.accountType, "travel_agency");

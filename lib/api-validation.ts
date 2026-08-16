@@ -77,6 +77,8 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
     groupNameKana: optionalTrimmedString(body.groupNameKana, "groupNameKana", 100),
     groupType: optionalTrimmedString(body.groupType, "groupType", 100),
     groupTypeOther: optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100),
+    tcCount: optionalInteger(body.tcCount, "tcCount", { min: 0, max: 999 }),
+    dgCount: optionalInteger(body.dgCount, "dgCount", { min: 0, max: 999 }),
     paymentCondition: validatePaymentCondition(body.paymentCondition),
     remarks: optionalTrimmedString(body.remarks, "remarks", 1000),
     menu: body.menu === undefined ? undefined : requireNonEmptyString(body.menu, "menu", 100),
@@ -114,6 +116,8 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.groupNameKana !== undefined) input.groupNameKana = optionalTrimmedString(body.groupNameKana, "groupNameKana", 100);
   if (body.groupType !== undefined) input.groupType = optionalTrimmedString(body.groupType, "groupType", 100);
   if (body.groupTypeOther !== undefined) input.groupTypeOther = optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100);
+  if (body.tcCount !== undefined) input.tcCount = optionalInteger(body.tcCount, "tcCount", { min: 0, max: 999 }) ?? 0;
+  if (body.dgCount !== undefined) input.dgCount = optionalInteger(body.dgCount, "dgCount", { min: 0, max: 999 }) ?? 0;
   if (body.paymentCondition !== undefined) input.paymentCondition = validatePaymentCondition(body.paymentCondition);
   if (body.remarks !== undefined) input.remarks = requireString(body.remarks, "remarks", 1000).trim();
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
@@ -273,6 +277,11 @@ function optionalStringArray(value: unknown, field: string) {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) throw new ApiValidationError(`${field} must be an array.`);
   return value.map((item, index) => requireNonEmptyString(item, `${field}[${index}]`, 100));
+}
+
+function optionalInteger(value: unknown, field: string, options: { min: number; max: number }) {
+  if (value === undefined || value === null || value === "") return undefined;
+  return requireInteger(value, field, options);
 }
 
 function requireInteger(value: unknown, field: string, options: { min: number; max: number }) {

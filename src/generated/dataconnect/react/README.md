@@ -189,6 +189,8 @@ export interface ListReservationsData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -321,6 +323,8 @@ export interface GetReservationData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -472,6 +476,8 @@ export interface GetReservationByCodeData {
     groupNameKana?: string | null;
     groupType?: string | null;
     groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
     paymentCondition?: string | null;
     remarks?: string | null;
     expectedPeople: number;
@@ -2438,6 +2444,8 @@ export interface CreateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
   paymentCondition?: string | null;
   remarks?: string | null;
   policyAgreementKind?: string | null;
@@ -2507,6 +2515,8 @@ export default function CreateReservationComponent() {
     groupNameKana: ..., // optional
     groupType: ..., // optional
     groupTypeOther: ..., // optional
+    tcCount: ..., // optional
+    dgCount: ..., // optional
     paymentCondition: ..., // optional
     remarks: ..., // optional
     policyAgreementKind: ..., // optional
@@ -2514,7 +2524,7 @@ export default function CreateReservationComponent() {
   };
   mutation.mutate(createReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2761,6 +2771,8 @@ export interface UpdateReservationVariables {
   groupNameKana?: string | null;
   groupType?: string | null;
   groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
   paymentCondition?: string | null;
   remarks?: string | null;
 }
@@ -2825,12 +2837,14 @@ export default function UpdateReservationComponent() {
     groupNameKana: ..., // optional
     groupType: ..., // optional
     groupTypeOther: ..., // optional
+    tcCount: ..., // optional
+    dgCount: ..., // optional
     paymentCondition: ..., // optional
     remarks: ..., // optional
   };
   mutation.mutate(updateReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., paymentCondition: ..., remarks: ..., });
+  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {

@@ -155,6 +155,8 @@ export class FileReservationRepository implements ReservationRepository {
       groupNameKana: input.groupNameKana,
       groupType: input.groupType,
       groupTypeOther: input.groupTypeOther,
+      tcCount: input.tcCount ?? 0,
+      dgCount: input.dgCount ?? 0,
       paymentCondition: normalizePaymentCondition(input.paymentCondition),
       remarks: input.remarks,
       date: input.date,
@@ -216,6 +218,8 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.groupNameKana !== undefined) reservation.groupNameKana = input.groupNameKana;
     if (input.groupType !== undefined) reservation.groupType = input.groupType;
     if (input.groupTypeOther !== undefined) reservation.groupTypeOther = input.groupTypeOther;
+    if (input.tcCount !== undefined) reservation.tcCount = input.tcCount;
+    if (input.dgCount !== undefined) reservation.dgCount = input.dgCount;
     if (input.paymentCondition !== undefined) reservation.paymentCondition = normalizePaymentCondition(input.paymentCondition);
     if (input.remarks !== undefined) reservation.remarks = input.remarks;
     if (input.menuItems !== undefined) {

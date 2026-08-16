@@ -144,6 +144,7 @@ export class FileReservationRepository implements ReservationRepository {
       id: nextReservationId(database.reservations),
       customer: input.name,
       email: input.email,
+      address: input.address,
       date: input.date,
       startTime: input.startTime ?? defaultStartTime,
       people: input.people,
@@ -158,6 +159,22 @@ export class FileReservationRepository implements ReservationRepository {
       received: receivedLabel(),
       phone: input.phone,
     };
+    database.customers ??= [];
+    const customerIndex = database.customers.findIndex((customer) => customer.contact.toLowerCase() === input.email.toLowerCase());
+    const savedCustomer: Customer = {
+      id: database.customers[customerIndex]?.id ?? `file-customer-${Date.now()}`,
+      name: input.name,
+      contact: input.email,
+      phone: input.phone,
+      address: input.address,
+      count: database.customers[customerIndex]?.count ?? 0,
+      last: database.customers[customerIndex]?.last ?? "-",
+    };
+    if (customerIndex >= 0) {
+      database.customers[customerIndex] = savedCustomer;
+    } else {
+      database.customers.push(savedCustomer);
+    }
     database.reservations = [reservation, ...database.reservations];
     await this.writeDatabase(database);
     return reservation;
@@ -173,6 +190,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.customer !== undefined) reservation.customer = input.customer;
     if (input.email !== undefined) reservation.email = input.email;
     if (input.phone !== undefined) reservation.phone = input.phone;
+    if (input.address !== undefined) reservation.address = input.address;
     if (input.menuItems !== undefined) {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
@@ -317,6 +335,7 @@ export class FileReservationRepository implements ReservationRepository {
         name: reservation.customer,
         contact: reservation.email ?? "customer@example.jp",
         phone: reservation.phone,
+        address: reservation.address ?? current?.address,
         count: (current?.count ?? 0) + 1,
         last: reservation.date.replaceAll("-", "/"),
       });
@@ -344,6 +363,7 @@ export class FileReservationRepository implements ReservationRepository {
       name: input.name,
       contact: input.contact,
       phone: input.phone,
+      address: input.address,
       count: 0,
       last: "-",
     };
@@ -363,6 +383,7 @@ export class FileReservationRepository implements ReservationRepository {
         name: input.name,
         contact: input.contact,
         phone: input.phone,
+        address: input.address,
       };
     }
     const targets = database.reservations.filter((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact);
@@ -372,6 +393,7 @@ export class FileReservationRepository implements ReservationRepository {
       customer: input.name,
       email: input.contact,
       phone: input.phone,
+      address: input.address,
     } : reservation);
     await this.writeDatabase(database);
     const updated = (await this.listCustomers()).find((customer) => customer.name === input.name);

@@ -76,6 +76,7 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -660,6 +661,7 @@ export interface UpdateCustomerIdentityVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -668,6 +670,7 @@ export interface UpdateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
 }
 
 export interface UpdateMenuData {
@@ -1239,4 +1242,3 @@ export const listBillingRecordsRef: ListBillingRecordsRef;
 
 export function listBillingRecords(options?: ExecuteQueryOptions): QueryPromise<ListBillingRecordsData, undefined>;
 export function listBillingRecords(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListBillingRecordsData, undefined>;
-

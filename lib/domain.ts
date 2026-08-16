@@ -181,6 +181,7 @@ export type Reservation = {
   id: string;
   customer: string;
   email?: string;
+  address?: string;
   date: string;
   startTime?: string;
   people: number;
@@ -251,6 +252,7 @@ export type Customer = {
   name: string;
   contact: string;
   phone: string;
+  address?: string;
   count: number;
   last: string;
 };
@@ -260,6 +262,7 @@ export type SaveCustomerInput = {
   name: string;
   contact: string;
   phone: string;
+  address?: string;
   originalContact?: string;
 };
 
@@ -295,9 +298,10 @@ export type CreateReservationInput = {
   name: string;
   email: string;
   phone: string;
+  address?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];

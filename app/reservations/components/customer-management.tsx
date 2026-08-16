@@ -14,7 +14,7 @@ type CustomerManagementProps = {
   notify: (message: string) => void;
 };
 
-const emptyForm: CustomerForm = { name: "", contact: "", phone: "" };
+const emptyForm: CustomerForm = { name: "", contact: "", phone: "", address: "" };
 
 export function CustomerManagement({
   customers,
@@ -46,6 +46,7 @@ export function CustomerManagement({
       name: customer.name,
       contact: customer.contact,
       phone: customer.phone,
+      address: customer.address ?? "",
       originalContact: customer.contact,
     });
   };
@@ -116,6 +117,9 @@ export function CustomerManagement({
       <td>
         <input aria-label="電話番号" placeholder="090-0000-0000" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
       </td>
+      <td>
+        <input aria-label="住所" placeholder="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+      </td>
       <td>0回</td>
       <td>-</td>
       <td>
@@ -155,6 +159,7 @@ export function CustomerManagement({
               <th>お客様</th>
               <th>メールアドレス</th>
               <th>電話番号</th>
+              <th>住所</th>
               <th>予約回数</th>
               <th>最終利用</th>
               <th />
@@ -174,6 +179,9 @@ export function CustomerManagement({
                   <td>
                     <input aria-label="電話番号" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
                   </td>
+                  <td>
+                    <input aria-label="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+                  </td>
                   <td>{customer.count}回</td>
                   <td>{customer.last}</td>
                   <td>
@@ -190,6 +198,7 @@ export function CustomerManagement({
                   <td><strong>{customer.name} 様</strong></td>
                   <td>{customer.contact}</td>
                   <td>{customer.phone}</td>
+                  <td>{customer.address || "-"}</td>
                   <td><strong>{customer.count}回</strong></td>
                   <td>{customer.last}</td>
                   <td>
@@ -221,6 +230,7 @@ export function CustomerManagement({
                   <th>お客様</th>
                   <th>メールアドレス</th>
                   <th>電話番号</th>
+                  <th>住所</th>
                   <th>予約回数</th>
                   <th>最終利用</th>
                   <th />
@@ -232,6 +242,7 @@ export function CustomerManagement({
                     <td><strong>{customer.name} 様</strong></td>
                     <td>{customer.contact}</td>
                     <td>{customer.phone}</td>
+                    <td>{customer.address || "-"}</td>
                     <td><strong>{customer.count}回</strong></td>
                     <td>{customer.last}</td>
                     <td>

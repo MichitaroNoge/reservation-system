@@ -63,6 +63,7 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
     name: requireNonEmptyString(body.name, "name", 100),
     email: requireEmail(body.email, "email"),
     phone: requirePhone(body.phone, "phone"),
+    address: optionalTrimmedString(body.address, "address", 500),
     menu: body.menu === undefined ? undefined : requireNonEmptyString(body.menu, "menu", 100),
     menuItems,
     status,
@@ -86,6 +87,7 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.customer !== undefined) input.customer = requireNonEmptyString(body.customer, "customer", 100);
   if (body.email !== undefined) input.email = requireEmail(body.email, "email");
   if (body.phone !== undefined) input.phone = requirePhone(body.phone, "phone");
+  if (body.address !== undefined) input.address = optionalTrimmedString(body.address, "address", 500);
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
   return input;
 }
@@ -158,6 +160,7 @@ export function validateCustomerInput(body: Record<string, unknown>): SaveCustom
     name: requireNonEmptyString(body.name, "name", 100),
     contact: requireEmail(body.contact, "contact"),
     phone: requirePhone(body.phone, "phone"),
+    address: optionalTrimmedString(body.address, "address", 500),
     originalContact: body.originalContact === undefined ? undefined : requireEmail(body.originalContact, "originalContact"),
   };
 }
@@ -199,6 +202,12 @@ function requireNonEmptyString(value: unknown, field: string, maxLength: number)
   const text = requireString(value, field, maxLength).trim();
   if (!text) throw new ApiValidationError(`${field} is required.`);
   return text;
+}
+
+function optionalTrimmedString(value: unknown, field: string, maxLength: number) {
+  if (value === undefined || value === null) return undefined;
+  const text = requireString(value, field, maxLength).trim();
+  return text || undefined;
 }
 
 function optionalStringArray(value: unknown, field: string) {

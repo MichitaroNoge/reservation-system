@@ -12,7 +12,7 @@ query ListReservations @auth(level: NO_ACCESS) {
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address }
     reservationDetails_on_reservation {
       id
       quantity
@@ -42,7 +42,7 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address }
     reservationDetails_on_reservation {
       id
       quantity
@@ -74,7 +74,7 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address }
     reservationDetails_on_reservation {
       id
       quantity
@@ -107,7 +107,7 @@ query ListReservationChangeRequests @auth(level: NO_ACCESS) {
       usageDate
       usageTime
       expectedPeople
-      customer { id name phone email }
+      customer { id name phone email address }
       reservationDetails_on_reservation {
         quantity
         menu { name }
@@ -122,6 +122,7 @@ query ListCustomers @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     firebaseUid
     active
     createdAt
@@ -135,6 +136,7 @@ query ListInactiveCustomers @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     firebaseUid
     active
     createdAt
@@ -148,6 +150,7 @@ query GetCustomerByName($name: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     active
   }
 }
@@ -158,6 +161,7 @@ query GetCustomerById($id: UUID!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     active
   }
 }
@@ -168,6 +172,7 @@ query GetCustomerByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     firebaseUid
     active
   }
@@ -179,6 +184,7 @@ query GetCustomerByEmail($email: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
     firebaseUid
     active
   }

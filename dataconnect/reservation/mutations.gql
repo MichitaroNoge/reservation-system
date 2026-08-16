@@ -1,30 +1,33 @@
-mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $firebaseUid: String)
+mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $address: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_insert(data: {
     firebaseUid: $firebaseUid
     name: $name
     phone: $phone
     email: $email
+    address: $address
   })
 }
 
-mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!)
+mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     name: $name
     phone: $phone
     email: $email
+    address: $address
     updatedAt_expr: "request.time"
   })
 }
 
-mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $firebaseUid: String)
+mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     firebaseUid: $firebaseUid
     name: $name
     phone: $phone
     email: $email
+    address: $address
     updatedAt_expr: "request.time"
   })
 }

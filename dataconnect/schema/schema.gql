@@ -21,6 +21,7 @@ type Customer @table {
   name: String! @col(dataType: "varchar(100)")
   phone: String! @col(dataType: "varchar(30)")
   email: String! @col(dataType: "varchar(255)")
+  address: String @col(dataType: "varchar(500)")
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")

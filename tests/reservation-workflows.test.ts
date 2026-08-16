@@ -81,6 +81,7 @@ test("important reservation workflows", async (t) => {
       name: "伊藤 結衣",
       email: "yui@example.jp",
       phone: "080-1111-2222",
+      address: "東京都渋谷区1-2-3",
       menuItems: ["季節のコース", "記念日プレート"],
       status: reservationStatusCodes.confirmedRequested,
     });
@@ -90,6 +91,11 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
     assert.equal(reservation.totalAmount, 9000);
     assert.equal(reservation.store, null);
+    assert.equal(reservation.address, "東京都渋谷区1-2-3");
+
+    const customers = await repository.listCustomers();
+    const customer = customers.find((item) => item.contact === "yui@example.jp");
+    assert.equal(customer?.address, "東京都渋谷区1-2-3");
   });
 
   await t.test("updates reservation status with stable status code", async () => {

@@ -69,6 +69,7 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -653,6 +654,7 @@ export interface UpdateCustomerIdentityVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -661,6 +663,7 @@ export interface UpdateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
 }
 
 export interface UpdateMenuData {
@@ -938,4 +941,3 @@ export function getMenuByName(vars: GetMenuByNameVariables, options?: OperationO
 export function listBillingRecords(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListBillingRecordsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListBillingRecords' Query. Allow users to pass in custom DataConnect instances. */
 export function listBillingRecords(options?: OperationOptions): Promise<ExecuteOperationResponse<ListBillingRecordsData>>;
-

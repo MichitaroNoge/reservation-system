@@ -103,6 +103,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /event\.stopPropagation\(\); updateStatus/);
   assert.match(pageSource, /event\.stopPropagation\(\); onApproveChangeRequest/);
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
+  assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const \[includeVisitedReservations, setIncludeVisitedReservations\] = useState\(false\)/);
   assert.match(pageSource, /!reservationStatusFilter && !includeVisitedReservations && reservation\.status === STATUS\.visited/);
   assert.match(pageSource, /<div className="visited-filter"><span>来店済<\/span>/);

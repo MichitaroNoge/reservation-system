@@ -18,6 +18,10 @@ export function reservationMenuLabel(reservation: Reservation) {
   return menuSelectionLabel(items);
 }
 
+export function reservationCustomerSubLabel(reservation: Reservation) {
+  return reservation.bookingType === "travel_agency_group" && reservation.groupName ? reservation.groupName : reservation.phone;
+}
+
 export function policyAgreementLabel(reservation: Reservation) {
   if (!reservation.policyAgreement) return "未同意";
   const label = reservation.policyAgreement.kind === "temporary" ? "仮予約の注意事項" : "キャンセルポリシー";

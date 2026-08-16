@@ -60,6 +60,7 @@ import {
   type ListStoresData,
 } from "@reservation-system/dataconnect-admin";
 import {
+  calculateReservationEndTime,
   getAutomaticReservationStatus,
   normalizeReservationRequestType,
   normalizeReservationStatus,
@@ -125,11 +126,14 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const reservationCode = await this.nextReservationCode();
     const customer = await this.resolveDataConnectCustomer(input);
     const status = toSdkReservationStatus(normalizeReservationStatus(input.status));
+    const menus = await this.listDataConnectMenus();
+    const startTime = input.startTime ?? "10:00";
     const { data } = await createReservation(this.connection(), {
       reservationCode,
       customerId: customer.id,
       usageDate: input.date,
-      usageTime: input.startTime ?? "10:00",
+      usageTime: startTime,
+      usageEndTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, menus.map(toMenu)),
       expectedPeople: input.people,
       status,
       requestType: input.requestType ?? null,
@@ -144,7 +148,6 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       policyAgreementKind: input.policyAgreement?.kind,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt,
     });
-    const menus = await this.listDataConnectMenus();
     for (const menuName of menuItems) {
       const menu = menus.find((item) => item.name === menuName);
       if (!menu) continue;
@@ -160,6 +163,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateReservation(id: string, input: UpdateReservationInput) {
     const current = await this.getReservationWithInternalId(id);
+    const shouldCalculateEndTime = input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined || !current.endTime);
+    const menuCatalog = shouldCalculateEndTime ? await this.listMenus() : [];
     if (input.customer !== undefined || input.email !== undefined || input.phone !== undefined || input.address !== undefined) {
       await updateCustomer(this.connection(), {
         id: current.dataConnectCustomerId,
@@ -173,6 +178,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       id: current.dataConnectId,
       usageDate: input.date ?? current.date,
       usageTime: input.startTime ?? current.startTime ?? "10:00",
+      usageEndTime: input.endTime ?? (shouldCalculateEndTime
+        ? calculateReservationEndTime(input.startTime ?? current.startTime, input.menuItems ?? current.menuItems, menuCatalog)
+        : current.endTime ?? null),
       expectedPeople: input.people ?? current.people,
       bookingType: input.bookingType ?? current.bookingType ?? "individual",
       bookingContactName: input.bookingContactName ?? current.bookingContactName ?? null,
@@ -733,6 +741,10 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     groupTypeOther: dataConnectStringField(reservation, "groupTypeOther"),
     date: reservation.usageDate,
     startTime: reservation.usageTime,
+    endTime: dataConnectStringField(reservation, "usageEndTime") ?? calculateReservationEndTime(reservation.usageTime, menuItems, (reservation.reservationDetails_on_reservation ?? []).map((detail) => ({
+      name: detail.menu.name,
+      duration: detail.menu.durationMinutes > 0 ? `${detail.menu.durationMinutes}分` : "来店後",
+    }))),
     people: reservation.expectedPeople,
     menuItems,
     totalAmount,

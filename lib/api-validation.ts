@@ -60,6 +60,7 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
   const input: CreateReservationInput = {
     date: requireIsoDate(body.date, "date"),
     startTime: body.startTime === undefined ? undefined : requireTime(body.startTime, "startTime"),
+    endTime: body.endTime === undefined ? undefined : requireTime(body.endTime, "endTime"),
     people: requireInteger(body.people, "people", { min: 1, max: 999 }),
     name: requireNonEmptyString(body.name, "name", 100),
     email: requireEmail(body.email, "email"),
@@ -96,6 +97,7 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   const input: UpdateReservationInput = {};
   if (body.date !== undefined) input.date = requireIsoDate(body.date, "date");
   if (body.startTime !== undefined) input.startTime = requireTime(body.startTime, "startTime");
+  if (body.endTime !== undefined) input.endTime = requireTime(body.endTime, "endTime");
   if (body.people !== undefined) input.people = requireInteger(body.people, "people", { min: 1, max: 999 });
   if (body.menuItems !== undefined) input.menuItems = optionalStringArray(body.menuItems, "menuItems") ?? [];
   if (body.customer !== undefined) input.customer = requireNonEmptyString(body.customer, "customer", 100);

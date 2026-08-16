@@ -9,6 +9,7 @@ import type { Menu, Reservation, Store } from "../lib/domain";
 
 const menus: Menu[] = [
   { name: "季節のコース", description: "コース", price: 6600, duration: "90分", displayOrder: 10 },
+  { name: "100分コース", description: "長時間コース", price: 8800, duration: "100分", displayOrder: 15 },
   { name: "記念日プレート", description: "デザート", price: 2400, duration: "10分", displayOrder: 20 },
   { name: "来店後に注文", description: "当日注文", price: 0, duration: "来店後", displayOrder: 999 },
 ];
@@ -88,6 +89,7 @@ test("important reservation workflows", async (t) => {
 
     assert.equal(reservation.id, "RSV-1050");
     assert.equal(reservation.startTime, "10:00");
+    assert.equal(reservation.endTime, "10:45");
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
     assert.equal(reservation.totalAmount, 9000);
     assert.equal(reservation.store, null);
@@ -96,6 +98,30 @@ test("important reservation workflows", async (t) => {
     const customers = await repository.listCustomers();
     const customer = customers.find((item) => item.contact === "yui@example.jp");
     assert.equal(customer?.address, "東京都渋谷区1-2-3");
+  });
+
+  await t.test("sets and updates reservation end time from menu duration", async () => {
+    const reservation = await repository.createReservation({
+      date: "2026-08-03",
+      startTime: "18:00",
+      people: 2,
+      name: "田中 一郎",
+      email: "tanaka@example.jp",
+      phone: "080-2222-3333",
+      menuItems: ["100分コース"],
+      status: reservationStatusCodes.confirmed,
+    });
+
+    assert.equal(reservation.endTime, "19:40");
+
+    const updated = await repository.updateReservation(reservation.id, {
+      startTime: "19:00",
+      menuItems: ["季節のコース"],
+    });
+    assert.equal(updated.endTime, "19:45");
+
+    const manual = await repository.updateReservation(reservation.id, { endTime: "20:30" });
+    assert.equal(manual.endTime, "20:30");
   });
 
   await t.test("creates travel agency group reservations with group data on the reservation", async () => {

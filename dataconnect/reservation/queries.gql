@@ -4,6 +4,7 @@ query ListReservations @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
     bookingType
@@ -42,6 +43,7 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
     bookingType
@@ -82,6 +84,7 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
     bookingType

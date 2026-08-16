@@ -47,6 +47,7 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpdateReservation*](#updatereservation)
   - [*UpdateReservationStatus*](#updatereservationstatus)
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
+  - [*ClearConfirmationContact*](#clearconfirmationcontact)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
   - [*CreateReservationChangeRequest*](#createreservationchangerequest)
@@ -177,8 +178,17 @@ export interface ListReservationsData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -190,6 +200,10 @@ export interface ListReservationsData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -294,8 +308,17 @@ export interface GetReservationData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -307,6 +330,10 @@ export interface GetReservationData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -430,8 +457,17 @@ export interface GetReservationByCodeData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -443,6 +479,10 @@ export interface GetReservationByCodeData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -564,6 +604,10 @@ export interface ListReservationChangeRequestsData {
         name: string;
         phone: string;
         email: string;
+        address?: string | null;
+        accountType?: string | null;
+        companyBranchName?: string | null;
+        contactPersonName?: string | null;
       } & Customer_Key;
       reservationDetails_on_reservation: ({
         quantity: number;
@@ -646,6 +690,10 @@ export interface ListCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -729,6 +777,10 @@ export interface ListInactiveCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -818,6 +870,10 @@ export interface GetCustomerByNameData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key)[];
 }
@@ -906,6 +962,10 @@ export interface GetCustomerByIdData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key;
 }
@@ -994,6 +1054,10 @@ export interface GetCustomerByFirebaseUidData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -1083,6 +1147,10 @@ export interface GetCustomerByEmailData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -1837,6 +1905,10 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 ```
@@ -1890,11 +1962,15 @@ export default function CreateCustomerComponent() {
     name: ..., 
     phone: ..., 
     email: ..., 
+    address: ..., // optional
+    accountType: ..., // optional
+    companyBranchName: ..., // optional
+    contactPersonName: ..., // optional
     firebaseUid: ..., // optional
   };
   mutation.mutate(createCustomerVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ name: ..., phone: ..., email: ..., firebaseUid: ..., });
+  mutation.mutate({ name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -1938,6 +2014,10 @@ export interface UpdateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
 }
 ```
 ### Return Type
@@ -1991,10 +2071,14 @@ export default function UpdateCustomerComponent() {
     name: ..., 
     phone: ..., 
     email: ..., 
+    address: ..., // optional
+    accountType: ..., // optional
+    companyBranchName: ..., // optional
+    contactPersonName: ..., // optional
   };
   mutation.mutate(updateCustomerVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., });
+  mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2038,6 +2122,10 @@ export interface UpdateCustomerIdentityVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 ```
@@ -2092,11 +2180,15 @@ export default function UpdateCustomerIdentityComponent() {
     name: ..., 
     phone: ..., 
     email: ..., 
+    address: ..., // optional
+    accountType: ..., // optional
+    companyBranchName: ..., // optional
+    contactPersonName: ..., // optional
     firebaseUid: ..., // optional
   };
   mutation.mutate(updateCustomerIdentityVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., firebaseUid: ..., });
+  mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2328,9 +2420,18 @@ export interface CreateReservationVariables {
   customerId: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
   status: ReservationStatus;
   requestType?: string | null;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -2386,15 +2487,24 @@ export default function CreateReservationComponent() {
     customerId: ..., 
     usageDate: ..., 
     usageTime: ..., 
+    usageEndTime: ..., // optional
     expectedPeople: ..., 
     status: ..., 
     requestType: ..., // optional
+    bookingType: ..., // optional
+    bookingContactName: ..., // optional
+    dayContactName: ..., // optional
+    dayContactPhone: ..., // optional
+    groupName: ..., // optional
+    groupNameKana: ..., // optional
+    groupType: ..., // optional
+    groupTypeOther: ..., // optional
     policyAgreementKind: ..., // optional
     policyAgreementAcceptedAt: ..., // optional
   };
   mutation.mutate(createReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., status: ..., requestType: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2631,7 +2741,16 @@ export interface UpdateReservationVariables {
   id: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
 }
 ```
 ### Return Type
@@ -2684,11 +2803,20 @@ export default function UpdateReservationComponent() {
     id: ..., 
     usageDate: ..., 
     usageTime: ..., 
+    usageEndTime: ..., // optional
     expectedPeople: ..., 
+    bookingType: ..., // optional
+    bookingContactName: ..., // optional
+    dayContactName: ..., // optional
+    dayContactPhone: ..., // optional
+    groupName: ..., // optional
+    groupNameKana: ..., // optional
+    groupType: ..., // optional
+    groupTypeOther: ..., // optional
   };
   mutation.mutate(updateReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., });
+  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2889,6 +3017,100 @@ export default function UpdateConfirmationContactComponent() {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
   mutation.mutate(updateConfirmationContactVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.reservation_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ClearConfirmationContact
+You can execute the `ClearConfirmationContact` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useClearConfirmationContact(options?: useDataConnectMutationOptions<ClearConfirmationContactData, FirebaseError, ClearConfirmationContactVariables>): UseDataConnectMutationResult<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useClearConfirmationContact(dc: DataConnect, options?: useDataConnectMutationOptions<ClearConfirmationContactData, FirebaseError, ClearConfirmationContactVariables>): UseDataConnectMutationResult<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+```
+
+### Variables
+The `ClearConfirmationContact` Mutation requires an argument of type `ClearConfirmationContactVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface ClearConfirmationContactVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that calling the `ClearConfirmationContact` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ClearConfirmationContact` Mutation is of type `ClearConfirmationContactData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ClearConfirmationContactData {
+  reservation_update?: Reservation_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `ClearConfirmationContact`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, ClearConfirmationContactVariables } from '@reservation-system/dataconnect';
+import { useClearConfirmationContact } from '@reservation-system/dataconnect/react'
+
+export default function ClearConfirmationContactComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useClearConfirmationContact();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useClearConfirmationContact(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClearConfirmationContact(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useClearConfirmationContact(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useClearConfirmationContact` Mutation requires an argument of type `ClearConfirmationContactVariables`:
+  const clearConfirmationContactVars: ClearConfirmationContactVariables = {
+    id: ..., 
+  };
+  mutation.mutate(clearConfirmationContactVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(clearConfirmationContactVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {

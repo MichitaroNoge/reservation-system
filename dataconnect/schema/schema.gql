@@ -57,6 +57,7 @@ type Reservation @table {
   customer: Customer!
   usageDate: Date!
   usageTime: String! @col(dataType: "varchar(5)")
+  usageEndTime: String @col(dataType: "varchar(5)")
   status: ReservationStatus!
   requestType: String @col(dataType: "varchar(50)")
   bookingType: String @col(dataType: "varchar(30)")

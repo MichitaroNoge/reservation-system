@@ -194,6 +194,7 @@ export type Reservation = {
   groupTypeOther?: string;
   date: string;
   startTime?: string;
+  endTime?: string;
   people: number;
   menu?: string;
   menuItems: string[];
@@ -310,6 +311,7 @@ export type CreateReservationInput = {
   customerAccountMode?: "account" | "guest" | "admin";
   date: string;
   startTime?: string;
+  endTime?: string;
   people: number;
   name: string;
   email: string;
@@ -328,13 +330,43 @@ export type CreateReservationInput = {
   groupTypeOther?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];
 };
 
 export type SaveMenuInput = Menu;
+
+export const defaultReservationDurationMinutes = 45;
+export const longCourseReservationDurationMinutes = 100;
+
+export function menuDurationMinutes(menu: Pick<Menu, "duration">) {
+  if (menu.duration === "来店後") return 0;
+  const match = menu.duration.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+export function reservationDurationMinutes(menuItems: string[] | undefined, menus: Pick<Menu, "name" | "duration">[]) {
+  const selectedMenus = menus.filter((menu) => menuItems?.includes(menu.name));
+  return selectedMenus.some((menu) => menuDurationMinutes(menu) === longCourseReservationDurationMinutes)
+    ? longCourseReservationDurationMinutes
+    : defaultReservationDurationMinutes;
+}
+
+export function addMinutesToTime(time: string | undefined, minutes: number) {
+  const source = time || "10:00";
+  const match = source.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return source;
+  const totalMinutes = (Number(match[1]) * 60 + Number(match[2]) + minutes) % (24 * 60);
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+export function calculateReservationEndTime(startTime: string | undefined, menuItems: string[] | undefined, menus: Pick<Menu, "name" | "duration">[]) {
+  return addMinutesToTime(startTime, reservationDurationMinutes(menuItems, menus));
+}
 
 type ReservationReadinessInput = Pick<Reservation, "status" | "store" | "storeAssignments" | "people" | "confirmationContactedAt"> & {
   menuItems?: string[];

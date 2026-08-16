@@ -103,6 +103,12 @@ export function updateConfirmationContact(dcOrVarsOrOptions, varsOrOptions, opti
   return dcInstance.executeMutation('UpdateConfirmationContact', inputVars, inputOpts);
 }
 
+export function clearConfirmationContact(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('ClearConfirmationContact', inputVars, inputOpts);
+}
+
 export function assignStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);

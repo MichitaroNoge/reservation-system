@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -70,7 +70,8 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
       ? [{ store: reservation.store, people: reservation.people }]
       : [];
   const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-  return { ...reservation, startTime: reservation.startTime ?? defaultStartTime, menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
+  const startTime = reservation.startTime ?? defaultStartTime;
+  return { ...reservation, startTime, endTime: reservation.endTime ?? calculateReservationEndTime(startTime, menuItems, menus), menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -140,6 +141,7 @@ export class FileReservationRepository implements ReservationRepository {
   async createReservation(input: CreateReservationInput) {
     const database = await this.readDatabase();
     const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];
+    const startTime = input.startTime ?? defaultStartTime;
     const reservation: Reservation = {
       id: nextReservationId(database.reservations),
       customer: input.name,
@@ -154,7 +156,8 @@ export class FileReservationRepository implements ReservationRepository {
       groupType: input.groupType,
       groupTypeOther: input.groupTypeOther,
       date: input.date,
-      startTime: input.startTime ?? defaultStartTime,
+      startTime,
+      endTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, database.menus),
       people: input.people,
       menuItems,
       totalAmount: calculateTotalAmount(menuItems, database.menus),
@@ -197,6 +200,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     if (input.date !== undefined) reservation.date = input.date;
     if (input.startTime !== undefined) reservation.startTime = input.startTime;
+    if (input.endTime !== undefined) reservation.endTime = input.endTime;
     if (input.people !== undefined) reservation.people = input.people;
     if (input.customer !== undefined) reservation.customer = input.customer;
     if (input.email !== undefined) reservation.email = input.email;
@@ -213,6 +217,9 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.menuItems !== undefined) {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
+    }
+    if (input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined)) {
+      reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     }
     await this.writeDatabase(database);
     return reservation;
@@ -315,6 +322,7 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.startTime = request.requestedStartTime;
     reservation.people = request.requestedPeople;
     reservation.menuItems = request.requestedMenuItems;
+    reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
     if (shouldResetAssignments) {
       reservation.store = null;

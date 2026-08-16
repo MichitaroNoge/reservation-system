@@ -1,5 +1,6 @@
 import {
   daysUntilVisit as calculateDaysUntilVisit,
+  calculateReservationEndTime,
   isConfirmationContactDue as isConfirmationContactDueByRule,
   isTemporaryReservationExpired as isTemporaryReservationExpiredByRule,
   reservationAssignments,
@@ -7,7 +8,7 @@ import {
   reservationStatusLabel,
 } from "@/lib/domain";
 import { DEFAULT_START_TIME } from "./constants";
-import type { BookingForm, Customer, Reservation, Status } from "./types";
+import type { BookingForm, Customer, Menu, Reservation, Status } from "./types";
 
 export function statusLabel(status: Status) {
   return reservationStatusLabel(status);
@@ -36,12 +37,18 @@ export function reservationStartTime(reservation: Pick<Reservation, "startTime">
   return reservation.startTime || DEFAULT_START_TIME;
 }
 
-export function reservationDateTimeLabel(reservation: Pick<Reservation, "date" | "startTime">) {
-  return `${reservation.date.replaceAll("-", "/")} ${reservationStartTime(reservation)}`;
+export function reservationDateTimeLabel(reservation: Pick<Reservation, "date" | "startTime" | "endTime">) {
+  const endTime = reservation.endTime ? `〜${reservation.endTime}` : "";
+  return `${reservation.date.replaceAll("-", "/")} ${reservationStartTime(reservation)}${endTime}`;
 }
 
-export function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime">) {
-  return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}`;
+export function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime" | "endTime">) {
+  const endTime = form.endTime ? `〜${form.endTime}` : "";
+  return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}${endTime}`;
+}
+
+export function bookingFormEndTime(form: Pick<BookingForm, "startTime" | "menuItems" | "endTime">, menuCatalog: Pick<Menu, "name" | "duration">[]) {
+  return form.endTime || calculateReservationEndTime(form.startTime, form.menuItems, menuCatalog);
 }
 
 export function daysUntilVisit(date: string) {

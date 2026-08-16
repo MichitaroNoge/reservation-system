@@ -11,6 +11,8 @@ export type ReservationStatus =
   | "cancelled";
 
 export type ReservationRequestType = "confirmed_from_temporary";
+export type CustomerAccountType = "individual" | "travel_agency";
+export type ReservationBookingType = "individual" | "travel_agency_group";
 
 export function normalizeReservationRequestType(value: unknown): ReservationRequestType | null {
   return value === "confirmed_from_temporary" ? value : null;
@@ -182,6 +184,14 @@ export type Reservation = {
   customer: string;
   email?: string;
   address?: string;
+  bookingType?: ReservationBookingType;
+  bookingContactName?: string;
+  dayContactName?: string;
+  dayContactPhone?: string;
+  groupName?: string;
+  groupNameKana?: string;
+  groupType?: string;
+  groupTypeOther?: string;
   date: string;
   startTime?: string;
   people: number;
@@ -253,6 +263,9 @@ export type Customer = {
   contact: string;
   phone: string;
   address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
   count: number;
   last: string;
 };
@@ -263,6 +276,9 @@ export type SaveCustomerInput = {
   contact: string;
   phone: string;
   address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
   originalContact?: string;
 };
 
@@ -299,9 +315,20 @@ export type CreateReservationInput = {
   email: string;
   phone: string;
   address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
+  bookingType?: ReservationBookingType;
+  bookingContactName?: string;
+  dayContactName?: string;
+  dayContactPhone?: string;
+  groupName?: string;
+  groupNameKana?: string;
+  groupType?: string;
+  groupTypeOther?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];

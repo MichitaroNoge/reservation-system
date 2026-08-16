@@ -1,4 +1,4 @@
-mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $address: String, $firebaseUid: String)
+mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_insert(data: {
     firebaseUid: $firebaseUid
@@ -6,21 +6,27 @@ mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $addre
     phone: $phone
     email: $email
     address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
   })
 }
 
-mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String)
+mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     name: $name
     phone: $phone
     email: $email
     address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
     updatedAt_expr: "request.time"
   })
 }
 
-mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $firebaseUid: String)
+mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     firebaseUid: $firebaseUid
@@ -28,6 +34,9 @@ mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $em
     phone: $phone
     email: $email
     address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
     updatedAt_expr: "request.time"
   })
 }
@@ -56,6 +65,14 @@ mutation CreateReservation(
   $expectedPeople: Int!
   $status: ReservationStatus!
   $requestType: String
+  $bookingType: String
+  $bookingContactName: String
+  $dayContactName: String
+  $dayContactPhone: String
+  $groupName: String
+  $groupNameKana: String
+  $groupType: String
+  $groupTypeOther: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
 )
@@ -68,6 +85,14 @@ mutation CreateReservation(
     expectedPeople: $expectedPeople
     status: $status
     requestType: $requestType
+    bookingType: $bookingType
+    bookingContactName: $bookingContactName
+    dayContactName: $dayContactName
+    dayContactPhone: $dayContactPhone
+    groupName: $groupName
+    groupNameKana: $groupNameKana
+    groupType: $groupType
+    groupTypeOther: $groupTypeOther
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
   })
@@ -93,12 +118,28 @@ mutation UpdateReservation(
   $usageDate: Date!
   $usageTime: String!
   $expectedPeople: Int!
+  $bookingType: String
+  $bookingContactName: String
+  $dayContactName: String
+  $dayContactPhone: String
+  $groupName: String
+  $groupNameKana: String
+  $groupType: String
+  $groupTypeOther: String
 )
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     usageDate: $usageDate
     usageTime: $usageTime
     expectedPeople: $expectedPeople
+    bookingType: $bookingType
+    bookingContactName: $bookingContactName
+    dayContactName: $dayContactName
+    dayContactPhone: $dayContactPhone
+    groupName: $groupName
+    groupNameKana: $groupNameKana
+    groupType: $groupType
+    groupTypeOther: $groupTypeOther
     updatedAt_expr: "request.time"
   })
 }

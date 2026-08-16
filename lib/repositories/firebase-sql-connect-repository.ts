@@ -133,6 +133,14 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       expectedPeople: input.people,
       status,
       requestType: input.requestType ?? null,
+      bookingType: input.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName ?? null,
+      dayContactName: input.dayContactName ?? null,
+      dayContactPhone: input.dayContactPhone ?? null,
+      groupName: input.groupName ?? null,
+      groupNameKana: input.groupNameKana ?? null,
+      groupType: input.groupType ?? null,
+      groupTypeOther: input.groupTypeOther ?? null,
       policyAgreementKind: input.policyAgreement?.kind,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt,
     });
@@ -166,6 +174,14 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       usageDate: input.date ?? current.date,
       usageTime: input.startTime ?? current.startTime ?? "10:00",
       expectedPeople: input.people ?? current.people,
+      bookingType: input.bookingType ?? current.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName ?? current.bookingContactName ?? null,
+      dayContactName: input.dayContactName ?? current.dayContactName ?? null,
+      dayContactPhone: input.dayContactPhone ?? current.dayContactPhone ?? null,
+      groupName: input.groupName ?? current.groupName ?? null,
+      groupNameKana: input.groupNameKana ?? current.groupNameKana ?? null,
+      groupType: input.groupType ?? current.groupType ?? null,
+      groupTypeOther: input.groupTypeOther ?? current.groupTypeOther ?? null,
     });
     if (input.menuItems !== undefined) {
       await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
@@ -317,6 +333,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
         phone: input.phone,
         email: input.contact,
         address: input.address ?? null,
+        accountType: input.accountType ?? "individual",
+        companyBranchName: input.companyBranchName ?? null,
+        contactPersonName: input.contactPersonName ?? null,
       });
       await reactivateDataConnectCustomer(this.connection(), { id: inactive.id });
       const restored = await this.getDataConnectCustomerById(inactive.id);
@@ -328,9 +347,12 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       phone: input.phone,
       email: input.contact,
       address: input.address ?? null,
+      accountType: input.accountType ?? "individual",
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: null,
     });
-    return { id: data.customer_insert.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, count: 0, last: "-" };
+    return { id: data.customer_insert.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, accountType: input.accountType, companyBranchName: input.companyBranchName, contactPersonName: input.contactPersonName, count: 0, last: "-" };
   }
 
   async updateCustomer(name: string, input: SaveCustomerInput) {
@@ -343,8 +365,11 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       phone: input.phone,
       email: input.contact,
       address: input.address ?? null,
+      accountType: input.accountType ?? "individual",
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
     });
-    return { id: customer.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, count: 0, last: "-" };
+    return { id: customer.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, accountType: input.accountType, companyBranchName: input.companyBranchName, contactPersonName: input.contactPersonName, count: 0, last: "-" };
   }
 
   async deleteCustomer(name: string) {
@@ -516,6 +541,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       phone: input.phone,
       email: input.email,
       address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: input.customerFirebaseUid ?? null,
     });
     return data.customer_insert;
@@ -555,6 +583,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       phone: input.phone,
       email: input.email,
       address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: input.customerFirebaseUid,
     });
     return { id: customerId };
@@ -567,6 +598,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       phone: input.phone,
       email: input.email,
       address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
     });
     return { id: customerId };
   }
@@ -689,6 +723,14 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     customer: reservation.customer.name,
     email: reservation.customer.email,
     address: dataConnectCustomerAddress(reservation.customer),
+    bookingType: dataConnectStringField(reservation, "bookingType") === "travel_agency_group" ? "travel_agency_group" : "individual",
+    bookingContactName: dataConnectStringField(reservation, "bookingContactName"),
+    dayContactName: dataConnectStringField(reservation, "dayContactName"),
+    dayContactPhone: dataConnectStringField(reservation, "dayContactPhone"),
+    groupName: dataConnectStringField(reservation, "groupName"),
+    groupNameKana: dataConnectStringField(reservation, "groupNameKana"),
+    groupType: dataConnectStringField(reservation, "groupType"),
+    groupTypeOther: dataConnectStringField(reservation, "groupTypeOther"),
     date: reservation.usageDate,
     startTime: reservation.usageTime,
     people: reservation.expectedPeople,
@@ -739,6 +781,9 @@ function toCustomer(customer: DataConnectCustomer): Customer {
     contact: customer.email,
     phone: customer.phone,
     address: dataConnectCustomerAddress(customer),
+    accountType: dataConnectStringField(customer, "accountType") === "travel_agency" ? "travel_agency" : "individual",
+    companyBranchName: dataConnectStringField(customer, "companyBranchName"),
+    contactPersonName: dataConnectStringField(customer, "contactPersonName"),
     count: reservations.length,
     last: reservations.map((reservation) => reservation.usageDate).sort().at(-1) ?? "-",
   };
@@ -748,6 +793,12 @@ function dataConnectCustomerAddress(customer: unknown) {
   return typeof customer === "object" && customer !== null && "address" in customer && typeof customer.address === "string"
     ? customer.address
     : undefined;
+}
+
+function dataConnectStringField(source: unknown, field: string) {
+  if (typeof source !== "object" || source === null || !(field in source)) return undefined;
+  const value = (source as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : undefined;
 }
 
 function toStore(store: DataConnectStore): Store {

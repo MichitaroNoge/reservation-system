@@ -22,6 +22,9 @@ type Customer @table {
   phone: String! @col(dataType: "varchar(30)")
   email: String! @col(dataType: "varchar(255)")
   address: String @col(dataType: "varchar(500)")
+  accountType: String @col(dataType: "varchar(30)")
+  companyBranchName: String @col(dataType: "varchar(100)")
+  contactPersonName: String @col(dataType: "varchar(100)")
   active: Boolean! @default(value: true)
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
@@ -56,6 +59,14 @@ type Reservation @table {
   usageTime: String! @col(dataType: "varchar(5)")
   status: ReservationStatus!
   requestType: String @col(dataType: "varchar(50)")
+  bookingType: String @col(dataType: "varchar(30)")
+  bookingContactName: String @col(dataType: "varchar(100)")
+  dayContactName: String @col(dataType: "varchar(100)")
+  dayContactPhone: String @col(dataType: "varchar(30)")
+  groupName: String @col(dataType: "varchar(100)")
+  groupNameKana: String @col(dataType: "varchar(100)")
+  groupType: String @col(dataType: "varchar(100)")
+  groupTypeOther: String @col(dataType: "varchar(100)")
   expectedPeople: Int!
   policyAgreementKind: String @col(dataType: "varchar(20)")
   policyAgreementAcceptedAt: Timestamp

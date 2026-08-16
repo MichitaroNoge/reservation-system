@@ -98,6 +98,42 @@ test("important reservation workflows", async (t) => {
     assert.equal(customer?.address, "東京都渋谷区1-2-3");
   });
 
+  await t.test("creates travel agency group reservations with group data on the reservation", async () => {
+    const reservation = await repository.createReservation({
+      date: "2026-08-10",
+      startTime: "09:30",
+      people: 42,
+      name: "ABCツーリスト広島支店",
+      email: "agency@example.jp",
+      phone: "082-000-1111",
+      accountType: "travel_agency",
+      companyBranchName: "ABCツーリスト広島支店",
+      contactPersonName: "山田太郎",
+      bookingType: "travel_agency_group",
+      bookingContactName: "山田太郎",
+      dayContactName: "佐藤花子",
+      dayContactPhone: "090-2222-3333",
+      groupName: "○○小学校 修学旅行",
+      groupNameKana: "まるまるしょうがっこう しゅうがくりょこう",
+      groupType: "小学校",
+      menuItems: ["季節のコース"],
+      status: reservationStatusCodes.confirmedRequested,
+    });
+
+    assert.equal(reservation.people, 42);
+    assert.equal(reservation.customer, "ABCツーリスト広島支店");
+    assert.equal(reservation.bookingType, "travel_agency_group");
+    assert.equal(reservation.bookingContactName, "山田太郎");
+    assert.equal(reservation.dayContactName, "佐藤花子");
+    assert.equal(reservation.groupName, "○○小学校 修学旅行");
+    assert.equal(reservation.groupType, "小学校");
+
+    const customer = (await repository.listCustomers()).find((item) => item.contact === "agency@example.jp");
+    assert.equal(customer?.accountType, "travel_agency");
+    assert.equal(customer?.companyBranchName, "ABCツーリスト広島支店");
+    assert.equal(customer?.contactPersonName, "山田太郎");
+  });
+
   await t.test("updates reservation status with stable status code", async () => {
     const reservation = await repository.updateReservationStatus("RSV-1047", reservationStatusCodes.waitingForVisit);
 

@@ -14,7 +14,7 @@ type CustomerManagementProps = {
   notify: (message: string) => void;
 };
 
-const emptyForm: CustomerForm = { name: "", contact: "", phone: "", address: "" };
+const emptyForm: CustomerForm = { name: "", contact: "", phone: "", address: "", accountType: "individual" };
 
 export function CustomerManagement({
   customers,
@@ -47,6 +47,9 @@ export function CustomerManagement({
       contact: customer.contact,
       phone: customer.phone,
       address: customer.address ?? "",
+      accountType: customer.accountType ?? "individual",
+      companyBranchName: customer.companyBranchName,
+      contactPersonName: customer.contactPersonName,
       originalContact: customer.contact,
     });
   };

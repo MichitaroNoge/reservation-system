@@ -93,6 +93,8 @@ export function buildCustomers(reservations: Reservation[]): Customer[] {
       name: reservation.customer,
       contact: reservation.email ?? current?.contact ?? "customer@example.jp",
       phone: reservation.phone,
+      address: reservation.address ?? current?.address,
+      accountType: current?.accountType ?? (reservation.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
       count: (current?.count ?? 0) + 1,
       last: reservation.date.replaceAll("-", "/"),
     });

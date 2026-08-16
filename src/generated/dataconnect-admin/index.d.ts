@@ -70,6 +70,9 @@ export interface CreateCustomerVariables {
   phone: string;
   email: string;
   address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -111,6 +114,14 @@ export interface CreateReservationVariables {
   expectedPeople: number;
   status: ReservationStatus;
   requestType?: string | null;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -655,6 +666,9 @@ export interface UpdateCustomerIdentityVariables {
   phone: string;
   email: string;
   address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -664,6 +678,9 @@ export interface UpdateCustomerVariables {
   phone: string;
   email: string;
   address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
 }
 
 export interface UpdateMenuData {
@@ -709,6 +726,14 @@ export interface UpdateReservationVariables {
   usageDate: DateString;
   usageTime: string;
   expectedPeople: number;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
 }
 
 export interface UpdateStoreData {

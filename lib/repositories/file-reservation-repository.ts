@@ -145,6 +145,14 @@ export class FileReservationRepository implements ReservationRepository {
       customer: input.name,
       email: input.email,
       address: input.address,
+      bookingType: input.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName,
+      dayContactName: input.dayContactName,
+      dayContactPhone: input.dayContactPhone,
+      groupName: input.groupName,
+      groupNameKana: input.groupNameKana,
+      groupType: input.groupType,
+      groupTypeOther: input.groupTypeOther,
       date: input.date,
       startTime: input.startTime ?? defaultStartTime,
       people: input.people,
@@ -167,6 +175,9 @@ export class FileReservationRepository implements ReservationRepository {
       contact: input.email,
       phone: input.phone,
       address: input.address,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName,
+      contactPersonName: input.contactPersonName,
       count: database.customers[customerIndex]?.count ?? 0,
       last: database.customers[customerIndex]?.last ?? "-",
     };
@@ -191,6 +202,14 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.email !== undefined) reservation.email = input.email;
     if (input.phone !== undefined) reservation.phone = input.phone;
     if (input.address !== undefined) reservation.address = input.address;
+    if (input.bookingType !== undefined) reservation.bookingType = input.bookingType;
+    if (input.bookingContactName !== undefined) reservation.bookingContactName = input.bookingContactName;
+    if (input.dayContactName !== undefined) reservation.dayContactName = input.dayContactName;
+    if (input.dayContactPhone !== undefined) reservation.dayContactPhone = input.dayContactPhone;
+    if (input.groupName !== undefined) reservation.groupName = input.groupName;
+    if (input.groupNameKana !== undefined) reservation.groupNameKana = input.groupNameKana;
+    if (input.groupType !== undefined) reservation.groupType = input.groupType;
+    if (input.groupTypeOther !== undefined) reservation.groupTypeOther = input.groupTypeOther;
     if (input.menuItems !== undefined) {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
@@ -336,6 +355,9 @@ export class FileReservationRepository implements ReservationRepository {
         contact: reservation.email ?? "customer@example.jp",
         phone: reservation.phone,
         address: reservation.address ?? current?.address,
+        accountType: current?.accountType ?? (reservation.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+        companyBranchName: current?.companyBranchName,
+        contactPersonName: current?.contactPersonName,
         count: (current?.count ?? 0) + 1,
         last: reservation.date.replaceAll("-", "/"),
       });
@@ -364,6 +386,9 @@ export class FileReservationRepository implements ReservationRepository {
       contact: input.contact,
       phone: input.phone,
       address: input.address,
+      accountType: input.accountType,
+      companyBranchName: input.companyBranchName,
+      contactPersonName: input.contactPersonName,
       count: 0,
       last: "-",
     };
@@ -384,6 +409,9 @@ export class FileReservationRepository implements ReservationRepository {
         contact: input.contact,
         phone: input.phone,
         address: input.address,
+        accountType: input.accountType,
+        companyBranchName: input.companyBranchName,
+        contactPersonName: input.contactPersonName,
       };
     }
     const targets = database.reservations.filter((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact);

@@ -19,7 +19,7 @@ export function reservationMenuLabel(reservation: Reservation) {
 }
 
 export function reservationCustomerSubLabel(reservation: Reservation) {
-  return reservation.bookingType === "travel_agency_group" && reservation.groupName ? reservation.groupName : reservation.phone;
+  return reservation.bookingType === "travel_agency_group" && reservation.groupName ? reservation.groupName : "";
 }
 
 export function policyAgreementLabel(reservation: Reservation) {

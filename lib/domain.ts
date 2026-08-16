@@ -339,7 +339,6 @@ export type UpdateStoreAssignmentsInput = {
 export type SaveMenuInput = Menu;
 
 export const defaultReservationDurationMinutes = 45;
-export const longCourseReservationDurationMinutes = 100;
 
 export function menuDurationMinutes(menu: Pick<Menu, "duration">) {
   if (menu.duration === "来店後") return 0;
@@ -349,9 +348,8 @@ export function menuDurationMinutes(menu: Pick<Menu, "duration">) {
 
 export function reservationDurationMinutes(menuItems: string[] | undefined, menus: Pick<Menu, "name" | "duration">[]) {
   const selectedMenus = menus.filter((menu) => menuItems?.includes(menu.name));
-  return selectedMenus.some((menu) => menuDurationMinutes(menu) === longCourseReservationDurationMinutes)
-    ? longCourseReservationDurationMinutes
-    : defaultReservationDurationMinutes;
+  const configuredMinutes = selectedMenus.map(menuDurationMinutes).filter((minutes) => minutes > 0);
+  return configuredMinutes.length ? Math.max(...configuredMinutes) : defaultReservationDurationMinutes;
 }
 
 export function addMinutesToTime(time: string | undefined, minutes: number) {

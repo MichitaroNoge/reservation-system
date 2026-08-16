@@ -89,7 +89,7 @@ test("important reservation workflows", async (t) => {
 
     assert.equal(reservation.id, "RSV-1050");
     assert.equal(reservation.startTime, "10:00");
-    assert.equal(reservation.endTime, "10:45");
+    assert.equal(reservation.endTime, "11:30");
     assert.equal(reservation.status, reservationStatusCodes.confirmedRequested);
     assert.equal(reservation.totalAmount, 9000);
     assert.equal(reservation.store, null);
@@ -118,10 +118,25 @@ test("important reservation workflows", async (t) => {
       startTime: "19:00",
       menuItems: ["季節のコース"],
     });
-    assert.equal(updated.endTime, "19:45");
+    assert.equal(updated.endTime, "20:30");
 
     const manual = await repository.updateReservation(reservation.id, { endTime: "20:30" });
     assert.equal(manual.endTime, "20:30");
+  });
+
+  await t.test("uses default end time when selected menu has no configured duration", async () => {
+    const reservation = await repository.createReservation({
+      date: "2026-08-04",
+      startTime: "12:00",
+      people: 1,
+      name: "加藤 花",
+      email: "hana@example.jp",
+      phone: "080-3333-4444",
+      menuItems: ["来店後に注文"],
+      status: reservationStatusCodes.confirmed,
+    });
+
+    assert.equal(reservation.endTime, "12:45");
   });
 
   await t.test("creates travel agency group reservations with group data on the reservation", async () => {

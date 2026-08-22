@@ -15,12 +15,12 @@ enum BillingType { USAGE CANCELLATION }
 enum BillingStatus { UNBILLED INVOICED PAID VOIDED }
 enum ReservationChangeRequestStatus { REQUESTED APPROVED REJECTED }
 
-type Customer @table {
+type Account @table {
   id: UUID! @default(expr: "uuidV4()")
-  firebaseUid: String @unique
+  firebaseUid: String! @unique
+  email: String! @unique @col(dataType: "varchar(255)")
   name: String! @col(dataType: "varchar(100)")
   phone: String! @col(dataType: "varchar(30)")
-  email: String! @col(dataType: "varchar(255)")
   address: String @col(dataType: "varchar(500)")
   accountType: String @col(dataType: "varchar(30)")
   companyBranchName: String @col(dataType: "varchar(100)")
@@ -54,7 +54,14 @@ type Menu @table {
 type Reservation @table {
   id: UUID! @default(expr: "uuidV4()")
   reservationCode: String! @unique @col(dataType: "varchar(30)")
-  customer: Customer!
+  account: Account
+  reserverName: String! @col(dataType: "varchar(100)")
+  reserverEmail: String! @col(dataType: "varchar(255)")
+  reserverPhone: String! @col(dataType: "varchar(30)")
+  reserverAddress: String @col(dataType: "varchar(500)")
+  reserverAccountType: String @col(dataType: "varchar(30)")
+  reserverCompanyBranchName: String @col(dataType: "varchar(100)")
+  reserverContactPersonName: String @col(dataType: "varchar(100)")
   usageDate: Date!
   usageTime: String! @col(dataType: "varchar(5)")
   usageEndTime: String @col(dataType: "varchar(5)")

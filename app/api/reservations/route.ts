@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminToken, requireAdmin, verifyOptionalFirebaseUser } from "@/lib/auth";
+import { ApiAuthError, isAdminToken, requireAdmin, verifyOptionalFirebaseUser } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateCreateReservationInput } from "@/lib/api-validation";
 import { reservationStatusCodes } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       input.accountFirebaseUid = undefined;
     } else {
       const user = await verifyOptionalFirebaseUser(request);
-      if (user && !isAdminToken(user)) {
+      if (!user) throw new ApiAuthError("Customer authentication required.", 401);
+      if (!isAdminToken(user)) {
         // Account is keyed only by the authenticated Firebase UID.
         // Do not search by email and do not attach historical/admin reservations.
         let account = await repository.findAccountByFirebaseUid(user.uid);
@@ -47,11 +48,8 @@ export async function POST(request: Request) {
         }
         input.accountFirebaseUid = user.uid;
         input.customerAccountMode = "account";
-      } else if (user && isAdminToken(user)) {
-        input.customerAccountMode = "admin";
-        input.accountFirebaseUid = undefined;
       } else {
-        input.customerAccountMode = "guest";
+        input.customerAccountMode = "admin";
         input.accountFirebaseUid = undefined;
       }
     }

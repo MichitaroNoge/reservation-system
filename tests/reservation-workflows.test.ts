@@ -99,9 +99,7 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.paymentCondition, "invoice");
     assert.equal(reservation.remarks, "領収書の宛名を確認する");
 
-    const customers = await repository.listCustomers();
-    const customer = customers.find((item) => item.contact === "yui@example.jp");
-    assert.equal(customer?.address, "東京都渋谷区1-2-3");
+    assert.equal((await repository.listAccounts()).length, 0);
   });
 
   await t.test("sets and updates reservation end time from menu duration", async () => {
@@ -188,10 +186,7 @@ test("important reservation workflows", async (t) => {
     assert.equal(updated.tcCount, 3);
     assert.equal(updated.dgCount, 0);
 
-    const customer = (await repository.listCustomers()).find((item) => item.contact === "agency@example.jp");
-    assert.equal(customer?.accountType, "travel_agency");
-    assert.equal(customer?.companyBranchName, "ABCツーリスト広島支店");
-    assert.equal(customer?.contactPersonName, "山田太郎");
+    assert.equal((await repository.listAccounts()).length, 0);
   });
 
   await t.test("updates reservation status with stable status code", async () => {

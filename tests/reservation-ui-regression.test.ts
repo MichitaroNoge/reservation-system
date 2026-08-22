@@ -56,7 +56,8 @@ test("customer request APIs use authenticated reservation ownership when availab
   for (const routePath of routePaths) {
     const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");
     assert.match(routeSource, /findOwnedReservationByAuthenticatedCustomer/);
-    assert.match(routeSource, /allowMissingContact:\s*Boolean\(ownedReservation\)/);
+    assert.match(routeSource, /allowMissingContact:\s*true/);
+    assert.doesNotMatch(routeSource, /emailMatches|phoneMatches/);
   }
 });
 
@@ -136,8 +137,8 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.doesNotMatch(confirmationContactRouteSource, /updateReservationStatus\(id, automaticStatus\)/);
   assert.match(dataConnectRepositorySource, /contactedAt === null[\s\S]*clearConfirmationContact/);
-  assert.match(dataConnectRepositorySource, /confirmationContactedAt: null/);
   assert.match(dataConnectMutationsSource, /mutation ClearConfirmationContact/);
+  assert.match(dataConnectMutationsSource, /confirmationContactedAt: null/);
   assert.match(pageSource, /normalizedReservation = !contactedAt && current\?\.status === STATUS\.waitingForVisit/);
   assert.match(pageSource, /setReservations\(rs => rs\.map\(r => r\.id === id \? normalizedReservation : r\)\)/);
   assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);

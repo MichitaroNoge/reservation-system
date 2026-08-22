@@ -10,20 +10,9 @@ export async function POST(request: Request) {
   try {
     const body = await readJsonObject(request);
     const repository = getReservationRepository();
-    const reservationIdFromBody = typeof body.reservationId === "string" ? body.reservationId : "";
-    const ownedReservation = reservationIdFromBody
-      ? await findOwnedReservationByAuthenticatedCustomer(request, repository, reservationIdFromBody)
-      : null;
-    const input = validateConfirmedReservationRequestInput(body, { allowMissingContact: Boolean(ownedReservation) });
-    const reservationId = normalizeReservationId(input.reservationId);
-    const current = ownedReservation ?? (await repository.listReservations()).find((reservation) => normalizeReservationId(reservation.id) === reservationId);
+    const input = validateConfirmedReservationRequestInput(body, { allowMissingContact: true });
+    const current = await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
     if (!current) return NextResponse.json({ error: "予約が見つかりません。予約IDを確認してください。" }, { status: 404 });
-
-    if (!ownedReservation) {
-      const emailMatches = Boolean(input.email && current.email?.toLowerCase() === input.email.toLowerCase());
-      const phoneMatches = Boolean(input.phone && normalizePhone(current.phone) === normalizePhone(input.phone));
-      if (!emailMatches && !phoneMatches) return NextResponse.json({ error: "予約時のメールアドレスまたは電話番号と一致しません。" }, { status: 400 });
-    }
 
     try {
       assertReservationStatusTransition(current.status, reservationStatusCodes.confirmedRequested);
@@ -38,12 +27,4 @@ export async function POST(request: Request) {
   } catch (error) {
     return apiErrorResponse(error);
   }
-}
-
-function normalizeReservationId(id: string) {
-  return id.trim().toUpperCase();
-}
-
-function normalizePhone(phone: string) {
-  return phone.replace(/[^0-9+]/g, "");
 }

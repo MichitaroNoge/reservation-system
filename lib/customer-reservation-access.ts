@@ -6,9 +6,9 @@ export async function findOwnedReservationByAuthenticatedCustomer(
   request: Request,
   repository: ReservationRepository,
   reservationId: string,
-): Promise<Reservation | null> {
+): Promise<Reservation> {
   const user = await verifyOptionalFirebaseUser(request);
-  if (!user) return null;
+  if (!user) throw new ApiAuthError("Customer authentication required.", 401);
 
   const reservation = (await repository.listReservationsForReservationAccount(user.uid))
     .find((item) => normalizeReservationId(item.id) === normalizeReservationId(reservationId));

@@ -93,8 +93,8 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
 
 function validateCustomerAccountMode(value: unknown) {
   if (value === undefined) return undefined;
-  if (value === "account" || value === "guest" || value === "admin") return value;
-  throw new ApiValidationError("customerAccountMode must be account, guest, or admin.");
+  if (value === "account" || value === "admin") return value;
+  throw new ApiValidationError("customerAccountMode must be account or admin.");
 }
 
 export function validateUpdateReservationInput(body: Record<string, unknown>): UpdateReservationInput {

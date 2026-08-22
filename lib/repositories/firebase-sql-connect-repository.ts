@@ -63,7 +63,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.dataConnect;
   }
 
-  async listReservations() {
+  async listReservations(): Promise<Reservation[]> {
     const { data } = await op("listReservations")(this.connection());
     return (data.reservations ?? []).map(toReservation);
   }
@@ -193,7 +193,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.getReservationWithInternalId(id);
   }
 
-  async listReservationChangeRequests() {
+  async listReservationChangeRequests(): Promise<ReservationChangeRequest[]> {
     const { data } = await op("listReservationChangeRequests")(this.connection());
     return (data.reservationChangeRequests ?? []).map(toReservationChangeRequest);
   }
@@ -275,8 +275,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return toAccount(await this.getRawAccountById(id));
   }
 
-  async listStores() { const { data } = await op("listStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
-  async listInactiveStores() { const { data } = await op("listInactiveStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
+  async listStores(): Promise<Store[]> { const { data } = await op("listStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
+  async listInactiveStores(): Promise<Store[]> { const { data } = await op("listInactiveStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
 
   async createStore(input: SaveStoreInput) {
     const existing = await this.findRawStoreByName(input.name);
@@ -299,8 +299,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   async deleteStore(name: string) { const store = await this.getRawStoreByName(name); await op("deactivateStore")(this.connection(), { id: store.id }); }
   async reactivateStore(id: string) { await op("reactivateStore")(this.connection(), { id }); return toStore(await this.getRawStoreById(id)); }
 
-  async listMenus() { return sortByDisplayOrderThenName((await this.listRawMenus()).map(toMenu)); }
-  async listInactiveMenus() { const { data } = await op("listInactiveMenus")(this.connection()); return sortByDisplayOrderThenName((data.menus ?? []).map(toMenu)); }
+  async listMenus(): Promise<Menu[]> { return sortByDisplayOrderThenName((await this.listRawMenus()).map(toMenu)); }
+  async listInactiveMenus(): Promise<Menu[]> { const { data } = await op("listInactiveMenus")(this.connection()); return sortByDisplayOrderThenName((data.menus ?? []).map(toMenu)); }
 
   async createMenu(input: SaveMenuInput) {
     const existing = await this.findRawMenuByName(input.name);
@@ -466,7 +466,7 @@ function toMenu(raw: RawMenu): Menu {
   return { id: raw.id, name: raw.name, description: raw.description ?? "", price: raw.standardPrice, duration: raw.durationMinutes === 0 ? "来店後" : `${raw.durationMinutes}分`, displayOrder: raw.displayOrder ?? 0, active: raw.active ?? true };
 }
 function toStore(raw: RawStore): Store { return { id: raw.id, name: raw.name, displayOrder: raw.displayOrder ?? 0 }; }
-function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: string }>(items: T[]) { return [...items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.name.localeCompare(b.name, "ja-JP", { numeric: true })); }
+function sortByDisplayOrderThenName<T extends { displayOrder: number; name: string }>(items: T[]): T[] { return [...items].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name, "ja-JP", { numeric: true })); }
 function durationToMinutes(duration: string) { if (duration === "来店後") return 0; const match = duration.match(/\d+/); return match ? Number(match[0]) : 0; }
 function menuVariables(id: string, input: SaveMenuInput, active: boolean) { return { id, name: input.name, description: input.description, standardPrice: input.price, durationMinutes: durationToMinutes(input.duration), displayOrder: input.displayOrder, active }; }
 function safeParseStringArray(value: unknown) { try { const parsed = JSON.parse(String(value ?? "[]")); return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : []; } catch { return []; } }

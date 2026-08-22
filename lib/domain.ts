@@ -153,7 +153,7 @@ export type CreateReservationInput = {
   menu?:string; menuItems?:string[]; status?:ReservationStatus; requestType?:ReservationRequestType|null; policyAgreement?:PolicyAgreement;
   accountFirebaseUid?: string;
   /** @deprecated Use accountFirebaseUid. */ customerFirebaseUid?: string;
-  customerAccountMode?: "account"|"guest"|"admin";
+  customerAccountMode?: "account"|"admin";
   date:string; startTime?:string; endTime?:string; people:number; name:string; email:string; phone:string; address?:string;
   accountType?:AccountType; companyBranchName?:string; contactPersonName?:string; bookingType?:ReservationBookingType; bookingContactName?:string;
   dayContactName?:string; dayContactPhone?:string; groupName?:string; groupNameKana?:string; groupType?:string; groupTypeOther?:string;
@@ -205,4 +205,38 @@ export function getAutomaticReservationStatus(reservation: ReservationReadinessI
   if (reservation.status === "confirmed" && isVisitReadyReservation(reservation)) return "waiting_for_visit";
   if (reservation.status === "waiting_for_visit" && !isVisitReadyReservation(reservation)) return "confirmed";
   return reservation.status;
+}
+
+export function daysUntilVisit(date: string, todayIso: string) {
+  const visitDate = new Date(`${date}T00:00:00`);
+  const today = new Date(`${todayIso}T00:00:00`);
+  if (Number.isNaN(visitDate.getTime()) || Number.isNaN(today.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.ceil((visitDate.getTime() - today.getTime()) / 86400000);
+}
+
+export function isConfirmationContactDue(reservation: Pick<Reservation, "status" | "date" | "confirmationContactedAt">, windowDays: number, todayIso: string) {
+  const days = daysUntilVisit(reservation.date, todayIso);
+  return reservation.status === "confirmed" && !reservation.confirmationContactedAt && days >= 0 && days < windowDays;
+}
+
+function addCalendarMonths(date: Date, months: number) {
+  const result = new Date(date);
+  const day = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
+}
+
+export function isTemporaryReservationExpired(reservation: Pick<Reservation, "status" | "date">, todayIso: string) {
+  if (reservation.status !== "temporary_confirmed") return false;
+  const visitDate = new Date(`${reservation.date}T00:00:00`);
+  if (Number.isNaN(visitDate.getTime())) return false;
+  return visitDate < addCalendarMonths(new Date(`${todayIso}T00:00:00`), 1);
+}
+
+export function reservationDisplayStatusLabel(reservation: ReservationReadinessInput & Pick<Reservation, "date">, todayIso: string) {
+  if (isTemporaryReservationExpired(reservation, todayIso)) return "仮予約確定（期限切れ）";
+  return isVisitReadyReservation(reservation) ? "本予約確定（来店待ち）" : reservationStatusLabel(reservation.status);
 }

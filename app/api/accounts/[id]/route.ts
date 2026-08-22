@@ -1,28 +1,38 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "../../../../lib/auth";
-import { getReservationRepository } from "../../../../lib/repositories";
+import { requireAdmin } from "@/lib/auth";
+import { apiErrorResponse } from "@/lib/api-validation";
+import { getReservationRepository } from "@/lib/repositories";
+
+export const runtime = "nodejs";
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdminSession();
-  const { id } = await context.params;
-  const body = await request.json();
-  const repository = getReservationRepository();
-  return NextResponse.json(await repository.updateAccount(id, {
-    id,
-    name: body.name,
-    contact: body.contact,
-    phone: body.phone,
-    address: body.address,
-    accountType: body.accountType,
-    companyBranchName: body.companyBranchName,
-    contactPersonName: body.contactPersonName,
-  }));
+  try {
+    await requireAdmin(request);
+    const { id } = await context.params;
+    const body = await request.json();
+    const account = await getReservationRepository().updateAccount(id, {
+      id,
+      name: body.name,
+      contact: body.contact,
+      phone: body.phone,
+      address: body.address,
+      accountType: body.accountType,
+      companyBranchName: body.companyBranchName,
+      contactPersonName: body.contactPersonName,
+    });
+    return NextResponse.json({ account });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }
 
-export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdminSession();
-  const { id } = await context.params;
-  const repository = getReservationRepository();
-  await repository.deactivateAccount(id);
-  return new Response(null, { status: 204 });
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin(request);
+    const { id } = await context.params;
+    await getReservationRepository().deactivateAccount(id);
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }

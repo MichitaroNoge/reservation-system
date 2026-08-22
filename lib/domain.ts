@@ -14,13 +14,7 @@ export type ReservationRequestType = "confirmed_from_temporary";
 export type AccountType = "individual" | "travel_agency";
 export type CustomerAccountType = AccountType;
 export type ReservationBookingType = "individual" | "travel_agency_group";
-export type PaymentCondition =
-  | "onsite_cash"
-  | "onsite_card"
-  | "onsite_cashless"
-  | "invoice"
-  | "prepaid"
-  | "other";
+export type PaymentCondition = "onsite_cash" | "onsite_card" | "onsite_cashless" | "invoice" | "prepaid" | "other";
 
 export const paymentConditions = ["onsite_cash", "onsite_card", "onsite_cashless", "invoice", "prepaid", "other"] as const satisfies readonly PaymentCondition[];
 export const defaultPaymentCondition: PaymentCondition = "onsite_cash";
@@ -80,7 +74,7 @@ export const reservationStatusTransitions = [
 
 export type DataConnectReservationStatus = "TEMPORARY_REQUESTED"|"TEMPORARY_CONFIRMED"|"TEMPORARY_REJECTED"|"CONFIRMED_REQUESTED"|"CONFIRMED"|"CONFIRMED_REJECTED"|"WAITING_FOR_VISIT"|"VISITED"|"CANCELLATION_REQUESTED"|"CANCELLED";
 export const dataConnectReservationStatusMap: Record<ReservationStatus, DataConnectReservationStatus> = {
-  temporary_requested:"TEMPORARY_REQUESTED",temporary_confirmed:"TEMPORARY_CONFIRMED",temporary_rejected:"TEMPORARY_REJECTED",confirmed_requested:"CONFIRMED_REQUESTED",confirmed:"CONFIRMED",confirmed_rejected:"CONFIRMED_REJECTED",waiting_for_visit:"WAITING_FOR_VISIT",visited:"VISITED",cancellation_requested:"CANCELLATION_REQUESTED",cancelled:"CANCELLED"
+  temporary_requested:"TEMPORARY_REQUESTED", temporary_confirmed:"TEMPORARY_CONFIRMED", temporary_rejected:"TEMPORARY_REJECTED", confirmed_requested:"CONFIRMED_REQUESTED", confirmed:"CONFIRMED", confirmed_rejected:"CONFIRMED_REJECTED", waiting_for_visit:"WAITING_FOR_VISIT", visited:"VISITED", cancellation_requested:"CANCELLATION_REQUESTED", cancelled:"CANCELLED"
 };
 const reservationStatusByDataConnectStatus: Record<DataConnectReservationStatus, ReservationStatus> = Object.fromEntries(Object.entries(dataConnectReservationStatusMap).map(([k,v])=>[v,k])) as Record<DataConnectReservationStatus, ReservationStatus>;
 const legacyReservationStatusMap: Record<string, ReservationStatus> = {"仮予約申請中":"temporary_requested","仮予約確定":"temporary_confirmed","仮予約却下":"temporary_rejected","本予約申請中":"confirmed_requested","本予約確定":"confirmed","本予約却下":"confirmed_rejected","来店待ち":"waiting_for_visit","来店済":"visited","来店済み":"visited","キャンセル申請中":"cancellation_requested","キャンセル確定":"cancelled"};
@@ -104,9 +98,9 @@ export type Account = {
   active?: boolean;
 };
 export type SaveAccountInput = Omit<Account,"active">;
-/** @deprecated 互換性のため残す。新規実装ではAccountを使用する。 */
+/** @deprecated Compatibility alias. New code should use Account. */
 export type Customer = Account & { count?: number; last?: string };
-/** @deprecated */
+/** @deprecated Compatibility alias. */
 export type SaveCustomerInput = SaveAccountInput & { originalContact?: string };
 
 export type Reservation = {
@@ -173,4 +167,42 @@ export function menuDurationMinutes(menu: Pick<Menu,"duration">){ if(menu.durati
 export function reservationDurationMinutes(menuItems:string[]|undefined,menus:Pick<Menu,"name"|"duration">[]){ const selected=menus.filter(m=>menuItems?.includes(m.name)); const configured=selected.map(menuDurationMinutes).filter(v=>v>0); return configured.length?Math.max(...configured):defaultReservationDurationMinutes; }
 export function addMinutesToTime(time:string|undefined,minutes:number){ const source=time||"10:00"; const match=source.match(/^(\d{2}):(\d{2})$/); if(!match) return source; const total=Number(match[1])*60+Number(match[2])+minutes; return `${String(Math.floor(total/60)%24).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`; }
 export function calculateReservationEndTime(startTime:string|undefined,menuItems:string[]|undefined,menus:Pick<Menu,"name"|"duration">[]){ return addMinutesToTime(startTime,reservationDurationMinutes(menuItems,menus)); }
-export function getAutomaticReservationStatus(reservation: Pick<Reservation,"status"|"storeAssignments"|"people">): ReservationStatus { if(reservation.status===reservationStatusCodes.confirmed){ const total=(reservation.storeAssignments??[]).reduce((s,a)=>s+a.people,0); if(total===reservation.people&&total>0) return reservationStatusCodes.waitingForVisit; } if(reservation.status===reservationStatusCodes.waitingForVisit){ const total=(reservation.storeAssignments??[]).reduce((s,a)=>s+a.people,0); if(total!==reservation.people||total===0) return reservationStatusCodes.confirmed; } return reservation.status; }
+
+type ReservationReadinessInput = Pick<Reservation, "status" | "store" | "storeAssignments" | "people" | "confirmationContactedAt"> & { menuItems?: string[] };
+
+export function reservationAssignments(reservation: Pick<Reservation, "store" | "storeAssignments" | "people">): StoreAssignment[] {
+  return reservation.storeAssignments?.length
+    ? reservation.storeAssignments
+    : reservation.store
+      ? [{ store: reservation.store, people: reservation.people }]
+      : [];
+}
+
+export function isConfirmedReservationStatus(status: ReservationStatus) {
+  return status === "confirmed" || status === "waiting_for_visit";
+}
+
+export function isConfirmedReservation(reservation: Pick<Reservation, "status">) {
+  return isConfirmedReservationStatus(reservation.status);
+}
+
+export function isVisitReadyReservation(reservation: ReservationReadinessInput) {
+  return isConfirmedReservation(reservation)
+    && Boolean(reservation.menuItems?.length)
+    && Boolean(reservationAssignments(reservation).length)
+    && Boolean(reservation.confirmationContactedAt);
+}
+
+export function getPendingVisitReadinessActions(reservation: Omit<ReservationReadinessInput, "status">) {
+  return [
+    !reservation.menuItems?.length && "メニュー確定",
+    !reservationAssignments(reservation).length && "店舗割当",
+    !reservation.confirmationContactedAt && "確認連絡",
+  ].filter(Boolean) as string[];
+}
+
+export function getAutomaticReservationStatus(reservation: ReservationReadinessInput): ReservationStatus {
+  if (reservation.status === "confirmed" && isVisitReadyReservation(reservation)) return "waiting_for_visit";
+  if (reservation.status === "waiting_for_visit" && !isVisitReadyReservation(reservation)) return "confirmed";
+  return reservation.status;
+}

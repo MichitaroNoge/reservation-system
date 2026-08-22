@@ -19,6 +19,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const input = validateCreateReservationInput(await readJsonObject(request));
+    const repository = getReservationRepository();
     const publicStatuses: readonly string[] = [reservationStatusCodes.temporaryRequested, reservationStatusCodes.confirmedRequested];
     const isPublicReservationRequest = !input.status || publicStatuses.includes(input.status);
 
@@ -29,8 +30,21 @@ export async function POST(request: Request) {
     } else {
       const user = await verifyOptionalFirebaseUser(request);
       if (user && !isAdminToken(user)) {
-        // Only a reservation created by the signed-in customer is linked to Account.
-        // We never search/link historical reservations by email or other profile fields.
+        // Account is keyed only by the authenticated Firebase UID.
+        // Do not search by email and do not attach historical/admin reservations.
+        let account = await repository.findAccountByFirebaseUid(user.uid);
+        if (!account) {
+          account = await repository.createAccount({
+            firebaseUid: user.uid,
+            name: input.name,
+            contact: user.email ?? input.email,
+            phone: input.phone,
+            address: input.address,
+            accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+            companyBranchName: input.companyBranchName,
+            contactPersonName: input.contactPersonName,
+          });
+        }
         input.accountFirebaseUid = user.uid;
         input.customerAccountMode = "account";
       } else if (user && isAdminToken(user)) {
@@ -42,7 +56,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const reservation = await getReservationRepository().createReservation(input);
+    const reservation = await repository.createReservation(input);
     return NextResponse.json({ reservation }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

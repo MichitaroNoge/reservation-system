@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "../../../../lib/auth";
-import { getReservationRepository } from "../../../../lib/repositories";
+import { requireAdmin } from "@/lib/auth";
+import { apiErrorResponse } from "@/lib/api-validation";
+import { getReservationRepository } from "@/lib/repositories";
 
-export async function GET() {
-  await requireAdminSession();
-  const repository = getReservationRepository();
-  return NextResponse.json(await repository.listInactiveAccounts());
+export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  try {
+    await requireAdmin(request);
+    const accounts = await getReservationRepository().listInactiveAccounts();
+    return NextResponse.json({ accounts });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }

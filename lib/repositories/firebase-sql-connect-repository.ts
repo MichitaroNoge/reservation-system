@@ -580,13 +580,6 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       return this.createDataConnectCustomer(input);
     }
 
-    if (input.customerAccountMode === "guest") {
-      const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
-      if (customerByEmail?.firebaseUid) return { id: customerByEmail.id };
-      if (customerByEmail) return this.updateDataConnectCustomerProfile(customerByEmail.id, input);
-      return this.createDataConnectCustomer(input);
-    }
-
     const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
     if (customerByEmail) return this.updateDataConnectCustomerProfile(customerByEmail.id, input);
 

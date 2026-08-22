@@ -56,7 +56,8 @@ test("customer request APIs use authenticated reservation ownership when availab
   for (const routePath of routePaths) {
     const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");
     assert.match(routeSource, /findOwnedReservationByAuthenticatedCustomer/);
-    assert.match(routeSource, /allowMissingContact:\s*Boolean\(ownedReservation\)/);
+    assert.match(routeSource, /allowMissingContact:\s*true/);
+    assert.doesNotMatch(routeSource, /emailMatches|phoneMatches/);
   }
 });
 

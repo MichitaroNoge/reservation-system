@@ -10,7 +10,6 @@ test("customer reservation portal keeps account booking choices", async () => {
   for (const requiredText of [
     "ログイン",
     "アカウント登録して予約する",
-    "アカウント登録なしで予約する",
     "予約確認",
     "本予約への変更申請",
     "予約内容変更申請",
@@ -21,8 +20,10 @@ test("customer reservation portal keeps account booking choices", async () => {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
 
-  assert.match(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must remain wired");
-  assert.match(pageSource, /customerAccountMode[^;\n]+account/, "account reservation mode must remain wired");
+  assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
+  assert.doesNotMatch(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must not be wired");
+  assert.match(pageSource, /customerAccountMode:\s*"account"/, "account reservation mode must remain wired");
+  assert.match(pageSource, /CustomerRequestLoginPanel/, "customer request forms should require login before submission");
   assert.match(pageSource, /startConfirmedChangeFromReservation/, "confirmed reservation change must be available from account reservations");
   assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");

@@ -1,10 +1,6 @@
 import {
-  daysUntilVisit as calculateDaysUntilVisit,
   calculateReservationEndTime,
-  isConfirmationContactDue as isConfirmationContactDueByRule,
-  isTemporaryReservationExpired as isTemporaryReservationExpiredByRule,
   reservationAssignments,
-  reservationDisplayStatusLabel,
   reservationStatusLabel,
 } from "@/lib/domain";
 import { DEFAULT_START_TIME } from "./constants";
@@ -52,7 +48,10 @@ export function bookingFormEndTime(form: Pick<BookingForm, "startTime" | "menuIt
 }
 
 export function daysUntilVisit(date: string) {
-  return calculateDaysUntilVisit(date, todayIso());
+  const visitDate = new Date(`${date}T00:00:00`);
+  const today = new Date(`${todayIso()}T00:00:00`);
+  if (Number.isNaN(visitDate.getTime()) || Number.isNaN(today.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.ceil((visitDate.getTime() - today.getTime()) / 86400000);
 }
 
 export function assignmentLabel(reservation: Reservation) {
@@ -61,15 +60,29 @@ export function assignmentLabel(reservation: Reservation) {
 }
 
 export function isConfirmationContactDue(reservation: Reservation, windowDays: number) {
-  return isConfirmationContactDueByRule(reservation, windowDays, todayIso());
+  const days = daysUntilVisit(reservation.date);
+  return reservation.status === "confirmed" && !reservation.confirmationContactedAt && days >= 0 && days < windowDays;
+}
+
+function addCalendarMonths(date: Date, months: number) {
+  const day = date.getDate();
+  const result = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
 }
 
 export function isTemporaryReservationExpired(reservation: Reservation) {
-  return isTemporaryReservationExpiredByRule(reservation, todayIso());
+  if (reservation.status !== "temporary_confirmed") return false;
+  const visitDate = new Date(`${reservation.date}T00:00:00`);
+  if (Number.isNaN(visitDate.getTime())) return false;
+  return visitDate < addCalendarMonths(new Date(`${todayIso()}T00:00:00`), 1);
 }
 
 export function reservationDisplayLabel(reservation: Reservation) {
-  return reservationDisplayStatusLabel(reservation, todayIso());
+  if (isTemporaryReservationExpired(reservation)) return "仮予約確定（期限切れ）";
+  if (reservation.status === "waiting_for_visit") return "本予約確定（来店待ち）";
+  return statusLabel(reservation.status);
 }
 
 export function todayIso() {

@@ -18,9 +18,9 @@ enum ReservationChangeRequestStatus { REQUESTED APPROVED REJECTED }
 type Account @table {
   id: UUID! @default(expr: "uuidV4()")
   firebaseUid: String! @unique
-  email: String! @unique @col(dataType: "varchar(255)")
+  email: String! @col(dataType: "varchar(255)")
   name: String! @col(dataType: "varchar(100)")
-  phone: String! @col(dataType: "varchar(30)")
+  phone: String @col(dataType: "varchar(30)")
   address: String @col(dataType: "varchar(500)")
   accountType: String @col(dataType: "varchar(30)")
   companyBranchName: String @col(dataType: "varchar(100)")

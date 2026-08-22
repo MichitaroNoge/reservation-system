@@ -1,4 +1,4 @@
-import type { CreateReservationChangeRequestInput, CreateReservationInput, Customer, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveCustomerInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import type { Account, CreateReservationChangeRequestInput, CreateReservationInput, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
@@ -12,13 +12,15 @@ export type ReservationRepository = {
   createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest>;
   approveReservationChangeRequest(id: string): Promise<{ request: ReservationChangeRequest; reservation: Reservation }>;
   rejectReservationChangeRequest(id: string): Promise<ReservationChangeRequest>;
-  listCustomers(): Promise<Customer[]>;
-  listInactiveCustomers(): Promise<Customer[]>;
-  findCustomerForReservationAccount(firebaseUid: string, email: string): Promise<Customer | null>;
-  createCustomer(input: SaveCustomerInput): Promise<Customer>;
-  updateCustomer(name: string, input: SaveCustomerInput): Promise<Customer>;
-  deleteCustomer(name: string): Promise<void>;
-  reactivateCustomer(id: string): Promise<Customer>;
+
+  listAccounts(): Promise<Account[]>;
+  listInactiveAccounts(): Promise<Account[]>;
+  findAccountByFirebaseUid(firebaseUid: string): Promise<Account | null>;
+  createAccount(input: SaveAccountInput & { firebaseUid: string }): Promise<Account>;
+  updateAccount(id: string, input: SaveAccountInput): Promise<Account>;
+  deactivateAccount(id: string): Promise<void>;
+  reactivateAccount(id: string): Promise<Account>;
+
   listStores(): Promise<Store[]>;
   listInactiveStores(): Promise<Store[]>;
   createStore(input: SaveStoreInput): Promise<Store>;

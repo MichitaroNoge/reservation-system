@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
-import { requireCustomerSession } from "../../../../../lib/auth";
-import { getReservationRepository } from "../../../../../lib/repositories";
+import { verifyOptionalFirebaseUser } from "@/lib/auth";
+import { apiErrorResponse } from "@/lib/api-validation";
+import { getReservationRepository } from "@/lib/repositories";
 
-export async function GET() {
-  const session = await requireCustomerSession();
-  const repository = getReservationRepository();
-  const reservations = await repository.listReservationsForReservationAccount(session.uid);
-  return NextResponse.json(reservations);
+export const runtime = "nodejs";
+
+export async function GET(request: Request) {
+  try {
+    const user = await verifyOptionalFirebaseUser(request);
+    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const reservations = await getReservationRepository().listReservationsForReservationAccount(user.uid);
+    return NextResponse.json({ reservations });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }

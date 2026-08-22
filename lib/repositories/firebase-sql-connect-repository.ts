@@ -60,7 +60,9 @@ import {
   type ListStoresData,
 } from "@reservation-system/dataconnect-admin";
 import {
+  calculateReservationEndTime,
   getAutomaticReservationStatus,
+  normalizePaymentCondition,
   normalizeReservationRequestType,
   normalizeReservationStatus,
   reservationStatusCodes,
@@ -125,18 +127,32 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const reservationCode = await this.nextReservationCode();
     const customer = await this.resolveDataConnectCustomer(input);
     const status = toSdkReservationStatus(normalizeReservationStatus(input.status));
+    const menus = await this.listDataConnectMenus();
+    const startTime = input.startTime ?? "10:00";
     const { data } = await createReservation(this.connection(), {
       reservationCode,
       customerId: customer.id,
       usageDate: input.date,
-      usageTime: input.startTime ?? "10:00",
+      usageTime: startTime,
+      usageEndTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, menus.map(toMenu)),
       expectedPeople: input.people,
       status,
       requestType: input.requestType ?? null,
+      bookingType: input.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName ?? null,
+      dayContactName: input.dayContactName ?? null,
+      dayContactPhone: input.dayContactPhone ?? null,
+      groupName: input.groupName ?? null,
+      groupNameKana: input.groupNameKana ?? null,
+      groupType: input.groupType ?? null,
+      groupTypeOther: input.groupTypeOther ?? null,
+      tcCount: input.tcCount ?? 0,
+      dgCount: input.dgCount ?? 0,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition),
+      remarks: input.remarks ?? null,
       policyAgreementKind: input.policyAgreement?.kind,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt,
     });
-    const menus = await this.listDataConnectMenus();
     for (const menuName of menuItems) {
       const menu = menus.find((item) => item.name === menuName);
       if (!menu) continue;
@@ -152,19 +168,37 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateReservation(id: string, input: UpdateReservationInput) {
     const current = await this.getReservationWithInternalId(id);
-    if (input.customer !== undefined || input.email !== undefined || input.phone !== undefined) {
+    const shouldCalculateEndTime = input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined || !current.endTime);
+    const menuCatalog = shouldCalculateEndTime ? await this.listMenus() : [];
+    if (input.customer !== undefined || input.email !== undefined || input.phone !== undefined || input.address !== undefined) {
       await updateCustomer(this.connection(), {
         id: current.dataConnectCustomerId,
         name: input.customer ?? current.customer,
         phone: input.phone ?? current.phone,
         email: input.email ?? current.email,
+        address: input.address ?? current.address ?? null,
       });
     }
     await updateReservation(this.connection(), {
       id: current.dataConnectId,
       usageDate: input.date ?? current.date,
       usageTime: input.startTime ?? current.startTime ?? "10:00",
+      usageEndTime: input.endTime ?? (shouldCalculateEndTime
+        ? calculateReservationEndTime(input.startTime ?? current.startTime, input.menuItems ?? current.menuItems, menuCatalog)
+        : current.endTime ?? null),
       expectedPeople: input.people ?? current.people,
+      bookingType: input.bookingType ?? current.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName ?? current.bookingContactName ?? null,
+      dayContactName: input.dayContactName ?? current.dayContactName ?? null,
+      dayContactPhone: input.dayContactPhone ?? current.dayContactPhone ?? null,
+      groupName: input.groupName ?? current.groupName ?? null,
+      groupNameKana: input.groupNameKana ?? current.groupNameKana ?? null,
+      groupType: input.groupType ?? current.groupType ?? null,
+      groupTypeOther: input.groupTypeOther ?? current.groupTypeOther ?? null,
+      tcCount: input.tcCount ?? current.tcCount ?? 0,
+      dgCount: input.dgCount ?? current.dgCount ?? 0,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition ?? current.paymentCondition),
+      remarks: input.remarks ?? current.remarks ?? null,
     });
     if (input.menuItems !== undefined) {
       await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
@@ -191,6 +225,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateConfirmationContact(id: string, contactedAt: string | null) {
     const current = await this.getReservationWithInternalId(id);
+    if (contactedAt === null) {
+      await this.clearConfirmationContact(current.dataConnectId);
+      return this.getReservationWithInternalId(id);
+    }
     await updateConfirmationContact(this.connection(), {
       id: current.dataConnectId,
       confirmationContactedAt: contactedAt,
@@ -311,6 +349,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
         name: input.name,
         phone: input.phone,
         email: input.contact,
+        address: input.address ?? null,
+        accountType: input.accountType ?? "individual",
+        companyBranchName: input.companyBranchName ?? null,
+        contactPersonName: input.contactPersonName ?? null,
       });
       await reactivateDataConnectCustomer(this.connection(), { id: inactive.id });
       const restored = await this.getDataConnectCustomerById(inactive.id);
@@ -321,9 +363,13 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.contact,
+      address: input.address ?? null,
+      accountType: input.accountType ?? "individual",
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: null,
     });
-    return { id: data.customer_insert.id, name: input.name, contact: input.contact, phone: input.phone, count: 0, last: "-" };
+    return { id: data.customer_insert.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, accountType: input.accountType, companyBranchName: input.companyBranchName, contactPersonName: input.contactPersonName, count: 0, last: "-" };
   }
 
   async updateCustomer(name: string, input: SaveCustomerInput) {
@@ -335,8 +381,12 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.contact,
+      address: input.address ?? null,
+      accountType: input.accountType ?? "individual",
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
     });
-    return { id: customer.id, name: input.name, contact: input.contact, phone: input.phone, count: 0, last: "-" };
+    return { id: customer.id, name: input.name, contact: input.contact, phone: input.phone, address: input.address, accountType: input.accountType, companyBranchName: input.companyBranchName, contactPersonName: input.contactPersonName, count: 0, last: "-" };
   }
 
   async deleteCustomer(name: string) {
@@ -507,6 +557,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.email,
+      address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: input.customerFirebaseUid ?? null,
     });
     return data.customer_insert;
@@ -528,7 +582,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
     if (input.customerAccountMode === "guest") {
       const customerByEmail = await this.findDataConnectCustomerByEmail(input.email);
-      if (customerByEmail) return { id: customerByEmail.id };
+      if (customerByEmail?.firebaseUid) return { id: customerByEmail.id };
+      if (customerByEmail) return this.updateDataConnectCustomerProfile(customerByEmail.id, input);
       return this.createDataConnectCustomer(input);
     }
 
@@ -544,6 +599,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.email,
+      address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
       firebaseUid: input.customerFirebaseUid,
     });
     return { id: customerId };
@@ -555,6 +614,10 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       name: input.name,
       phone: input.phone,
       email: input.email,
+      address: input.address ?? null,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName ?? null,
+      contactPersonName: input.contactPersonName ?? null,
     });
     return { id: customerId };
   }
@@ -638,6 +701,18 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return [...activeMenus, ...data.menus];
   }
 
+  private async clearConfirmationContact(id: string) {
+    await this.connection().executeGraphql<void, { id: string }>(
+      `mutation ClearConfirmationContact($id: UUID!) {
+        reservation_update(key: {id: $id}, data: {
+          confirmationContactedAt: null
+          updatedAt_expr: "request.time"
+        })
+      }`,
+      { variables: { id } },
+    );
+  }
+
   private async nextReservationCode() {
     const reservations = await this.listReservations();
     const maxNumber = reservations.reduce((max, reservation) => {
@@ -664,8 +739,25 @@ function toReservation(reservation: DataConnectReservation): Reservation {
     id: reservation.reservationCode,
     customer: reservation.customer.name,
     email: reservation.customer.email,
+    address: dataConnectCustomerAddress(reservation.customer),
+    bookingType: dataConnectStringField(reservation, "bookingType") === "travel_agency_group" ? "travel_agency_group" : "individual",
+    bookingContactName: dataConnectStringField(reservation, "bookingContactName"),
+    dayContactName: dataConnectStringField(reservation, "dayContactName"),
+    dayContactPhone: dataConnectStringField(reservation, "dayContactPhone"),
+    groupName: dataConnectStringField(reservation, "groupName"),
+    groupNameKana: dataConnectStringField(reservation, "groupNameKana"),
+    groupType: dataConnectStringField(reservation, "groupType"),
+    groupTypeOther: dataConnectStringField(reservation, "groupTypeOther"),
+    tcCount: dataConnectNumberField(reservation, "tcCount") ?? 0,
+    dgCount: dataConnectNumberField(reservation, "dgCount") ?? 0,
+    paymentCondition: normalizePaymentCondition(dataConnectStringField(reservation, "paymentCondition")),
+    remarks: dataConnectStringField(reservation, "remarks"),
     date: reservation.usageDate,
     startTime: reservation.usageTime,
+    endTime: dataConnectStringField(reservation, "usageEndTime") ?? calculateReservationEndTime(reservation.usageTime, menuItems, (reservation.reservationDetails_on_reservation ?? []).map((detail) => ({
+      name: detail.menu.name,
+      duration: detail.menu.durationMinutes > 0 ? `${detail.menu.durationMinutes}分` : "来店後",
+    }))),
     people: reservation.expectedPeople,
     menuItems,
     totalAmount,
@@ -713,9 +805,31 @@ function toCustomer(customer: DataConnectCustomer): Customer {
     name: customer.name,
     contact: customer.email,
     phone: customer.phone,
+    address: dataConnectCustomerAddress(customer),
+    accountType: dataConnectStringField(customer, "accountType") === "travel_agency" ? "travel_agency" : "individual",
+    companyBranchName: dataConnectStringField(customer, "companyBranchName"),
+    contactPersonName: dataConnectStringField(customer, "contactPersonName"),
     count: reservations.length,
     last: reservations.map((reservation) => reservation.usageDate).sort().at(-1) ?? "-",
   };
+}
+
+function dataConnectCustomerAddress(customer: unknown) {
+  return typeof customer === "object" && customer !== null && "address" in customer && typeof customer.address === "string"
+    ? customer.address
+    : undefined;
+}
+
+function dataConnectStringField(source: unknown, field: string) {
+  if (typeof source !== "object" || source === null || !(field in source)) return undefined;
+  const value = (source as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : undefined;
+}
+
+function dataConnectNumberField(source: unknown, field: string) {
+  if (typeof source !== "object" || source === null || !(field in source)) return undefined;
+  const value = (source as Record<string, unknown>)[field];
+  return typeof value === "number" ? value : undefined;
 }
 
 function toStore(store: DataConnectStore): Store {

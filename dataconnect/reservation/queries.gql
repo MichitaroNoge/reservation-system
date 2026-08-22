@@ -4,15 +4,28 @@ query ListReservations @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
+    bookingType
+    bookingContactName
+    dayContactName
+    dayContactPhone
+    groupName
+    groupNameKana
+    groupType
+    groupTypeOther
+    tcCount
+    dgCount
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address accountType companyBranchName contactPersonName }
     reservationDetails_on_reservation {
       id
       quantity
@@ -34,15 +47,28 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
+    bookingType
+    bookingContactName
+    dayContactName
+    dayContactPhone
+    groupName
+    groupNameKana
+    groupType
+    groupTypeOther
+    tcCount
+    dgCount
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address accountType companyBranchName contactPersonName }
     reservationDetails_on_reservation {
       id
       quantity
@@ -66,15 +92,28 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
     reservationCode
     usageDate
     usageTime
+    usageEndTime
     status
     requestType
+    bookingType
+    bookingContactName
+    dayContactName
+    dayContactPhone
+    groupName
+    groupNameKana
+    groupType
+    groupTypeOther
+    tcCount
+    dgCount
+    paymentCondition
+    remarks
     expectedPeople
     policyAgreementKind
     policyAgreementAcceptedAt
     confirmationContactedAt
     receivedAt
     updatedAt
-    customer { id name phone email }
+    customer { id name phone email address accountType companyBranchName contactPersonName }
     reservationDetails_on_reservation {
       id
       quantity
@@ -107,7 +146,7 @@ query ListReservationChangeRequests @auth(level: NO_ACCESS) {
       usageDate
       usageTime
       expectedPeople
-      customer { id name phone email }
+      customer { id name phone email address accountType companyBranchName contactPersonName }
       reservationDetails_on_reservation {
         quantity
         menu { name }
@@ -122,6 +161,10 @@ query ListCustomers @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     firebaseUid
     active
     createdAt
@@ -135,6 +178,10 @@ query ListInactiveCustomers @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     firebaseUid
     active
     createdAt
@@ -148,6 +195,10 @@ query GetCustomerByName($name: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     active
   }
 }
@@ -158,6 +209,10 @@ query GetCustomerById($id: UUID!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     active
   }
 }
@@ -168,6 +223,10 @@ query GetCustomerByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     firebaseUid
     active
   }
@@ -179,6 +238,10 @@ query GetCustomerByEmail($email: String!) @auth(level: NO_ACCESS) {
     name
     phone
     email
+    address
+    accountType
+    companyBranchName
+    contactPersonName
     firebaseUid
     active
   }

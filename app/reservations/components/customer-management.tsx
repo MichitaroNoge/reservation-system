@@ -14,7 +14,7 @@ type CustomerManagementProps = {
   notify: (message: string) => void;
 };
 
-const emptyForm: CustomerForm = { name: "", contact: "", phone: "" };
+const emptyForm: CustomerForm = { name: "", contact: "", phone: "", address: "", accountType: "individual" };
 
 export function CustomerManagement({
   customers,
@@ -46,6 +46,10 @@ export function CustomerManagement({
       name: customer.name,
       contact: customer.contact,
       phone: customer.phone,
+      address: customer.address ?? "",
+      accountType: customer.accountType ?? "individual",
+      companyBranchName: customer.companyBranchName,
+      contactPersonName: customer.contactPersonName,
       originalContact: customer.contact,
     });
   };
@@ -116,6 +120,9 @@ export function CustomerManagement({
       <td>
         <input aria-label="電話番号" placeholder="090-0000-0000" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
       </td>
+      <td>
+        <input aria-label="住所" placeholder="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+      </td>
       <td>0回</td>
       <td>-</td>
       <td>
@@ -134,7 +141,6 @@ export function CustomerManagement({
       <div className="customer-management-bar">
         <div>
           <strong>{customers.length}件</strong>
-          <span>有効な顧客</span>
         </div>
         <div className="customer-management-actions">
           {inactiveCustomers.length ? (
@@ -156,6 +162,7 @@ export function CustomerManagement({
               <th>お客様</th>
               <th>メールアドレス</th>
               <th>電話番号</th>
+              <th>住所</th>
               <th>予約回数</th>
               <th>最終利用</th>
               <th />
@@ -175,6 +182,9 @@ export function CustomerManagement({
                   <td>
                     <input aria-label="電話番号" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
                   </td>
+                  <td>
+                    <input aria-label="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} />
+                  </td>
                   <td>{customer.count}回</td>
                   <td>{customer.last}</td>
                   <td>
@@ -191,6 +201,7 @@ export function CustomerManagement({
                   <td><strong>{customer.name} 様</strong></td>
                   <td>{customer.contact}</td>
                   <td>{customer.phone}</td>
+                  <td>{customer.address || "-"}</td>
                   <td><strong>{customer.count}回</strong></td>
                   <td>{customer.last}</td>
                   <td>
@@ -212,7 +223,6 @@ export function CustomerManagement({
           <div className="subsection-head">
             <div>
               <h3>削除済み顧客</h3>
-              <p>必要な顧客だけ有効に戻せます。</p>
             </div>
             <span>{inactiveCustomers.length}件</span>
           </div>
@@ -223,6 +233,7 @@ export function CustomerManagement({
                   <th>お客様</th>
                   <th>メールアドレス</th>
                   <th>電話番号</th>
+                  <th>住所</th>
                   <th>予約回数</th>
                   <th>最終利用</th>
                   <th />
@@ -234,6 +245,7 @@ export function CustomerManagement({
                     <td><strong>{customer.name} 様</strong></td>
                     <td>{customer.contact}</td>
                     <td>{customer.phone}</td>
+                    <td>{customer.address || "-"}</td>
                     <td><strong>{customer.count}回</strong></td>
                     <td>{customer.last}</td>
                     <td>

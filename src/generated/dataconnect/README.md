@@ -40,6 +40,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpdateReservation*](#updatereservation)
   - [*UpdateReservationStatus*](#updatereservationstatus)
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
+  - [*ClearConfirmationContact*](#clearconfirmationcontact)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
   - [*CreateReservationChangeRequest*](#createreservationchangerequest)
@@ -141,8 +142,21 @@ export interface ListReservationsData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -154,6 +168,10 @@ export interface ListReservationsData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -280,8 +298,21 @@ export interface GetReservationData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -293,6 +324,10 @@ export interface GetReservationData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -443,8 +478,21 @@ export interface GetReservationByCodeData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -456,6 +504,10 @@ export interface GetReservationByCodeData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -604,6 +656,10 @@ export interface ListReservationChangeRequestsData {
         name: string;
         phone: string;
         email: string;
+        address?: string | null;
+        accountType?: string | null;
+        companyBranchName?: string | null;
+        contactPersonName?: string | null;
       } & Customer_Key;
       reservationDetails_on_reservation: ({
         quantity: number;
@@ -708,6 +764,10 @@ export interface ListCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -813,6 +873,10 @@ export interface ListInactiveCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -924,6 +988,10 @@ export interface GetCustomerByNameData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key)[];
 }
@@ -1039,6 +1107,10 @@ export interface GetCustomerByIdData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key;
 }
@@ -1154,6 +1226,10 @@ export interface GetCustomerByFirebaseUidData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -1270,6 +1346,10 @@ export interface GetCustomerByEmailData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -2235,6 +2315,10 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 ```
@@ -2258,6 +2342,10 @@ const createCustomerVars: CreateCustomerVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
   firebaseUid: ..., // optional
 };
 
@@ -2265,7 +2353,7 @@ const createCustomerVars: CreateCustomerVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await createCustomer(createCustomerVars);
 // Variables can be defined inline as well.
-const { data } = await createCustomer({ name: ..., phone: ..., email: ..., firebaseUid: ..., });
+const { data } = await createCustomer({ name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2291,13 +2379,17 @@ const createCustomerVars: CreateCustomerVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
   firebaseUid: ..., // optional
 };
 
 // Call the `createCustomerRef()` function to get a reference to the mutation.
 const ref = createCustomerRef(createCustomerVars);
 // Variables can be defined inline as well.
-const ref = createCustomerRef({ name: ..., phone: ..., email: ..., firebaseUid: ..., });
+const ref = createCustomerRef({ name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2354,6 +2446,10 @@ export interface UpdateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
 }
 ```
 ### Return Type
@@ -2377,13 +2473,17 @@ const updateCustomerVars: UpdateCustomerVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
 };
 
 // Call the `updateCustomer()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateCustomer(updateCustomerVars);
 // Variables can be defined inline as well.
-const { data } = await updateCustomer({ id: ..., name: ..., phone: ..., email: ..., });
+const { data } = await updateCustomer({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2410,12 +2510,16 @@ const updateCustomerVars: UpdateCustomerVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
 };
 
 // Call the `updateCustomerRef()` function to get a reference to the mutation.
 const ref = updateCustomerRef(updateCustomerVars);
 // Variables can be defined inline as well.
-const ref = updateCustomerRef({ id: ..., name: ..., phone: ..., email: ..., });
+const ref = updateCustomerRef({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2472,6 +2576,10 @@ export interface UpdateCustomerIdentityVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 ```
@@ -2496,6 +2604,10 @@ const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
   firebaseUid: ..., // optional
 };
 
@@ -2503,7 +2615,7 @@ const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateCustomerIdentity(updateCustomerIdentityVars);
 // Variables can be defined inline as well.
-const { data } = await updateCustomerIdentity({ id: ..., name: ..., phone: ..., email: ..., firebaseUid: ..., });
+const { data } = await updateCustomerIdentity({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2530,13 +2642,17 @@ const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
   name: ..., 
   phone: ..., 
   email: ..., 
+  address: ..., // optional
+  accountType: ..., // optional
+  companyBranchName: ..., // optional
+  contactPersonName: ..., // optional
   firebaseUid: ..., // optional
 };
 
 // Call the `updateCustomerIdentityRef()` function to get a reference to the mutation.
 const ref = updateCustomerIdentityRef(updateCustomerIdentityVars);
 // Variables can be defined inline as well.
-const ref = updateCustomerIdentityRef({ id: ..., name: ..., phone: ..., email: ..., firebaseUid: ..., });
+const ref = updateCustomerIdentityRef({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2811,9 +2927,22 @@ export interface CreateReservationVariables {
   customerId: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
   status: ReservationStatus;
   requestType?: string | null;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -2839,9 +2968,22 @@ const createReservationVars: CreateReservationVariables = {
   customerId: ..., 
   usageDate: ..., 
   usageTime: ..., 
+  usageEndTime: ..., // optional
   expectedPeople: ..., 
   status: ..., 
   requestType: ..., // optional
+  bookingType: ..., // optional
+  bookingContactName: ..., // optional
+  dayContactName: ..., // optional
+  dayContactPhone: ..., // optional
+  groupName: ..., // optional
+  groupNameKana: ..., // optional
+  groupType: ..., // optional
+  groupTypeOther: ..., // optional
+  tcCount: ..., // optional
+  dgCount: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -2850,7 +2992,7 @@ const createReservationVars: CreateReservationVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await createReservation(createReservationVars);
 // Variables can be defined inline as well.
-const { data } = await createReservation({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., status: ..., requestType: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const { data } = await createReservation({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2877,9 +3019,22 @@ const createReservationVars: CreateReservationVariables = {
   customerId: ..., 
   usageDate: ..., 
   usageTime: ..., 
+  usageEndTime: ..., // optional
   expectedPeople: ..., 
   status: ..., 
   requestType: ..., // optional
+  bookingType: ..., // optional
+  bookingContactName: ..., // optional
+  dayContactName: ..., // optional
+  dayContactPhone: ..., // optional
+  groupName: ..., // optional
+  groupNameKana: ..., // optional
+  groupType: ..., // optional
+  groupTypeOther: ..., // optional
+  tcCount: ..., // optional
+  dgCount: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
 };
@@ -2887,7 +3042,7 @@ const createReservationVars: CreateReservationVariables = {
 // Call the `createReservationRef()` function to get a reference to the mutation.
 const ref = createReservationRef(createReservationVars);
 // Variables can be defined inline as well.
-const ref = createReservationRef({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., status: ..., requestType: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const ref = createReservationRef({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3170,7 +3325,20 @@ export interface UpdateReservationVariables {
   id: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
 }
 ```
 ### Return Type
@@ -3193,14 +3361,27 @@ const updateReservationVars: UpdateReservationVariables = {
   id: ..., 
   usageDate: ..., 
   usageTime: ..., 
+  usageEndTime: ..., // optional
   expectedPeople: ..., 
+  bookingType: ..., // optional
+  bookingContactName: ..., // optional
+  dayContactName: ..., // optional
+  dayContactPhone: ..., // optional
+  groupName: ..., // optional
+  groupNameKana: ..., // optional
+  groupType: ..., // optional
+  groupTypeOther: ..., // optional
+  tcCount: ..., // optional
+  dgCount: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
 };
 
 // Call the `updateReservation()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await updateReservation(updateReservationVars);
 // Variables can be defined inline as well.
-const { data } = await updateReservation({ id: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., });
+const { data } = await updateReservation({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3226,13 +3407,26 @@ const updateReservationVars: UpdateReservationVariables = {
   id: ..., 
   usageDate: ..., 
   usageTime: ..., 
+  usageEndTime: ..., // optional
   expectedPeople: ..., 
+  bookingType: ..., // optional
+  bookingContactName: ..., // optional
+  dayContactName: ..., // optional
+  dayContactPhone: ..., // optional
+  groupName: ..., // optional
+  groupNameKana: ..., // optional
+  groupType: ..., // optional
+  groupTypeOther: ..., // optional
+  tcCount: ..., // optional
+  dgCount: ..., // optional
+  paymentCondition: ..., // optional
+  remarks: ..., // optional
 };
 
 // Call the `updateReservationRef()` function to get a reference to the mutation.
 const ref = updateReservationRef(updateReservationVars);
 // Variables can be defined inline as well.
-const ref = updateReservationRef({ id: ..., usageDate: ..., usageTime: ..., expectedPeople: ..., });
+const ref = updateReservationRef({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3464,6 +3658,115 @@ const ref = updateConfirmationContactRef({ id: ..., confirmationContactedAt: ...
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = updateConfirmationContactRef(dataConnect, updateConfirmationContactVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.reservation_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservation_update);
+});
+```
+
+## ClearConfirmationContact
+You can execute the `ClearConfirmationContact` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+clearConfirmationContact(vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+
+interface ClearConfirmationContactRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClearConfirmationContactVariables): MutationRef<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+}
+export const clearConfirmationContactRef: ClearConfirmationContactRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+clearConfirmationContact(dc: DataConnect, vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+
+interface ClearConfirmationContactRef {
+  ...
+  (dc: DataConnect, vars: ClearConfirmationContactVariables): MutationRef<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+}
+export const clearConfirmationContactRef: ClearConfirmationContactRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the clearConfirmationContactRef:
+```typescript
+const name = clearConfirmationContactRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ClearConfirmationContact` mutation requires an argument of type `ClearConfirmationContactVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ClearConfirmationContactVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `ClearConfirmationContact` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ClearConfirmationContactData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ClearConfirmationContactData {
+  reservation_update?: Reservation_Key | null;
+}
+```
+### Using `ClearConfirmationContact`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, clearConfirmationContact, ClearConfirmationContactVariables } from '@reservation-system/dataconnect';
+
+// The `ClearConfirmationContact` mutation requires an argument of type `ClearConfirmationContactVariables`:
+const clearConfirmationContactVars: ClearConfirmationContactVariables = {
+  id: ..., 
+};
+
+// Call the `clearConfirmationContact()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await clearConfirmationContact(clearConfirmationContactVars);
+// Variables can be defined inline as well.
+const { data } = await clearConfirmationContact({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await clearConfirmationContact(dataConnect, clearConfirmationContactVars);
+
+console.log(data.reservation_update);
+
+// Or, you can use the `Promise` API.
+clearConfirmationContact(clearConfirmationContactVars).then((response) => {
+  const data = response.data;
+  console.log(data.reservation_update);
+});
+```
+
+### Using `ClearConfirmationContact`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, clearConfirmationContactRef, ClearConfirmationContactVariables } from '@reservation-system/dataconnect';
+
+// The `ClearConfirmationContact` mutation requires an argument of type `ClearConfirmationContactVariables`:
+const clearConfirmationContactVars: ClearConfirmationContactVariables = {
+  id: ..., 
+};
+
+// Call the `clearConfirmationContactRef()` function to get a reference to the mutation.
+const ref = clearConfirmationContactRef(clearConfirmationContactVars);
+// Variables can be defined inline as well.
+const ref = clearConfirmationContactRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = clearConfirmationContactRef(dataConnect, clearConfirmationContactVars);
 
 // Call `executeMutation()` on the reference to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.

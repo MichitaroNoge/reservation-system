@@ -11,6 +11,45 @@ export type ReservationStatus =
   | "cancelled";
 
 export type ReservationRequestType = "confirmed_from_temporary";
+export type CustomerAccountType = "individual" | "travel_agency";
+export type ReservationBookingType = "individual" | "travel_agency_group";
+export type PaymentCondition =
+  | "onsite_cash"
+  | "onsite_card"
+  | "onsite_cashless"
+  | "invoice"
+  | "prepaid"
+  | "other";
+
+export const paymentConditions = [
+  "onsite_cash",
+  "onsite_card",
+  "onsite_cashless",
+  "invoice",
+  "prepaid",
+  "other",
+] as const satisfies readonly PaymentCondition[];
+
+export const defaultPaymentCondition: PaymentCondition = "onsite_cash";
+
+export const paymentConditionLabels: Record<PaymentCondition, string> = {
+  onsite_cash: "現地払い（現金）",
+  onsite_card: "現地払い（クレジットカード）",
+  onsite_cashless: "現地払い（電子マネー・QR）",
+  invoice: "請求書払い",
+  prepaid: "事前決済",
+  other: "その他",
+};
+
+export function normalizePaymentCondition(value: unknown): PaymentCondition {
+  return typeof value === "string" && paymentConditions.includes(value as PaymentCondition)
+    ? value as PaymentCondition
+    : defaultPaymentCondition;
+}
+
+export function paymentConditionLabel(value: PaymentCondition | undefined) {
+  return paymentConditionLabels[normalizePaymentCondition(value)];
+}
 
 export function normalizeReservationRequestType(value: unknown): ReservationRequestType | null {
   return value === "confirmed_from_temporary" ? value : null;
@@ -181,8 +220,22 @@ export type Reservation = {
   id: string;
   customer: string;
   email?: string;
+  address?: string;
+  bookingType?: ReservationBookingType;
+  bookingContactName?: string;
+  dayContactName?: string;
+  dayContactPhone?: string;
+  groupName?: string;
+  groupNameKana?: string;
+  groupType?: string;
+  groupTypeOther?: string;
+  tcCount?: number;
+  dgCount?: number;
+  paymentCondition?: PaymentCondition;
+  remarks?: string;
   date: string;
   startTime?: string;
+  endTime?: string;
   people: number;
   menu?: string;
   menuItems: string[];
@@ -251,6 +304,10 @@ export type Customer = {
   name: string;
   contact: string;
   phone: string;
+  address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
   count: number;
   last: string;
 };
@@ -260,6 +317,10 @@ export type SaveCustomerInput = {
   name: string;
   contact: string;
   phone: string;
+  address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
   originalContact?: string;
 };
 
@@ -291,19 +352,64 @@ export type CreateReservationInput = {
   customerAccountMode?: "account" | "guest" | "admin";
   date: string;
   startTime?: string;
+  endTime?: string;
   people: number;
   name: string;
   email: string;
   phone: string;
+  address?: string;
+  accountType?: CustomerAccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
+  bookingType?: ReservationBookingType;
+  bookingContactName?: string;
+  dayContactName?: string;
+  dayContactPhone?: string;
+  groupName?: string;
+  groupNameKana?: string;
+  groupType?: string;
+  groupTypeOther?: string;
+  tcCount?: number;
+  dgCount?: number;
+  paymentCondition?: PaymentCondition;
+  remarks?: string;
 };
 
-export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "people" | "menuItems" | "customer" | "email" | "phone">>;
+export type UpdateReservationInput = Partial<Pick<Reservation, "date" | "startTime" | "endTime" | "people" | "menuItems" | "customer" | "email" | "phone" | "address" | "bookingType" | "bookingContactName" | "dayContactName" | "dayContactPhone" | "groupName" | "groupNameKana" | "groupType" | "groupTypeOther" | "tcCount" | "dgCount" | "paymentCondition" | "remarks">>;
 
 export type UpdateStoreAssignmentsInput = {
   assignments: StoreAssignment[];
 };
 
 export type SaveMenuInput = Menu;
+
+export const defaultReservationDurationMinutes = 45;
+
+export function menuDurationMinutes(menu: Pick<Menu, "duration">) {
+  if (menu.duration === "来店後") return 0;
+  const match = menu.duration.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+export function reservationDurationMinutes(menuItems: string[] | undefined, menus: Pick<Menu, "name" | "duration">[]) {
+  const selectedMenus = menus.filter((menu) => menuItems?.includes(menu.name));
+  const configuredMinutes = selectedMenus.map(menuDurationMinutes).filter((minutes) => minutes > 0);
+  return configuredMinutes.length ? Math.max(...configuredMinutes) : defaultReservationDurationMinutes;
+}
+
+export function addMinutesToTime(time: string | undefined, minutes: number) {
+  const source = time || "10:00";
+  const match = source.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return source;
+  const totalMinutes = (Number(match[1]) * 60 + Number(match[2]) + minutes) % (24 * 60);
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+export function calculateReservationEndTime(startTime: string | undefined, menuItems: string[] | undefined, menus: Pick<Menu, "name" | "duration">[]) {
+  return addMinutesToTime(startTime, reservationDurationMinutes(menuItems, menus));
+}
 
 type ReservationReadinessInput = Pick<Reservation, "status" | "store" | "storeAssignments" | "people" | "confirmationContactedAt"> & {
   menuItems?: string[];

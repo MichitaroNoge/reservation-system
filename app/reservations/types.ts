@@ -1,5 +1,5 @@
 import type { User } from "firebase/auth";
-import type { ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
+import type { CustomerAccountType, PaymentCondition, ReservationBookingType, ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
 
 export type Status = ReservationStatus;
 export type StoreAssignment = { store: string; people: number };
@@ -8,8 +8,22 @@ export type Reservation = {
   id: string;
   customer: string;
   email?: string;
+  address?: string;
+  bookingType?: ReservationBookingType;
+  bookingContactName?: string;
+  dayContactName?: string;
+  dayContactPhone?: string;
+  groupName?: string;
+  groupNameKana?: string;
+  groupType?: string;
+  groupTypeOther?: string;
+  tcCount?: number;
+  dgCount?: number;
+  paymentCondition?: PaymentCondition;
+  remarks?: string;
   date: string;
   startTime?: string;
+  endTime?: string;
   people: number;
   menu?: string;
   menuItems?: string[];
@@ -25,16 +39,16 @@ export type Reservation = {
 };
 export type ReservationChangeRequest = DomainReservationChangeRequest;
 export type Menu = { id?: string; name: string; description: string; price: number; duration: string; displayOrder: number; active?: boolean };
-export type Customer = { id?: string; name: string; contact: string; phone: string; count: number; last: string };
+export type Customer = { id?: string; name: string; contact: string; phone: string; address?: string; accountType?: CustomerAccountType; companyBranchName?: string; contactPersonName?: string; count: number; last: string };
 export type Store = { id?: string; name: string; displayOrder: number };
-export type BookingForm = { menuItems: string[]; date: string; startTime: string; people: number; name: string; email: string; phone: string; status?: Status; policyAgreement?: PolicyAgreement };
+export type BookingForm = { menuItems: string[]; date: string; startTime: string; endTime?: string; people: number; name: string; email: string; phone: string; address: string; accountType?: CustomerAccountType; companyBranchName?: string; contactPersonName?: string; bookingType?: ReservationBookingType; bookingContactName?: string; dayContactName?: string; dayContactPhone?: string; groupName?: string; groupNameKana?: string; groupType?: string; groupTypeOther?: string; tcCount?: number; dgCount?: number; paymentCondition?: PaymentCondition; remarks?: string; status?: Status; policyAgreement?: PolicyAgreement };
 export type MenuForm = Menu;
-export type CustomerForm = { id?: string; name: string; contact: string; phone: string; originalContact?: string };
+export type CustomerForm = { id?: string; name: string; contact: string; phone: string; address?: string; accountType?: CustomerAccountType; companyBranchName?: string; contactPersonName?: string; originalContact?: string };
 export type StoreForm = Store;
 export type AdminSession = { user: User; email: string | null };
 export type ApiRequestInit = RequestInit & { authToken?: string };
 export type ReservationSubmitOptions = { authToken?: string; forceAdmin?: boolean; customerAccountMode?: "account" | "guest" };
-export type View = "dashboard" | "reservations" | "reservationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "customers" | "stores" | "menus" | "billing";
+export type View = "dashboard" | "reservations" | "reservationApprovals" | "cancellationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "masters" | "customers" | "stores" | "menus" | "billing";
 export type ReservationFilter =
   | "すべて"
   | "承認待ち"

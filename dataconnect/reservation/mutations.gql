@@ -1,30 +1,42 @@
-mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $firebaseUid: String)
+mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_insert(data: {
     firebaseUid: $firebaseUid
     name: $name
     phone: $phone
     email: $email
+    address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
   })
 }
 
-mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!)
+mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     name: $name
     phone: $phone
     email: $email
+    address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
     updatedAt_expr: "request.time"
   })
 }
 
-mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $firebaseUid: String)
+mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
 @auth(level: NO_ACCESS) {
   customer_update(key: {id: $id}, data: {
     firebaseUid: $firebaseUid
     name: $name
     phone: $phone
     email: $email
+    address: $address
+    accountType: $accountType
+    companyBranchName: $companyBranchName
+    contactPersonName: $contactPersonName
     updatedAt_expr: "request.time"
   })
 }
@@ -50,9 +62,22 @@ mutation CreateReservation(
   $customerId: UUID!
   $usageDate: Date!
   $usageTime: String!
+  $usageEndTime: String
   $expectedPeople: Int!
   $status: ReservationStatus!
   $requestType: String
+  $bookingType: String
+  $bookingContactName: String
+  $dayContactName: String
+  $dayContactPhone: String
+  $groupName: String
+  $groupNameKana: String
+  $groupType: String
+  $groupTypeOther: String
+  $tcCount: Int = 0
+  $dgCount: Int = 0
+  $paymentCondition: String
+  $remarks: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
 )
@@ -62,9 +87,22 @@ mutation CreateReservation(
     customerId: $customerId
     usageDate: $usageDate
     usageTime: $usageTime
+    usageEndTime: $usageEndTime
     expectedPeople: $expectedPeople
     status: $status
     requestType: $requestType
+    bookingType: $bookingType
+    bookingContactName: $bookingContactName
+    dayContactName: $dayContactName
+    dayContactPhone: $dayContactPhone
+    groupName: $groupName
+    groupNameKana: $groupNameKana
+    groupType: $groupType
+    groupTypeOther: $groupTypeOther
+    tcCount: $tcCount
+    dgCount: $dgCount
+    paymentCondition: $paymentCondition
+    remarks: $remarks
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
   })
@@ -89,13 +127,39 @@ mutation UpdateReservation(
   $id: UUID!
   $usageDate: Date!
   $usageTime: String!
+  $usageEndTime: String
   $expectedPeople: Int!
+  $bookingType: String
+  $bookingContactName: String
+  $dayContactName: String
+  $dayContactPhone: String
+  $groupName: String
+  $groupNameKana: String
+  $groupType: String
+  $groupTypeOther: String
+  $tcCount: Int = 0
+  $dgCount: Int = 0
+  $paymentCondition: String
+  $remarks: String
 )
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     usageDate: $usageDate
     usageTime: $usageTime
+    usageEndTime: $usageEndTime
     expectedPeople: $expectedPeople
+    bookingType: $bookingType
+    bookingContactName: $bookingContactName
+    dayContactName: $dayContactName
+    dayContactPhone: $dayContactPhone
+    groupName: $groupName
+    groupNameKana: $groupNameKana
+    groupType: $groupType
+    groupTypeOther: $groupTypeOther
+    tcCount: $tcCount
+    dgCount: $dgCount
+    paymentCondition: $paymentCondition
+    remarks: $remarks
     updatedAt_expr: "request.time"
   })
 }
@@ -113,6 +177,14 @@ mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timesta
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
     confirmationContactedAt: $confirmationContactedAt
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation ClearConfirmationContact($id: UUID!)
+@auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: {
+    confirmationContactedAt: null
     updatedAt_expr: "request.time"
   })
 }

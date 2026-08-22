@@ -13,7 +13,22 @@ type MenuManagementProps = {
   notify: (message: string) => void;
 };
 
-const emptyForm: MenuForm = { name: "", description: "", price: 0, duration: "来店後", displayOrder: 0 };
+const emptyForm: MenuForm = { name: "", description: "", price: 0, duration: "45分", displayOrder: 0 };
+
+function durationMinutes(duration: string) {
+  if (duration === "来店後") return 0;
+  const match = duration.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function durationLabel(duration: string) {
+  const minutes = durationMinutes(duration);
+  return minutes > 0 ? `${minutes}分` : "来店後";
+}
+
+function durationFromMinutes(minutes: number) {
+  return minutes > 0 ? `${minutes}分` : "来店後";
+}
 
 export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu, onReactivateMenu, notify }: MenuManagementProps) {
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -48,7 +63,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
     setSavingName(target);
     try {
       await onSaveMenu(
-        { ...form, duration: form.duration || "来店後", displayOrder: Number(form.displayOrder) || 0 },
+        { ...form, duration: durationLabel(form.duration || "45分"), displayOrder: Number(form.displayOrder) || 0 },
         mode === "edit" ? editingName ?? undefined : undefined,
       );
       cancel();
@@ -100,6 +115,9 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
           <input aria-label="金額" type="number" min={0} value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} />
         </td>
         <td>
+          <input aria-label="利用時間" type="number" min={0} value={durationMinutes(form.duration)} onChange={(event) => setForm({ ...form, duration: durationFromMinutes(Number(event.target.value)) })} />
+        </td>
+        <td>
           <div className="row-actions">
             <button type="button" disabled={isSaving} onClick={cancel}>キャンセル</button>
             <button type="button" className="save" disabled={!form.name || form.price < 0 || isSaving} onClick={() => submit(mode)}>
@@ -116,7 +134,6 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
       <div className="menu-management-bar">
         <div>
           <strong>{menus.length}件</strong>
-          <span>登録済みメニュー</span>
         </div>
         <div className="menu-management-actions">
           {inactiveMenus.length ? (
@@ -139,6 +156,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
               <th>メニュー名</th>
               <th>説明</th>
               <th>金額</th>
+              <th>利用時間</th>
               <th />
             </tr>
           </thead>
@@ -153,6 +171,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
                   <td><strong>{menu.name}</strong></td>
                   <td>{menu.description || "-"}</td>
                   <td><strong>{"¥"}{menu.price.toLocaleString()}</strong></td>
+                  <td>{durationLabel(menu.duration)}</td>
                   <td>
                     <div className="row-actions">
                       <button type="button" onClick={() => startEdit(menu)}>編集</button>
@@ -172,7 +191,6 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
           <div className="subsection-head">
             <div>
               <h3>削除済みメニュー</h3>
-              <p>必要なメニューだけ有効に戻せます。</p>
             </div>
             <span>{inactiveMenus.length}件</span>
           </div>
@@ -184,6 +202,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
                   <th>メニュー名</th>
                   <th>説明</th>
                   <th>金額</th>
+                  <th>利用時間</th>
                   <th />
                 </tr>
               </thead>
@@ -194,6 +213,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
                     <td><strong>{menu.name}</strong></td>
                     <td>{menu.description || "-"}</td>
                     <td><strong>{"¥"}{menu.price.toLocaleString()}</strong></td>
+                    <td>{durationLabel(menu.duration)}</td>
                     <td>
                       <div className="row-actions">
                         <button type="button" className="save" disabled={!menu.id || reactivatingId === menu.id} onClick={() => reactivate(menu)}>

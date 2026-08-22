@@ -130,7 +130,6 @@ export function StoreManagement({
       <div className="store-management-bar">
         <div>
           <strong>{stores.length}件</strong>
-          <span>有効な店舗</span>
         </div>
         <div className="store-management-actions">
           {inactiveStores.length ? (
@@ -184,7 +183,6 @@ export function StoreManagement({
           <div className="subsection-head">
             <div>
               <h3>削除済み店舗</h3>
-              <p>必要な店舗だけ有効に戻せます。</p>
             </div>
             <span>{inactiveStores.length}件</span>
           </div>

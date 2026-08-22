@@ -68,6 +68,14 @@ export interface Billing_Key {
   __typename?: 'Billing_Key';
 }
 
+export interface ClearConfirmationContactData {
+  reservation_update?: Reservation_Key | null;
+}
+
+export interface ClearConfirmationContactVariables {
+  id: UUIDString;
+}
+
 export interface CreateCustomerData {
   customer_insert: Customer_Key;
 }
@@ -76,6 +84,10 @@ export interface CreateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -114,9 +126,22 @@ export interface CreateReservationVariables {
   customerId: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
   status: ReservationStatus;
   requestType?: string | null;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
 }
@@ -182,6 +207,10 @@ export interface GetCustomerByEmailData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -197,6 +226,10 @@ export interface GetCustomerByFirebaseUidData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
   } & Customer_Key)[];
@@ -212,6 +245,10 @@ export interface GetCustomerByIdData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key;
 }
@@ -226,6 +263,10 @@ export interface GetCustomerByNameData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     active: boolean;
   } & Customer_Key)[];
 }
@@ -256,8 +297,21 @@ export interface GetReservationByCodeData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -269,6 +323,10 @@ export interface GetReservationByCodeData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -306,8 +364,21 @@ export interface GetReservationData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -319,6 +390,10 @@ export interface GetReservationData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -422,6 +497,10 @@ export interface ListCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -440,6 +519,10 @@ export interface ListInactiveCustomersData {
     name: string;
     phone: string;
     email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
     firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
@@ -507,6 +590,10 @@ export interface ListReservationChangeRequestsData {
         name: string;
         phone: string;
         email: string;
+        address?: string | null;
+        accountType?: string | null;
+        companyBranchName?: string | null;
+        contactPersonName?: string | null;
       } & Customer_Key;
       reservationDetails_on_reservation: ({
         quantity: number;
@@ -524,8 +611,21 @@ export interface ListReservationsData {
     reservationCode: string;
     usageDate: DateString;
     usageTime: string;
+    usageEndTime?: string | null;
     status: ReservationStatus;
     requestType?: string | null;
+    bookingType?: string | null;
+    bookingContactName?: string | null;
+    dayContactName?: string | null;
+    dayContactPhone?: string | null;
+    groupName?: string | null;
+    groupNameKana?: string | null;
+    groupType?: string | null;
+    groupTypeOther?: string | null;
+    tcCount: number;
+    dgCount: number;
+    paymentCondition?: string | null;
+    remarks?: string | null;
     expectedPeople: number;
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
@@ -537,6 +637,10 @@ export interface ListReservationsData {
       name: string;
       phone: string;
       email: string;
+      address?: string | null;
+      accountType?: string | null;
+      companyBranchName?: string | null;
+      contactPersonName?: string | null;
     } & Customer_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
@@ -660,6 +764,10 @@ export interface UpdateCustomerIdentityVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
   firebaseUid?: string | null;
 }
 
@@ -668,6 +776,10 @@ export interface UpdateCustomerVariables {
   name: string;
   phone: string;
   email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
 }
 
 export interface UpdateMenuData {
@@ -712,7 +824,20 @@ export interface UpdateReservationVariables {
   id: UUIDString;
   usageDate: DateString;
   usageTime: string;
+  usageEndTime?: string | null;
   expectedPeople: number;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
 }
 
 export interface UpdateStoreData {
@@ -867,6 +992,18 @@ export const updateConfirmationContactRef: UpdateConfirmationContactRef;
 
 export function updateConfirmationContact(vars: UpdateConfirmationContactVariables): MutationPromise<UpdateConfirmationContactData, UpdateConfirmationContactVariables>;
 export function updateConfirmationContact(dc: DataConnect, vars: UpdateConfirmationContactVariables): MutationPromise<UpdateConfirmationContactData, UpdateConfirmationContactVariables>;
+
+interface ClearConfirmationContactRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ClearConfirmationContactVariables): MutationRef<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ClearConfirmationContactVariables): MutationRef<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+  operationName: string;
+}
+export const clearConfirmationContactRef: ClearConfirmationContactRef;
+
+export function clearConfirmationContact(vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+export function clearConfirmationContact(dc: DataConnect, vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
 
 interface AssignStoreRef {
   /* Allow users to create refs without passing in DataConnect */

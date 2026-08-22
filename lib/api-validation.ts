@@ -1,6 +1,6 @@
-﻿import { normalizeReservationStatus, reservationStatuses, type CreateReservationInput, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
+﻿import { normalizeReservationStatus, paymentConditions, reservationStatuses, type CreateReservationInput, type PaymentCondition, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
 
-import type { CreateReservationChangeRequestInput } from "./domain";
+import type { CreateReservationChangeRequestInput, CustomerAccountType, ReservationBookingType } from "./domain";
 
 export class ApiValidationError extends Error {
   constructor(message: string) {
@@ -22,8 +22,24 @@ export function apiErrorResponse(error: unknown) {
     console.error(error);
     return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
   }
+  if (isDataConnectError(error)) {
+    console.error(error);
+    return Response.json({ error: `Data Connectの更新に失敗しました: ${dataConnectErrorMessage(error)}` }, { status: 502 });
+  }
   console.error(error);
   return Response.json({ error: "Internal server error" }, { status: 500 });
+}
+
+function isDataConnectError(error: unknown): error is Error {
+  return error instanceof Error && /DataConnect|data connect|partial-error|unauthorized/i.test(`${error.name} ${error.message}`);
+}
+
+function dataConnectErrorMessage(error: Error) {
+  const responseErrors = typeof error === "object" && error && "response" in error
+    ? (error as { response?: { errors?: { message?: unknown }[] } }).response?.errors
+    : undefined;
+  const firstMessage = Array.isArray(responseErrors) ? responseErrors.find((item) => typeof item.message === "string")?.message : undefined;
+  return firstMessage || error.message;
 }
 
 export async function readJsonObject(request: Request) {
@@ -40,19 +56,39 @@ export async function readJsonObject(request: Request) {
 export function validateCreateReservationInput(body: Record<string, unknown>): CreateReservationInput {
   const menuItems = optionalStringArray(body.menuItems, "menuItems");
   const status = body.status === undefined ? undefined : validateReservationStatus(body.status);
-  return {
+  const bookingType = validateReservationBookingType(body.bookingType);
+  const input: CreateReservationInput = {
     date: requireIsoDate(body.date, "date"),
     startTime: body.startTime === undefined ? undefined : requireTime(body.startTime, "startTime"),
+    endTime: body.endTime === undefined ? undefined : requireTime(body.endTime, "endTime"),
     people: requireInteger(body.people, "people", { min: 1, max: 999 }),
     name: requireNonEmptyString(body.name, "name", 100),
     email: requireEmail(body.email, "email"),
     phone: requirePhone(body.phone, "phone"),
+    address: optionalTrimmedString(body.address, "address", 500),
+    accountType: validateCustomerAccountType(body.accountType),
+    companyBranchName: optionalTrimmedString(body.companyBranchName, "companyBranchName", 100),
+    contactPersonName: optionalTrimmedString(body.contactPersonName, "contactPersonName", 100),
+    bookingType,
+    bookingContactName: optionalTrimmedString(body.bookingContactName, "bookingContactName", 100),
+    dayContactName: optionalTrimmedString(body.dayContactName, "dayContactName", 100),
+    dayContactPhone: body.dayContactPhone === undefined || body.dayContactPhone === "" ? undefined : requirePhone(body.dayContactPhone, "dayContactPhone"),
+    groupName: optionalTrimmedString(body.groupName, "groupName", 100),
+    groupNameKana: optionalTrimmedString(body.groupNameKana, "groupNameKana", 100),
+    groupType: optionalTrimmedString(body.groupType, "groupType", 100),
+    groupTypeOther: optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100),
+    tcCount: optionalInteger(body.tcCount, "tcCount", { min: 0, max: 999 }),
+    dgCount: optionalInteger(body.dgCount, "dgCount", { min: 0, max: 999 }),
+    paymentCondition: validatePaymentCondition(body.paymentCondition),
+    remarks: optionalTrimmedString(body.remarks, "remarks", 1000),
     menu: body.menu === undefined ? undefined : requireNonEmptyString(body.menu, "menu", 100),
     menuItems,
     status,
     policyAgreement: validatePolicyAgreement(body.policyAgreement),
     customerAccountMode: validateCustomerAccountMode(body.customerAccountMode),
   };
+  assertGroupReservationFields(input);
+  return input;
 }
 
 function validateCustomerAccountMode(value: unknown) {
@@ -65,11 +101,25 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   const input: UpdateReservationInput = {};
   if (body.date !== undefined) input.date = requireIsoDate(body.date, "date");
   if (body.startTime !== undefined) input.startTime = requireTime(body.startTime, "startTime");
+  if (body.endTime !== undefined) input.endTime = requireTime(body.endTime, "endTime");
   if (body.people !== undefined) input.people = requireInteger(body.people, "people", { min: 1, max: 999 });
   if (body.menuItems !== undefined) input.menuItems = optionalStringArray(body.menuItems, "menuItems") ?? [];
   if (body.customer !== undefined) input.customer = requireNonEmptyString(body.customer, "customer", 100);
   if (body.email !== undefined) input.email = requireEmail(body.email, "email");
   if (body.phone !== undefined) input.phone = requirePhone(body.phone, "phone");
+  if (body.address !== undefined) input.address = optionalTrimmedString(body.address, "address", 500);
+  if (body.bookingType !== undefined) input.bookingType = validateReservationBookingType(body.bookingType);
+  if (body.bookingContactName !== undefined) input.bookingContactName = optionalTrimmedString(body.bookingContactName, "bookingContactName", 100);
+  if (body.dayContactName !== undefined) input.dayContactName = optionalTrimmedString(body.dayContactName, "dayContactName", 100);
+  if (body.dayContactPhone !== undefined) input.dayContactPhone = body.dayContactPhone === "" ? undefined : requirePhone(body.dayContactPhone, "dayContactPhone");
+  if (body.groupName !== undefined) input.groupName = optionalTrimmedString(body.groupName, "groupName", 100);
+  if (body.groupNameKana !== undefined) input.groupNameKana = optionalTrimmedString(body.groupNameKana, "groupNameKana", 100);
+  if (body.groupType !== undefined) input.groupType = optionalTrimmedString(body.groupType, "groupType", 100);
+  if (body.groupTypeOther !== undefined) input.groupTypeOther = optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100);
+  if (body.tcCount !== undefined) input.tcCount = optionalInteger(body.tcCount, "tcCount", { min: 0, max: 999 }) ?? 0;
+  if (body.dgCount !== undefined) input.dgCount = optionalInteger(body.dgCount, "dgCount", { min: 0, max: 999 }) ?? 0;
+  if (body.paymentCondition !== undefined) input.paymentCondition = validatePaymentCondition(body.paymentCondition);
+  if (body.remarks !== undefined) input.remarks = requireString(body.remarks, "remarks", 1000).trim();
   if (!Object.keys(input).length) throw new ApiValidationError("At least one reservation field is required.");
   return input;
 }
@@ -142,8 +192,40 @@ export function validateCustomerInput(body: Record<string, unknown>): SaveCustom
     name: requireNonEmptyString(body.name, "name", 100),
     contact: requireEmail(body.contact, "contact"),
     phone: requirePhone(body.phone, "phone"),
+    address: optionalTrimmedString(body.address, "address", 500),
+    accountType: validateCustomerAccountType(body.accountType),
+    companyBranchName: optionalTrimmedString(body.companyBranchName, "companyBranchName", 100),
+    contactPersonName: optionalTrimmedString(body.contactPersonName, "contactPersonName", 100),
     originalContact: body.originalContact === undefined ? undefined : requireEmail(body.originalContact, "originalContact"),
   };
+}
+
+function validateCustomerAccountType(value: unknown): CustomerAccountType | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (value === "individual" || value === "travel_agency") return value;
+  throw new ApiValidationError("accountType must be individual or travel_agency.");
+}
+
+function validateReservationBookingType(value: unknown): ReservationBookingType | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (value === "individual" || value === "travel_agency_group") return value;
+  throw new ApiValidationError("bookingType must be individual or travel_agency_group.");
+}
+
+function validatePaymentCondition(value: unknown): PaymentCondition | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value === "string" && paymentConditions.includes(value as PaymentCondition)) return value as PaymentCondition;
+  throw new ApiValidationError("paymentCondition must be a valid payment condition code.");
+}
+
+function assertGroupReservationFields(input: CreateReservationInput) {
+  if (input.bookingType !== "travel_agency_group") return;
+  if (!input.companyBranchName && !input.name) throw new ApiValidationError("companyBranchName is required for travel agency group reservations.");
+  if (!input.bookingContactName) throw new ApiValidationError("bookingContactName is required for travel agency group reservations.");
+  if (!input.dayContactName) throw new ApiValidationError("dayContactName is required for travel agency group reservations.");
+  if (!input.dayContactPhone) throw new ApiValidationError("dayContactPhone is required for travel agency group reservations.");
+  if (!input.groupName) throw new ApiValidationError("groupName is required for travel agency group reservations.");
+  if (!input.groupType) throw new ApiValidationError("groupType is required for travel agency group reservations.");
 }
 
 export function validateStoreInput(body: Record<string, unknown>): SaveStoreInput {
@@ -185,10 +267,21 @@ function requireNonEmptyString(value: unknown, field: string, maxLength: number)
   return text;
 }
 
+function optionalTrimmedString(value: unknown, field: string, maxLength: number) {
+  if (value === undefined || value === null) return undefined;
+  const text = requireString(value, field, maxLength).trim();
+  return text || undefined;
+}
+
 function optionalStringArray(value: unknown, field: string) {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) throw new ApiValidationError(`${field} must be an array.`);
   return value.map((item, index) => requireNonEmptyString(item, `${field}[${index}]`, 100));
+}
+
+function optionalInteger(value: unknown, field: string, options: { min: number; max: number }) {
+  if (value === undefined || value === null || value === "") return undefined;
+  return requireInteger(value, field, options);
 }
 
 function requireInteger(value: unknown, field: string, options: { min: number; max: number }) {

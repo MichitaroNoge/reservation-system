@@ -203,6 +203,20 @@ exports.updateConfirmationContact = function updateConfirmationContact(dcOrVars,
 }
 ;
 
+const clearConfirmationContactRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'ClearConfirmationContact', inputVars);
+}
+clearConfirmationContactRef.operationName = 'ClearConfirmationContact';
+exports.clearConfirmationContactRef = clearConfirmationContactRef;
+
+exports.clearConfirmationContact = function clearConfirmationContact(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(clearConfirmationContactRef(dcInstance, inputVars));
+}
+;
+
 const assignStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

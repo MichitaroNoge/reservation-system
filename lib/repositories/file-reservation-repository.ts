@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { defaultReservationStatus, getAutomaticReservationStatus, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type CreateReservationChangeRequestInput, type CreateReservationInput, type Customer, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -70,7 +70,8 @@ function normalizeReservation(reservation: Reservation, menus: Menu[]): Reservat
       ? [{ store: reservation.store, people: reservation.people }]
       : [];
   const store = storeAssignments.length === 1 ? storeAssignments[0].store : storeAssignments.length > 1 ? "複数店舗" : null;
-  return { ...reservation, startTime: reservation.startTime ?? defaultStartTime, menuItems, totalAmount, storeAssignments, store, status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
+  const startTime = reservation.startTime ?? defaultStartTime;
+  return { ...reservation, startTime, endTime: reservation.endTime ?? calculateReservationEndTime(startTime, menuItems, menus), menuItems, totalAmount, storeAssignments, store, paymentCondition: normalizePaymentCondition(reservation.paymentCondition), status: normalizeReservationStatus(reservation.status), requestType: normalizeReservationRequestType(reservation.requestType) };
 }
 
 function calculateTotalAmount(menuItems: string[], menus: Menu[]) {
@@ -140,12 +141,27 @@ export class FileReservationRepository implements ReservationRepository {
   async createReservation(input: CreateReservationInput) {
     const database = await this.readDatabase();
     const menuItems = input.menuItems?.length ? input.menuItems : input.menu ? [input.menu] : [];
+    const startTime = input.startTime ?? defaultStartTime;
     const reservation: Reservation = {
       id: nextReservationId(database.reservations),
       customer: input.name,
       email: input.email,
+      address: input.address,
+      bookingType: input.bookingType ?? "individual",
+      bookingContactName: input.bookingContactName,
+      dayContactName: input.dayContactName,
+      dayContactPhone: input.dayContactPhone,
+      groupName: input.groupName,
+      groupNameKana: input.groupNameKana,
+      groupType: input.groupType,
+      groupTypeOther: input.groupTypeOther,
+      tcCount: input.tcCount ?? 0,
+      dgCount: input.dgCount ?? 0,
+      paymentCondition: normalizePaymentCondition(input.paymentCondition),
+      remarks: input.remarks,
       date: input.date,
-      startTime: input.startTime ?? defaultStartTime,
+      startTime,
+      endTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, database.menus),
       people: input.people,
       menuItems,
       totalAmount: calculateTotalAmount(menuItems, database.menus),
@@ -158,6 +174,25 @@ export class FileReservationRepository implements ReservationRepository {
       received: receivedLabel(),
       phone: input.phone,
     };
+    database.customers ??= [];
+    const customerIndex = database.customers.findIndex((customer) => customer.contact.toLowerCase() === input.email.toLowerCase());
+    const savedCustomer: Customer = {
+      id: database.customers[customerIndex]?.id ?? `file-customer-${Date.now()}`,
+      name: input.name,
+      contact: input.email,
+      phone: input.phone,
+      address: input.address,
+      accountType: input.accountType ?? (input.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+      companyBranchName: input.companyBranchName,
+      contactPersonName: input.contactPersonName,
+      count: database.customers[customerIndex]?.count ?? 0,
+      last: database.customers[customerIndex]?.last ?? "-",
+    };
+    if (customerIndex >= 0) {
+      database.customers[customerIndex] = savedCustomer;
+    } else {
+      database.customers.push(savedCustomer);
+    }
     database.reservations = [reservation, ...database.reservations];
     await this.writeDatabase(database);
     return reservation;
@@ -169,13 +204,30 @@ export class FileReservationRepository implements ReservationRepository {
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     if (input.date !== undefined) reservation.date = input.date;
     if (input.startTime !== undefined) reservation.startTime = input.startTime;
+    if (input.endTime !== undefined) reservation.endTime = input.endTime;
     if (input.people !== undefined) reservation.people = input.people;
     if (input.customer !== undefined) reservation.customer = input.customer;
     if (input.email !== undefined) reservation.email = input.email;
     if (input.phone !== undefined) reservation.phone = input.phone;
+    if (input.address !== undefined) reservation.address = input.address;
+    if (input.bookingType !== undefined) reservation.bookingType = input.bookingType;
+    if (input.bookingContactName !== undefined) reservation.bookingContactName = input.bookingContactName;
+    if (input.dayContactName !== undefined) reservation.dayContactName = input.dayContactName;
+    if (input.dayContactPhone !== undefined) reservation.dayContactPhone = input.dayContactPhone;
+    if (input.groupName !== undefined) reservation.groupName = input.groupName;
+    if (input.groupNameKana !== undefined) reservation.groupNameKana = input.groupNameKana;
+    if (input.groupType !== undefined) reservation.groupType = input.groupType;
+    if (input.groupTypeOther !== undefined) reservation.groupTypeOther = input.groupTypeOther;
+    if (input.tcCount !== undefined) reservation.tcCount = input.tcCount;
+    if (input.dgCount !== undefined) reservation.dgCount = input.dgCount;
+    if (input.paymentCondition !== undefined) reservation.paymentCondition = normalizePaymentCondition(input.paymentCondition);
+    if (input.remarks !== undefined) reservation.remarks = input.remarks;
     if (input.menuItems !== undefined) {
       reservation.menuItems = input.menuItems;
       reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus);
+    }
+    if (input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined)) {
+      reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     }
     await this.writeDatabase(database);
     return reservation;
@@ -278,6 +330,7 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.startTime = request.requestedStartTime;
     reservation.people = request.requestedPeople;
     reservation.menuItems = request.requestedMenuItems;
+    reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
     if (shouldResetAssignments) {
       reservation.store = null;
@@ -317,6 +370,10 @@ export class FileReservationRepository implements ReservationRepository {
         name: reservation.customer,
         contact: reservation.email ?? "customer@example.jp",
         phone: reservation.phone,
+        address: reservation.address ?? current?.address,
+        accountType: current?.accountType ?? (reservation.bookingType === "travel_agency_group" ? "travel_agency" : "individual"),
+        companyBranchName: current?.companyBranchName,
+        contactPersonName: current?.contactPersonName,
         count: (current?.count ?? 0) + 1,
         last: reservation.date.replaceAll("-", "/"),
       });
@@ -344,6 +401,10 @@ export class FileReservationRepository implements ReservationRepository {
       name: input.name,
       contact: input.contact,
       phone: input.phone,
+      address: input.address,
+      accountType: input.accountType,
+      companyBranchName: input.companyBranchName,
+      contactPersonName: input.contactPersonName,
       count: 0,
       last: "-",
     };
@@ -363,6 +424,10 @@ export class FileReservationRepository implements ReservationRepository {
         name: input.name,
         contact: input.contact,
         phone: input.phone,
+        address: input.address,
+        accountType: input.accountType,
+        companyBranchName: input.companyBranchName,
+        contactPersonName: input.contactPersonName,
       };
     }
     const targets = database.reservations.filter((reservation) => reservation.customer === decodedName || reservation.email === input.originalContact);
@@ -372,6 +437,7 @@ export class FileReservationRepository implements ReservationRepository {
       customer: input.name,
       email: input.contact,
       phone: input.phone,
+      address: input.address,
     } : reservation);
     await this.writeDatabase(database);
     const updated = (await this.listCustomers()).find((customer) => customer.name === input.name);

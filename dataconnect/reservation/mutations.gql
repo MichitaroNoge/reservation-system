@@ -1,6 +1,6 @@
-mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
+mutation CreateAccount($firebaseUid: String!, $name: String!, $phone: String, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String)
 @auth(level: NO_ACCESS) {
-  customer_insert(data: {
+  account_insert(data: {
     firebaseUid: $firebaseUid
     name: $name
     phone: $phone
@@ -12,9 +12,9 @@ mutation CreateCustomer($name: String!, $phone: String!, $email: String!, $addre
   })
 }
 
-mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String)
+mutation UpdateAccount($id: UUID!, $name: String!, $phone: String, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String)
 @auth(level: NO_ACCESS) {
-  customer_update(key: {id: $id}, data: {
+  account_update(key: {id: $id}, data: {
     name: $name
     phone: $phone
     email: $email
@@ -26,40 +26,24 @@ mutation UpdateCustomer($id: UUID!, $name: String!, $phone: String!, $email: Str
   })
 }
 
-mutation UpdateCustomerIdentity($id: UUID!, $name: String!, $phone: String!, $email: String!, $address: String, $accountType: String, $companyBranchName: String, $contactPersonName: String, $firebaseUid: String)
-@auth(level: NO_ACCESS) {
-  customer_update(key: {id: $id}, data: {
-    firebaseUid: $firebaseUid
-    name: $name
-    phone: $phone
-    email: $email
-    address: $address
-    accountType: $accountType
-    companyBranchName: $companyBranchName
-    contactPersonName: $contactPersonName
-    updatedAt_expr: "request.time"
-  })
+mutation DeactivateAccount($id: UUID!) @auth(level: NO_ACCESS) {
+  account_update(key: {id: $id}, data: { active: false updatedAt_expr: "request.time" })
 }
 
-mutation DeactivateCustomer($id: UUID!)
-@auth(level: NO_ACCESS) {
-  customer_update(key: {id: $id}, data: {
-    active: false
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation ReactivateCustomer($id: UUID!)
-@auth(level: NO_ACCESS) {
-  customer_update(key: {id: $id}, data: {
-    active: true
-    updatedAt_expr: "request.time"
-  })
+mutation ReactivateAccount($id: UUID!) @auth(level: NO_ACCESS) {
+  account_update(key: {id: $id}, data: { active: true updatedAt_expr: "request.time" })
 }
 
 mutation CreateReservation(
   $reservationCode: String!
-  $customerId: UUID!
+  $accountId: UUID
+  $reserverName: String!
+  $reserverEmail: String!
+  $reserverPhone: String!
+  $reserverAddress: String
+  $reserverAccountType: String
+  $reserverCompanyBranchName: String
+  $reserverContactPersonName: String
   $usageDate: Date!
   $usageTime: String!
   $usageEndTime: String
@@ -84,7 +68,14 @@ mutation CreateReservation(
 @auth(level: NO_ACCESS) {
   reservation_insert(data: {
     reservationCode: $reservationCode
-    customerId: $customerId
+    accountId: $accountId
+    reserverName: $reserverName
+    reserverEmail: $reserverEmail
+    reserverPhone: $reserverPhone
+    reserverAddress: $reserverAddress
+    reserverAccountType: $reserverAccountType
+    reserverCompanyBranchName: $reserverCompanyBranchName
+    reserverContactPersonName: $reserverContactPersonName
     usageDate: $usageDate
     usageTime: $usageTime
     usageEndTime: $usageEndTime
@@ -108,23 +99,12 @@ mutation CreateReservation(
   })
 }
 
-mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: Int!, $unitPrice: Int!)
-@auth(level: NO_ACCESS) {
-  reservationDetail_insert(data: {
-    reservationId: $reservationId
-    menuId: $menuId
-    quantity: $quantity
-    unitPrice: $unitPrice
-  })
-}
-
-mutation DeleteReservationDetail($id: UUID!)
-@auth(level: NO_ACCESS) {
-  reservationDetail_delete(key: {id: $id})
-}
-
 mutation UpdateReservation(
   $id: UUID!
+  $reserverName: String!
+  $reserverEmail: String!
+  $reserverPhone: String!
+  $reserverAddress: String
   $usageDate: Date!
   $usageTime: String!
   $usageEndTime: String
@@ -144,6 +124,10 @@ mutation UpdateReservation(
 )
 @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: {
+    reserverName: $reserverName
+    reserverEmail: $reserverEmail
+    reserverPhone: $reserverPhone
+    reserverAddress: $reserverAddress
     usageDate: $usageDate
     usageTime: $usageTime
     usageEndTime: $usageEndTime
@@ -164,164 +148,42 @@ mutation UpdateReservation(
   })
 }
 
-mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!, $requestType: String)
-@auth(level: NO_ACCESS) {
-  reservation_update(key: {id: $id}, data: {
-    status: $status
-    requestType: $requestType
-    updatedAt_expr: "request.time"
-  })
+mutation AddReservationDetail($reservationId: UUID!, $menuId: UUID!, $quantity: Int!, $unitPrice: Int!) @auth(level: NO_ACCESS) {
+  reservationDetail_insert(data: { reservationId: $reservationId menuId: $menuId quantity: $quantity unitPrice: $unitPrice })
+}
+mutation DeleteReservationDetail($id: UUID!) @auth(level: NO_ACCESS) { reservationDetail_delete(key: {id: $id}) }
+mutation UpdateReservationStatus($id: UUID!, $status: ReservationStatus!, $requestType: String) @auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: { status: $status requestType: $requestType updatedAt_expr: "request.time" })
+}
+mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timestamp) @auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: { confirmationContactedAt: $confirmationContactedAt updatedAt_expr: "request.time" })
+}
+mutation ClearConfirmationContact($id: UUID!) @auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: { confirmationContactedAt: null updatedAt_expr: "request.time" })
+}
+mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!) @auth(level: NO_ACCESS) {
+  storeAssignment_insert(data: { reservationId: $reservationId storeId: $storeId people: $people assignedAt_expr: "request.time" })
+}
+mutation DeleteStoreAssignment($id: UUID!) @auth(level: NO_ACCESS) { storeAssignment_delete(key: {id: $id}) }
+
+mutation CreateReservationChangeRequest($reservationId: UUID!, $requestedDate: Date!, $requestedTime: String!, $requestedPeople: Int!, $requestedMenuItemsJson: String!, $reason: String) @auth(level: NO_ACCESS) {
+  reservationChangeRequest_insert(data: { reservationId: $reservationId requestedDate: $requestedDate requestedTime: $requestedTime requestedPeople: $requestedPeople requestedMenuItemsJson: $requestedMenuItemsJson reason: $reason status: REQUESTED })
+}
+mutation UpdateReservationChangeRequestStatus($id: UUID!, $status: ReservationChangeRequestStatus!, $reviewedAt: Timestamp) @auth(level: NO_ACCESS) {
+  reservationChangeRequest_update(key: {id: $id}, data: { status: $status reviewedAt: $reviewedAt })
 }
 
-mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timestamp)
-@auth(level: NO_ACCESS) {
-  reservation_update(key: {id: $id}, data: {
-    confirmationContactedAt: $confirmationContactedAt
-    updatedAt_expr: "request.time"
-  })
-}
+mutation CreateStore($name: String!, $displayOrder: Int = 0, $active: Boolean!) @auth(level: NO_ACCESS) { store_insert(data: { name: $name displayOrder: $displayOrder active: $active }) }
+mutation UpdateStore($id: UUID!, $name: String!, $displayOrder: Int = 0, $active: Boolean!) @auth(level: NO_ACCESS) { store_update(key: {id: $id}, data: { name: $name displayOrder: $displayOrder active: $active updatedAt_expr: "request.time" }) }
+mutation DeactivateStore($id: UUID!) @auth(level: NO_ACCESS) { store_update(key: {id: $id}, data: { active: false updatedAt_expr: "request.time" }) }
+mutation ReactivateStore($id: UUID!) @auth(level: NO_ACCESS) { store_update(key: {id: $id}, data: { active: true updatedAt_expr: "request.time" }) }
 
-mutation ClearConfirmationContact($id: UUID!)
-@auth(level: NO_ACCESS) {
-  reservation_update(key: {id: $id}, data: {
-    confirmationContactedAt: null
-    updatedAt_expr: "request.time"
-  })
-}
+mutation CreateMenu($name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $displayOrder: Int = 0, $active: Boolean!) @auth(level: NO_ACCESS) { menu_insert(data: { name: $name description: $description standardPrice: $standardPrice durationMinutes: $durationMinutes displayOrder: $displayOrder active: $active }) }
+mutation UpdateMenu($id: UUID!, $name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $displayOrder: Int = 0, $active: Boolean!) @auth(level: NO_ACCESS) { menu_update(key: {id: $id}, data: { name: $name description: $description standardPrice: $standardPrice durationMinutes: $durationMinutes displayOrder: $displayOrder active: $active updatedAt_expr: "request.time" }) }
+mutation DeactivateMenu($id: UUID!) @auth(level: NO_ACCESS) { menu_update(key: {id: $id}, data: { active: false updatedAt_expr: "request.time" }) }
+mutation ReactivateMenu($id: UUID!) @auth(level: NO_ACCESS) { menu_update(key: {id: $id}, data: { active: true updatedAt_expr: "request.time" }) }
 
-mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!)
-@auth(level: NO_ACCESS) {
-  storeAssignment_insert(data: {
-    reservationId: $reservationId
-    storeId: $storeId
-    people: $people
-    assignedAt_expr: "request.time"
-  })
-}
-
-mutation DeleteStoreAssignment($id: UUID!)
-@auth(level: NO_ACCESS) {
-  storeAssignment_delete(key: {id: $id})
-}
-
-mutation CreateReservationChangeRequest(
-  $reservationId: UUID!
-  $requestedDate: Date!
-  $requestedTime: String!
-  $requestedPeople: Int!
-  $requestedMenuItemsJson: String!
-  $reason: String
-)
-@auth(level: NO_ACCESS) {
-  reservationChangeRequest_insert(data: {
-    reservationId: $reservationId
-    requestedDate: $requestedDate
-    requestedTime: $requestedTime
-    requestedPeople: $requestedPeople
-    requestedMenuItemsJson: $requestedMenuItemsJson
-    reason: $reason
-    status: REQUESTED
-  })
-}
-
-mutation UpdateReservationChangeRequestStatus(
-  $id: UUID!
-  $status: ReservationChangeRequestStatus!
-  $reviewedAt: Timestamp
-)
-@auth(level: NO_ACCESS) {
-  reservationChangeRequest_update(key: {id: $id}, data: {
-    status: $status
-    reviewedAt: $reviewedAt
-  })
-}
-
-mutation CreateStore($name: String!, $displayOrder: Int = 0, $active: Boolean!)
-@auth(level: NO_ACCESS) {
-  store_insert(data: {
-    name: $name
-    displayOrder: $displayOrder
-    active: $active
-  })
-}
-
-mutation UpdateStore($id: UUID!, $name: String!, $displayOrder: Int = 0, $active: Boolean!)
-@auth(level: NO_ACCESS) {
-  store_update(key: {id: $id}, data: {
-    name: $name
-    displayOrder: $displayOrder
-    active: $active
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation DeactivateStore($id: UUID!)
-@auth(level: NO_ACCESS) {
-  store_update(key: {id: $id}, data: {
-    active: false
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation ReactivateStore($id: UUID!)
-@auth(level: NO_ACCESS) {
-  store_update(key: {id: $id}, data: {
-    active: true
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation CreateMenu($name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $displayOrder: Int = 0, $active: Boolean!)
-@auth(level: NO_ACCESS) {
-  menu_insert(data: {
-    name: $name
-    description: $description
-    standardPrice: $standardPrice
-    durationMinutes: $durationMinutes
-    displayOrder: $displayOrder
-    active: $active
-  })
-}
-
-mutation UpdateMenu($id: UUID!, $name: String!, $description: String, $standardPrice: Int!, $durationMinutes: Int!, $displayOrder: Int = 0, $active: Boolean!)
-@auth(level: NO_ACCESS) {
-  menu_update(key: {id: $id}, data: {
-    name: $name
-    description: $description
-    standardPrice: $standardPrice
-    durationMinutes: $durationMinutes
-    displayOrder: $displayOrder
-    active: $active
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation DeactivateMenu($id: UUID!)
-@auth(level: NO_ACCESS) {
-  menu_update(key: {id: $id}, data: {
-    active: false
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation ReactivateMenu($id: UUID!)
-@auth(level: NO_ACCESS) {
-  menu_update(key: {id: $id}, data: {
-    active: true
-    updatedAt_expr: "request.time"
-  })
-}
-
-mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!)
-@auth(level: NO_ACCESS)
-@transaction {
-  visitRecord_insert(data: {
-    reservationId: $reservationId
-    visitedAt: $visitedAt
-    actualPeople: $actualPeople
-  })
-  reservation_update(key: {id: $reservationId}, data: {
-    status: VISITED
-    updatedAt_expr: "request.time"
-  })
+mutation RecordVisit($reservationId: UUID!, $visitedAt: Timestamp!, $actualPeople: Int!) @auth(level: NO_ACCESS) @transaction {
+  visitRecord_insert(data: { reservationId: $reservationId visitedAt: $visitedAt actualPeople: $actualPeople })
+  reservation_update(key: {id: $reservationId}, data: { status: VISITED updatedAt_expr: "request.time" })
 }

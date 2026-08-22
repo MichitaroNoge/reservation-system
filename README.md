@@ -8,6 +8,7 @@
 - 予約時の氏名・メール・電話・住所・旅行会社情報は `Reservation` にスナップショット保存します。
 - 管理者代理予約・非会員予約では Account を検索・作成・紐付けしません。
 - ログイン済み本人が作成した予約だけ Account に紐付けます。
+- Firebase Authユーザーに対応するAccountがまだ無い場合は、初回の本人予約時にFirebase UIDをキーとして作成します。
 - メールアドレス等が一致しても、過去の代理予約を後から Account に紐付けません。
 - Accountプロフィール変更で過去予約の予約者情報は更新しません。
 
@@ -24,7 +25,7 @@ npm run dev
 
 `dataconnect/schema/schema.gql`、`dataconnect/reservation/queries.gql`、`dataconnect/reservation/mutations.gql` を変更した場合は Data Connect SDK を再生成し、`src/generated/dataconnect*` を更新してください。
 
-Repository は生成SDKの操作名を実行時に解決します。SDKが旧版のままの場合は、必要な操作名を示すエラーになります。
+Admin SDKのCJS/ESM操作ラッパーはAccountモデルへ追随済みです。生成型定義・クライアントSDKは正式なCLI再生成で更新するのが望ましいです。
 
 ## Account分離の回帰確認
 
@@ -34,5 +35,7 @@ Repository は生成SDKの操作名を実行時に解決します。SDKが旧版
 2. ログイン本人の予約だけAccountに紐付く
 3. 同じメールアドレスの管理者予約は本人の予約一覧に出ない
 4. Accountプロフィール変更で過去予約の予約者スナップショットが変わらない
+
+既存の `tests/reservation-workflows.test.ts` も、予約作成時にAccountを暗黙作成しない新仕様へ更新しています。
 
 `.github/workflows/refactor-check.yml` では `npm test` と `npm run build` を実行します。

@@ -20,14 +20,9 @@ export async function POST(request: Request) {
   try {
     const body = await readJsonObject(request);
     const repository = getReservationRepository();
-    const reservationIdFromBody = typeof body.reservationId === "string" ? body.reservationId : "";
-    const ownedReservation = reservationIdFromBody
-      ? await findOwnedReservationByAuthenticatedCustomer(request, repository, reservationIdFromBody)
-      : null;
-    const input = validateReservationChangeRequestInput(body, { allowMissingContact: Boolean(ownedReservation) });
-    const changeRequest = await repository.createReservationChangeRequest(ownedReservation
-      ? { ...input, email: ownedReservation.email, phone: ownedReservation.phone }
-      : input);
+    const input = validateReservationChangeRequestInput(body, { allowMissingContact: true });
+    const ownedReservation = await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
+    const changeRequest = await repository.createReservationChangeRequest({ ...input, email: ownedReservation.email, phone: ownedReservation.phone });
     return NextResponse.json({ request: changeRequest }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

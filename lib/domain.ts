@@ -349,7 +349,7 @@ export type CreateReservationInput = {
   requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   customerFirebaseUid?: string;
-  customerAccountMode?: "account" | "guest" | "admin";
+  customerAccountMode?: "account" | "admin";
   date: string;
   startTime?: string;
   endTime?: string;

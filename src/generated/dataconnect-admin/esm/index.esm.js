@@ -1,23 +1,8 @@
 import { validateAdminArgs } from 'firebase-admin/data-connect';
 
-export const BillingStatus = {
-  UNBILLED: "UNBILLED",
-  INVOICED: "INVOICED",
-  PAID: "PAID",
-  VOIDED: "VOIDED",
-}
-
-export const BillingType = {
-  USAGE: "USAGE",
-  CANCELLATION: "CANCELLATION",
-}
-
-export const ReservationChangeRequestStatus = {
-  REQUESTED: "REQUESTED",
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-}
-
+export const BillingStatus = { UNBILLED: "UNBILLED", INVOICED: "INVOICED", PAID: "PAID", VOIDED: "VOIDED" };
+export const BillingType = { USAGE: "USAGE", CANCELLATION: "CANCELLATION" };
+export const ReservationChangeRequestStatus = { REQUESTED: "REQUESTED", APPROVED: "APPROVED", REJECTED: "REJECTED" };
 export const ReservationStatus = {
   TEMPORARY_REQUESTED: "TEMPORARY_REQUESTED",
   TEMPORARY_CONFIRMED: "TEMPORARY_CONFIRMED",
@@ -29,269 +14,65 @@ export const ReservationStatus = {
   VISITED: "VISITED",
   CANCELLATION_REQUESTED: "CANCELLATION_REQUESTED",
   CANCELLED: "CANCELLED",
-}
-
-export const connectorConfig = {
-  connector: 'reservation',
-  serviceId: 'reservation-system',
-  location: 'asia-northeast1'
 };
 
-export function createCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('CreateCustomer', inputVars, inputOpts);
-}
+export const connectorConfig = { connector: 'reservation', serviceId: 'reservation-system', location: 'asia-northeast1' };
 
-export function updateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+const mutation = (operationName) => (dcOrVarsOrOptions, varsOrOptions, options) => {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateCustomer', inputVars, inputOpts);
-}
+  return dcInstance.executeMutation(operationName, inputVars, inputOpts);
+};
 
-export function updateCustomerIdentity(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+const query = (operationName, hasVariables) => (dcOrVarsOrOptions, varsOrOptions, options) => {
+  if (hasVariables) {
+    const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+    dcInstance.useGen(true);
+    return dcInstance.executeQuery(operationName, inputVars, inputOpts);
+  }
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, undefined);
   dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateCustomerIdentity', inputVars, inputOpts);
-}
+  return dcInstance.executeQuery(operationName, undefined, inputOpts);
+};
 
-export function deactivateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('DeactivateCustomer', inputVars, inputOpts);
-}
+export const createAccount = mutation('CreateAccount');
+export const updateAccount = mutation('UpdateAccount');
+export const deactivateAccount = mutation('DeactivateAccount');
+export const reactivateAccount = mutation('ReactivateAccount');
+export const createReservation = mutation('CreateReservation');
+export const updateReservation = mutation('UpdateReservation');
+export const addReservationDetail = mutation('AddReservationDetail');
+export const deleteReservationDetail = mutation('DeleteReservationDetail');
+export const updateReservationStatus = mutation('UpdateReservationStatus');
+export const updateConfirmationContact = mutation('UpdateConfirmationContact');
+export const clearConfirmationContact = mutation('ClearConfirmationContact');
+export const assignStore = mutation('AssignStore');
+export const deleteStoreAssignment = mutation('DeleteStoreAssignment');
+export const createReservationChangeRequest = mutation('CreateReservationChangeRequest');
+export const updateReservationChangeRequestStatus = mutation('UpdateReservationChangeRequestStatus');
+export const createStore = mutation('CreateStore');
+export const updateStore = mutation('UpdateStore');
+export const deactivateStore = mutation('DeactivateStore');
+export const reactivateStore = mutation('ReactivateStore');
+export const createMenu = mutation('CreateMenu');
+export const updateMenu = mutation('UpdateMenu');
+export const deactivateMenu = mutation('DeactivateMenu');
+export const reactivateMenu = mutation('ReactivateMenu');
+export const recordVisit = mutation('RecordVisit');
 
-export function reactivateCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('ReactivateCustomer', inputVars, inputOpts);
-}
-
-export function createReservation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('CreateReservation', inputVars, inputOpts);
-}
-
-export function addReservationDetail(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('AddReservationDetail', inputVars, inputOpts);
-}
-
-export function deleteReservationDetail(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('DeleteReservationDetail', inputVars, inputOpts);
-}
-
-export function updateReservation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateReservation', inputVars, inputOpts);
-}
-
-export function updateReservationStatus(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateReservationStatus', inputVars, inputOpts);
-}
-
-export function updateConfirmationContact(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateConfirmationContact', inputVars, inputOpts);
-}
-
-export function clearConfirmationContact(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('ClearConfirmationContact', inputVars, inputOpts);
-}
-
-export function assignStore(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('AssignStore', inputVars, inputOpts);
-}
-
-export function deleteStoreAssignment(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('DeleteStoreAssignment', inputVars, inputOpts);
-}
-
-export function createReservationChangeRequest(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('CreateReservationChangeRequest', inputVars, inputOpts);
-}
-
-export function updateReservationChangeRequestStatus(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateReservationChangeRequestStatus', inputVars, inputOpts);
-}
-
-export function createStore(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('CreateStore', inputVars, inputOpts);
-}
-
-export function updateStore(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateStore', inputVars, inputOpts);
-}
-
-export function deactivateStore(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('DeactivateStore', inputVars, inputOpts);
-}
-
-export function reactivateStore(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('ReactivateStore', inputVars, inputOpts);
-}
-
-export function createMenu(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('CreateMenu', inputVars, inputOpts);
-}
-
-export function updateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('UpdateMenu', inputVars, inputOpts);
-}
-
-export function deactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('DeactivateMenu', inputVars, inputOpts);
-}
-
-export function reactivateMenu(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('ReactivateMenu', inputVars, inputOpts);
-}
-
-export function recordVisit(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation('RecordVisit', inputVars, inputOpts);
-}
-
-export function listReservations(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListReservations', undefined, inputOpts);
-}
-
-export function getReservation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetReservation', inputVars, inputOpts);
-}
-
-export function getReservationByCode(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetReservationByCode', inputVars, inputOpts);
-}
-
-export function listReservationChangeRequests(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
-}
-
-export function listCustomers(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListCustomers', undefined, inputOpts);
-}
-
-export function listInactiveCustomers(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListInactiveCustomers', undefined, inputOpts);
-}
-
-export function getCustomerByName(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetCustomerByName', inputVars, inputOpts);
-}
-
-export function getCustomerById(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetCustomerById', inputVars, inputOpts);
-}
-
-export function getCustomerByFirebaseUid(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetCustomerByFirebaseUid', inputVars, inputOpts);
-}
-
-export function getCustomerByEmail(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetCustomerByEmail', inputVars, inputOpts);
-}
-
-export function listStores(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListStores', undefined, inputOpts);
-}
-
-export function listInactiveStores(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListInactiveStores', undefined, inputOpts);
-}
-
-export function getStoreByName(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetStoreByName', inputVars, inputOpts);
-}
-
-export function getStoreById(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetStoreById', inputVars, inputOpts);
-}
-
-export function listMenus(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListMenus', undefined, inputOpts);
-}
-
-export function listInactiveMenus(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListInactiveMenus', undefined, inputOpts);
-}
-
-export function getMenuByName(dcOrVarsOrOptions, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('GetMenuByName', inputVars, inputOpts);
-}
-
-export function listBillingRecords(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery('ListBillingRecords', undefined, inputOpts);
-}
-
+export const listReservations = query('ListReservations', false);
+export const getReservation = query('GetReservation', true);
+export const getReservationByCode = query('GetReservationByCode', true);
+export const listReservationChangeRequests = query('ListReservationChangeRequests', false);
+export const listAccounts = query('ListAccounts', false);
+export const listInactiveAccounts = query('ListInactiveAccounts', false);
+export const getAccountById = query('GetAccountById', true);
+export const getAccountByFirebaseUid = query('GetAccountByFirebaseUid', true);
+export const listStores = query('ListStores', false);
+export const listInactiveStores = query('ListInactiveStores', false);
+export const getStoreByName = query('GetStoreByName', true);
+export const getStoreById = query('GetStoreById', true);
+export const listMenus = query('ListMenus', false);
+export const listInactiveMenus = query('ListInactiveMenus', false);
+export const getMenuByName = query('GetMenuByName', true);
+export const listBillingRecords = query('ListBillingRecords', false);

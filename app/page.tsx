@@ -366,9 +366,10 @@ export default function Home() {
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
     const { customer } = await adminRequestJson<{ customer: Customer }>(`/api/customers/${encodeURIComponent(originalName)}`, { method: "PATCH", body: JSON.stringify(input) });
+    const reservationSnapshot = { customer: customer.name, email: customer.contact, phone: customer.phone ?? "", address: customer.address };
     setCustomerList(items => items.map(item => item.id && customer.id && item.id === customer.id ? customer : item.name === originalName || item.contact === input.originalContact ? customer : item));
-    setReservations(rs => rs.map(r => r.customer === originalName || r.email === input.originalContact ? { ...r, customer: customer.name, email: customer.contact, phone: customer.phone, address: customer.address } : r));
-    setSelected(s => s && (s.customer === originalName || s.email === input.originalContact) ? { ...s, customer: customer.name, email: customer.contact, phone: customer.phone, address: customer.address } : s);
+    setReservations(rs => rs.map(r => r.customer === originalName || r.email === input.originalContact ? { ...r, ...reservationSnapshot } : r));
+    setSelected(s => s && (s.customer === originalName || s.email === input.originalContact) ? { ...s, ...reservationSnapshot } : s);
     notify(`${customer.name}様の顧客情報を更新しました`);
   };
   const createCustomer = async (input: CustomerForm) => {

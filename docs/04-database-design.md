@@ -2,27 +2,24 @@
 
 ## 方針
 
-本番DBは Firebase Data Connect / Cloud SQL for PostgreSQL に寄せます。
+本番DBは Firebase Data Connect / Cloud SQL for PostgreSQL を利用します。
 
-`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては Data Connect の `dataconnect/schema/schema.gql` を正とします。
+本システムでは、**ログインアカウントと予約者情報を別概念として管理します。**
 
-### アカウントと予約者情報の分離
+- `Account`: ログイン可能な利用者だけを保持するマスタ
+- `Reservation`: 予約時点の予約者情報をスナップショットとして保持
+- 管理者代理予約・非会員予約では `Reservation.account` は `null`
+- ログイン済み本人が作成した予約だけ `Reservation.account` に紐付ける
+- メールアドレス等が一致しても、過去の代理予約を後からAccountへ自動・手動連携しない
+- Accountプロフィール変更時も過去予約の予約者情報は書き換えない
 
-本システムでは、ログインアカウントと予約時点の予約者情報を別のデータとして扱います。
-
-- `Account` はログイン可能な利用者だけをマスタ管理します。
-- 管理者が代理で予約を登録しても `Account` は作成しません。
-- `Reservation` は予約時点の氏名・メールアドレス・電話番号・住所・旅行会社情報等をスナップショットとして保持します。
-- ログイン利用者が自分で作成した予約だけ `Reservation.account` に `Account` を紐付けます。
-- `Reservation.account` は任意項目であり、管理者登録・非会員予約では `null` です。
-- メールアドレスや電話番号が一致しても、管理者登録済みの過去予約を後からアカウントへ自動・手動で紐付けません。
-- アカウントのプロフィールを変更しても、既存予約の予約者スナップショットは自動更新しません。
+`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては `dataconnect/schema/schema.gql` を正とします。
 
 ## テーブル一覧
 
 | テーブル | 役割 | 主キー |
 | --- | --- | --- |
-| `Account` | ログインアカウントマスタ | `id` |
+| `Account` | ログインアカウント | `id` |
 | `Store` | 店舗情報 | `id` |
 | `Menu` | メニュー情報 | `id` |
 | `Reservation` | 予約本体＋予約者スナップショット | `id` |
@@ -33,33 +30,33 @@
 | `Billing` | 請求情報 | `id` |
 | `Invoice` | 請求書情報 | `id` |
 
-## 主なカラム
-
-### `Account`
+## Account
 
 | カラム | 内容 |
 | --- | --- |
-| `firebaseUid` | Firebase Authentication の UID。必須・一意 |
-| `email` | ログインアカウントのメールアドレス。必須・一意 |
-| `name` | アカウント登録者名 |
+| `firebaseUid` | Firebase Authentication UID。必須・一意 |
+| `email` | アカウントのメールアドレス |
+| `name` | アカウント名 |
 | `phone` | 電話番号 |
 | `address` | 住所 |
-| `accountType` | 個人／旅行代理店等のアカウント種別 |
-| `companyBranchName` | 会社・支店名 |
+| `accountType` | 個人・旅行代理店等 |
+| `companyBranchName` | 旅行代理店等の会社・支店名 |
 | `contactPersonName` | 担当者名 |
 | `active` | アカウント有効フラグ |
 
-### `Reservation`
+Accountは「顧客履歴」や「予約者マスタ」ではありません。ログイン主体だけを保持します。
+
+## Reservation
 
 | カラム | 内容 |
 | --- | --- |
-| `reservationCode` | 画面表示用予約ID。例: `RSV-1047` |
-| `account` | 予約を作成したログインアカウントへの任意参照。管理者・非会員予約では `null` |
+| `reservationCode` | 画面表示用予約ID |
+| `account` | ログイン済み本人が作成した場合のみAccount参照。nullable |
 | `reserverName` | 予約時点の予約者名 |
 | `reserverEmail` | 予約時点のメールアドレス |
 | `reserverPhone` | 予約時点の電話番号 |
 | `reserverAddress` | 予約時点の住所 |
-| `reserverAccountType` | 予約時点の顧客種別 |
+| `reserverAccountType` | 予約時点の予約者区分 |
 | `reserverCompanyBranchName` | 予約時点の会社・支店名 |
 | `reserverContactPersonName` | 予約時点の担当者名 |
 | `usageDate` | 食事日 |
@@ -72,34 +69,29 @@
 | `receivedAt` | 受付日時 |
 | `updatedAt` | 更新日時 |
 
-### `StoreAssignment`
+### 予約作成ルール
 
-複数店舗割当を許容するため、`reservation` に `@unique` は付けません。
+| 予約経路 | Account作成 | Reservation.account |
+| --- | --- | --- |
+| ログイン済み本人 | 既存Accountを使用 | 設定する |
+| 非会員予約 | 作成しない | `null` |
+| 管理者代理登録 | 作成しない | `null` |
+| 電話・FAX等の代理受付 | 作成しない | `null` |
 
-## 予約作成ルール
+メールアドレス一致だけを理由にAccountを検索・作成・紐付けする処理は禁止します。
 
-| 作成経路 | Account作成 | Reservation.account | 予約者情報 |
-| --- | --- | --- | --- |
-| ログイン済み利用者 | 既存Accountを使用 | 紐付ける | Reservationへコピー |
-| 非会員利用者 | 作成しない | `null` | Reservationへ保存 |
-| 管理者による代理登録 | 作成しない | `null` | Reservationへ保存 |
+## 更新ルール
 
-同一メールアドレスの `Account` が存在していても、管理者・非会員として登録された予約をそのAccountへ自動紐付けしません。
-
-## 制約
-
-- `Account.firebaseUid`: `@unique`
-- `Account.email`: `@unique`
-- `Reservation.reservationCode`: `@unique`
-- `VisitRecord.reservation`: `@unique`
-- `Invoice.billing`: `@unique`
-- `Invoice.invoiceNumber`: `@unique`
+- 予約変更ではReservationの予約者スナップショットを更新する
+- Accountプロフィール変更では既存Reservationを更新しない
+- Account削除・停止でも過去Reservationは保持する
+- 過去の代理予約をAccountに後付け連携しない
 
 ## ER図
 
 ```mermaid
 erDiagram
-  ACCOUNT o|--o{ RESERVATION : creates
+  ACCOUNT ||--o{ RESERVATION : "creates when logged in"
   RESERVATION ||--o{ RESERVATION_DETAIL : has
   MENU ||--o{ RESERVATION_DETAIL : selected
   RESERVATION ||--o{ STORE_ASSIGNMENT : assigned
@@ -112,19 +104,4 @@ erDiagram
   BILLING ||--o| INVOICE : issued
 ```
 
-`ACCOUNT o|--o{ RESERVATION` は、予約側から見たAccount参照が任意であることを表します。
-
-## 移行方針
-
-既存 `Customer` データを一律に `Account` へ移行してはいけません。`firebaseUid` が存在し、実際にログインアカウントとして使用されているレコードのみ `Account` へ移行します。
-
-既存予約については、旧 `Customer` の氏名・メール・電話・住所等を各 `Reservation` の予約者スナップショットへコピーします。既存予約の `account` は、当該予約がログイン利用者本人によって作成されたことを確実に判定できる場合だけ設定し、判定できない場合は `null` とします。
-
-過去予約をメールアドレス一致だけでAccountへ紐付ける移行は行いません。
-
-## 根拠
-
-- `dataconnect/schema/schema.gql`
-- `dataconnect/reservation/queries.gql`
-- `dataconnect/reservation/mutations.gql`
-- `lib/domain.ts`
+`ACCOUNT` と `RESERVATION` の関連はDB上は `Reservation.account` がnullableです。

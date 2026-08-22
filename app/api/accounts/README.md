@@ -10,6 +10,8 @@
 - `GET /api/accounts/me` ログイン本人のAccount
 - `GET /api/accounts/me/reservations` ログイン本人がログイン状態で作成した予約のみ
 
+通常の利用者登録では、Firebase Authユーザー作成後、初回のログイン予約時に `POST /api/reservations` がFirebase UIDでAccountを取得し、未作成ならそのUIDでAccountを作成します。メールアドレスで既存予約を検索・統合しません。
+
 `/api/customers` は既存画面の段階移行用互換ルートです。内部的にはAccountを返します。新規実装では `/api/accounts` を使用してください。
 
 管理者代理予約・非会員予約ではAccountを作成せず、予約者情報はReservationのスナップショットとして保持します。

@@ -2,18 +2,28 @@
 
 ## 方針
 
-本番DBは Firebase Data Connect / Cloud SQL for PostgreSQL に寄せます。
+本番DBは Firebase Data Connect / Cloud SQL for PostgreSQL を利用します。
 
-`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては Data Connect の `dataconnect/schema/schema.gql` を正とします。
+本システムでは、**ログインアカウントと予約者情報を別概念として管理します。**
+
+- `Account`: ログイン可能な利用者だけを保持するマスタ
+- `Reservation`: 予約時点の予約者情報をスナップショットとして保持
+- 管理者代理予約・非会員予約では `Reservation.account` は `null`
+- ログイン済み本人が作成した予約だけ `Reservation.account` に紐付ける
+- Firebase Authユーザーに対応するAccountがまだ無い場合は、初回の本人予約時にUIDをキーとしてAccountを作成する
+- メールアドレス等が一致しても、過去の代理予約を後からAccountへ自動・手動連携しない
+- Accountプロフィール変更時も過去予約の予約者情報は書き換えない
+
+`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては `dataconnect/schema/schema.gql` を正とします。
 
 ## テーブル一覧
 
 | テーブル | 役割 | 主キー |
 | --- | --- | --- |
-| `Customer` | 顧客情報 | `id` |
+| `Account` | ログインアカウント | `id` |
 | `Store` | 店舗情報 | `id` |
 | `Menu` | メニュー情報 | `id` |
-| `Reservation` | 予約本体 | `id` |
+| `Reservation` | 予約本体＋予約者スナップショット | `id` |
 | `ReservationDetail` | 予約メニュー明細 | `id` |
 | `StoreAssignment` | 予約の店舗割当 | `id` |
 | `VisitRecord` | 来店実績 | `id` |
@@ -21,85 +31,68 @@
 | `Billing` | 請求情報 | `id` |
 | `Invoice` | 請求書情報 | `id` |
 
-## 主なカラム
-
-### `Customer`
+## Account
 
 | カラム | 内容 |
 | --- | --- |
-| `firebaseUid` | Firebase Authenticationユーザーへの紐付け。ログイン済み顧客の場合に設定する |
-| `name` | 顧客名 |
+| `firebaseUid` | Firebase Authentication UID。必須・一意 |
+| `email` | アカウントのメールアドレス |
+| `name` | アカウント名 |
 | `phone` | 電話番号 |
-| `email` | メールアドレス。未ログイン予約では既存Customer再利用の検索キーとして使う |
-| `active` | 非活性化フラグ |
+| `address` | 住所 |
+| `accountType` | 個人・旅行代理店等 |
+| `companyBranchName` | 旅行代理店等の会社・支店名 |
+| `contactPersonName` | 担当者名 |
+| `active` | アカウント有効フラグ |
 
-### `Reservation`
+Accountは「顧客履歴」や「予約者マスタ」ではありません。ログイン主体だけを保持します。
+
+## Reservation
 
 | カラム | 内容 |
 | --- | --- |
-| `reservationCode` | 画面表示用予約ID。例: `RSV-1047` |
-| `customer` | 顧客への参照 |
+| `reservationCode` | 画面表示用予約ID |
+| `account` | ログイン済み本人が作成した場合のみAccount参照。nullable |
+| `reserverName` | 予約時点の予約者名 |
+| `reserverEmail` | 予約時点のメールアドレス |
+| `reserverPhone` | 予約時点の電話番号 |
+| `reserverAddress` | 予約時点の住所 |
+| `reserverAccountType` | 予約時点の予約者区分 |
+| `reserverCompanyBranchName` | 予約時点の会社・支店名 |
+| `reserverContactPersonName` | 予約時点の担当者名 |
 | `usageDate` | 食事日 |
 | `usageTime` | 開始時刻 |
 | `status` | 予約ステータス |
 | `expectedPeople` | 予定人数 |
-| `policyAgreementKind` | 同意種別。`temporary` または `confirmed` |
+| `policyAgreementKind` | 同意種別 |
 | `policyAgreementAcceptedAt` | 同意日時 |
 | `confirmationContactedAt` | 確認連絡済み日時 |
 | `receivedAt` | 受付日時 |
 | `updatedAt` | 更新日時 |
 
-### `StoreAssignment`
+### 予約作成ルール
 
-複数店舗割当を許容するため、`reservation` に `@unique` は付けません。
-
-| カラム | 内容 |
-| --- | --- |
-| `reservation` | 予約への参照 |
-| `store` | 店舗への参照 |
-| `people` | 割当人数 |
-| `assignedAt` | 割当日時 |
-
-## ステータス
-
-Data Connect enum:
-
-| DB値 | アプリ内部値 | 表示ラベル |
+| 予約経路 | Account作成 | Reservation.account |
 | --- | --- | --- |
-| `TEMPORARY_REQUESTED` | `temporary_requested` | 仮予約申請中 |
-| `TEMPORARY_CONFIRMED` | `temporary_confirmed` | 仮予約確定 |
-| `CONFIRMED_REQUESTED` | `confirmed_requested` | 本予約申請中 |
-| `CONFIRMED` | `confirmed` | 本予約確定 |
-| `WAITING_FOR_VISIT` | `waiting_for_visit` | 来店待ち |
-| `VISITED` | `visited` | 来店済 |
-| `CANCELLATION_REQUESTED` | `cancellation_requested` | キャンセル申請中 |
-| `CANCELLED` | `cancelled` | キャンセル確定 |
+| ログイン済み本人 | Firebase UIDで取得。未作成なら初回本人予約時に作成 | 設定する |
+| 非会員予約 | 作成しない | `null` |
+| 管理者代理登録 | 作成しない | `null` |
+| 電話・FAX等の代理受付 | 作成しない | `null` |
 
-## 制約・インデックス
+メールアドレス一致だけを理由にAccountを検索・作成・紐付けする処理は禁止します。
 
-`dataconnect/schema/schema.gql` で確認できる主な制約:
+## 更新ルール
 
-- `Customer.firebaseUid`: `@unique`
-- `Reservation.reservationCode`: `@unique`
-- `VisitRecord.reservation`: `@unique`
-- `Invoice.billing`: `@unique`
-- `Invoice.invoiceNumber`: `@unique`
-
-PostgreSQLの追加インデックスは未確認です。
-
-`Customer.email` は現在 `@unique` ではありません。代理予約や家族共有メールの可能性を考慮し、DB制約では縛らず、アプリ側でactiveな同一メール顧客を優先的に再利用します。
-
-## 削除時の扱い
-
-顧客・店舗・メニューは物理削除ではなく `active=false` による非活性化を行います。
-
-ローカルフォールバックRepositoryでは、画面整合性を保つため、店舗・メニュー名の変更や削除に応じて関連予約データも更新します。Data Connect Repositoryでは、顧客・店舗・メニュー削除は非活性化として実装済みです。予約明細や割当の履歴保持方針、外部キー削除時のDB制約の詳細は未確認です。
+- 予約変更ではReservationの予約者スナップショットを更新する
+- Accountプロフィール変更では既存Reservationを更新しない
+- Account削除・停止でも過去Reservationは保持する
+- 過去の代理予約をAccountに後付け連携しない
 
 ## ER図
 
 ```mermaid
 erDiagram
-  CUSTOMER ||--o{ RESERVATION : makes
+  ACCOUNT ||--o{ RESERVATION : "creates when logged in"
   RESERVATION ||--o{ RESERVATION_DETAIL : has
   MENU ||--o{ RESERVATION_DETAIL : selected
   RESERVATION ||--o{ STORE_ASSIGNMENT : assigned
@@ -112,9 +105,4 @@ erDiagram
   BILLING ||--o| INVOICE : issued
 ```
 
-## 根拠
-
-- `dataconnect/schema/schema.gql`
-- `dataconnect/reservation/queries.gql`
-- `dataconnect/reservation/mutations.gql`
-- `lib/domain.ts`
+`ACCOUNT` と `RESERVATION` の関連はDB上は `Reservation.account` がnullableです。

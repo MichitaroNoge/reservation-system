@@ -9,8 +9,8 @@ export async function GET(request: Request) {
   try {
     const user = await verifyOptionalFirebaseUser(request);
     if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-    const customer = await getReservationRepository().findAccountByFirebaseUid(user.uid);
-    return NextResponse.json({ customer });
+    const reservations = await getReservationRepository().listReservationsForReservationAccount(user.uid);
+    return NextResponse.json({ reservations });
   } catch (error) {
     return apiErrorResponse(error);
   }

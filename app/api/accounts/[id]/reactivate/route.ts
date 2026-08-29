@@ -5,11 +5,12 @@ import { getReservationRepository } from "@/lib/repositories";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin(request);
-    const customers = await getReservationRepository().listInactiveAccounts();
-    return NextResponse.json({ customers });
+    const { id } = await context.params;
+    const account = await getReservationRepository().reactivateAccount(id);
+    return NextResponse.json({ account });
   } catch (error) {
     return apiErrorResponse(error);
   }

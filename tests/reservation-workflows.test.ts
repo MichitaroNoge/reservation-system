@@ -75,7 +75,7 @@ test("important reservation workflows", async (t) => {
   const { repository, cleanup } = await createRepository();
   t.after(cleanup);
 
-  await t.test("creates a reservation with generated id, default time, status, and menu total", async () => {
+  await t.test("creates a reservation with generated id, default time, status, menu total, and no implicit Account", async () => {
     const reservation = await repository.createReservation({
       date: "2026-08-01",
       people: 2,
@@ -98,10 +98,8 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.address, "東京都渋谷区1-2-3");
     assert.equal(reservation.paymentCondition, "invoice");
     assert.equal(reservation.remarks, "領収書の宛名を確認する");
-
-    const customers = await repository.listCustomers();
-    const customer = customers.find((item) => item.contact === "yui@example.jp");
-    assert.equal(customer?.address, "東京都渋谷区1-2-3");
+    assert.equal(reservation.accountId, null);
+    assert.deepEqual(await repository.listAccounts(), []);
   });
 
   await t.test("sets and updates reservation end time from menu duration", async () => {
@@ -150,7 +148,7 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.endTime, "12:45");
   });
 
-  await t.test("creates travel agency group reservations with group data on the reservation", async () => {
+  await t.test("creates travel agency group reservations as reservation snapshots without creating Account", async () => {
     const reservation = await repository.createReservation({
       date: "2026-08-10",
       startTime: "09:30",
@@ -183,20 +181,16 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.groupType, "小学校");
     assert.equal(reservation.tcCount, 2);
     assert.equal(reservation.dgCount, 1);
+    assert.equal(reservation.accountId, null);
 
     const updated = await repository.updateReservation(reservation.id, { tcCount: 3, dgCount: 0 });
     assert.equal(updated.tcCount, 3);
     assert.equal(updated.dgCount, 0);
-
-    const customer = (await repository.listCustomers()).find((item) => item.contact === "agency@example.jp");
-    assert.equal(customer?.accountType, "travel_agency");
-    assert.equal(customer?.companyBranchName, "ABCツーリスト広島支店");
-    assert.equal(customer?.contactPersonName, "山田太郎");
+    assert.deepEqual(await repository.listAccounts(), []);
   });
 
   await t.test("updates reservation status with stable status code", async () => {
     const reservation = await repository.updateReservationStatus("RSV-1047", reservationStatusCodes.waitingForVisit);
-
     assert.equal(reservation.status, reservationStatusCodes.waitingForVisit);
   });
 
@@ -233,7 +227,6 @@ test("important reservation workflows", async (t) => {
 
   await t.test("does not expose account reservations by email-only match", async () => {
     const reservations = await repository.listReservationsForReservationAccount("firebase-uid-without-link");
-
     assert.deepEqual(reservations, []);
   });
 
@@ -253,7 +246,6 @@ test("important reservation workflows", async (t) => {
     assert.equal(request.requestedDate, "2026-08-02");
 
     const approved = await repository.approveReservationChangeRequest(request.id);
-
     assert.equal(approved.request.status, "approved");
     assert.equal(approved.reservation.id, "RSV-1048");
     assert.equal(approved.reservation.date, "2026-08-02");
@@ -300,18 +292,17 @@ test("important reservation workflows", async (t) => {
     const updated = await Promise.all(
       ["RSV-1047", "RSV-1048"].map((id) => repository.updateConfirmationContact(id, contactedAt)),
     );
-
     assert.deepEqual(updated.map((reservation) => reservation.confirmationContactedAt), [contactedAt, contactedAt]);
   });
 
   await t.test("deleting a menu keeps existing reservation history", async () => {
     await repository.deleteMenu("記念日プレート");
-    const menus = await repository.listMenus();
+    const activeMenus = await repository.listMenus();
     const inactiveMenus = await repository.listInactiveMenus();
     const reservations = await repository.listReservations();
     const target = reservations.find((reservation) => reservation.id === "RSV-1047");
 
-    assert.ok(!menus.some((menu) => menu.name === "記念日プレート"));
+    assert.ok(!activeMenus.some((menu) => menu.name === "記念日プレート"));
     assert.equal(inactiveMenus.length, 1);
     assert.equal(inactiveMenus[0].name, "記念日プレート");
     assert.ok(target);
@@ -322,17 +313,17 @@ test("important reservation workflows", async (t) => {
   await t.test("reactivating a menu returns it to active choices", async () => {
     const inactiveMenus = await repository.listInactiveMenus();
     const restored = await repository.reactivateMenu(inactiveMenus[0].id ?? "");
-    const menus = await repository.listMenus();
+    const activeMenus = await repository.listMenus();
 
     assert.equal(restored.name, "記念日プレート");
-    assert.ok(menus.some((menu) => menu.name === "記念日プレート"));
+    assert.ok(activeMenus.some((menu) => menu.name === "記念日プレート"));
   });
 });
 
 async function createRepository() {
   const directory = await mkdtemp(path.join(tmpdir(), "reservation-system-test-"));
   const databasePath = path.join(directory, "reservation-db.json");
-  await writeFile(databasePath, JSON.stringify({ reservations: baseReservations, menus, stores }, null, 2), "utf8");
+  await writeFile(databasePath, JSON.stringify({ reservations: baseReservations, menus, stores, accounts: [] }, null, 2), "utf8");
   return {
     repository: new FileReservationRepository(databasePath),
     readDatabase: async () => JSON.parse(await readFile(databasePath, "utf8")) as { reservations: Reservation[]; menus: Menu[]; stores: Store[] },

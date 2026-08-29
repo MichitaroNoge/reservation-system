@@ -1,86 +1,24 @@
 query ListReservations @auth(level: NO_ACCESS) {
   reservations(orderBy: {receivedAt: DESC}) {
-    id
-    reservationCode
-    usageDate
-    usageTime
-    usageEndTime
-    status
-    requestType
-    bookingType
-    bookingContactName
-    dayContactName
-    dayContactPhone
-    groupName
-    groupNameKana
-    groupType
-    groupTypeOther
-    tcCount
-    dgCount
-    paymentCondition
-    remarks
-    expectedPeople
-    policyAgreementKind
-    policyAgreementAcceptedAt
-    confirmationContactedAt
-    receivedAt
-    updatedAt
-    customer { id name phone email address accountType companyBranchName contactPersonName }
-    reservationDetails_on_reservation {
-      id
-      quantity
-      unitPrice
-      menu { id name description standardPrice durationMinutes displayOrder }
-    }
-    storeAssignments_on_reservation {
-      id
-      people
-      assignedAt
-      store { id name displayOrder }
-    }
+    id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
+    dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
+    account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
+    reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
+    storeAssignments_on_reservation { id people assignedAt store { id name displayOrder } }
   }
 }
 
 query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
   reservation(key: {id: $id}) {
-    id
-    reservationCode
-    usageDate
-    usageTime
-    usageEndTime
-    status
-    requestType
-    bookingType
-    bookingContactName
-    dayContactName
-    dayContactPhone
-    groupName
-    groupNameKana
-    groupType
-    groupTypeOther
-    tcCount
-    dgCount
-    paymentCondition
-    remarks
-    expectedPeople
-    policyAgreementKind
-    policyAgreementAcceptedAt
-    confirmationContactedAt
-    receivedAt
-    updatedAt
-    customer { id name phone email address accountType companyBranchName contactPersonName }
-    reservationDetails_on_reservation {
-      id
-      quantity
-      unitPrice
-      menu { id name description standardPrice durationMinutes displayOrder }
-    }
-    storeAssignments_on_reservation {
-      id
-      people
-      assignedAt
-      store { id name displayOrder }
-    }
+    id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
+    dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
+    account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
+    reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
+    storeAssignments_on_reservation { id people assignedAt store { id name displayOrder } }
     visitRecord_on_reservation { id visitedAt actualPeople }
     billings_on_reservation { id billingType amount billingDate status }
   }
@@ -88,245 +26,66 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
 
 query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
   reservations(where: {reservationCode: {eq: $reservationCode}}, limit: 1) {
-    id
-    reservationCode
-    usageDate
-    usageTime
-    usageEndTime
-    status
-    requestType
-    bookingType
-    bookingContactName
-    dayContactName
-    dayContactPhone
-    groupName
-    groupNameKana
-    groupType
-    groupTypeOther
-    tcCount
-    dgCount
-    paymentCondition
-    remarks
-    expectedPeople
-    policyAgreementKind
-    policyAgreementAcceptedAt
-    confirmationContactedAt
-    receivedAt
-    updatedAt
-    customer { id name phone email address accountType companyBranchName contactPersonName }
-    reservationDetails_on_reservation {
-      id
-      quantity
-      unitPrice
-      menu { id name description standardPrice durationMinutes displayOrder }
-    }
-    storeAssignments_on_reservation {
-      id
-      people
-      assignedAt
-      store { id name displayOrder }
-    }
+    id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
+    dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
+    account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
+    reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
+    storeAssignments_on_reservation { id people assignedAt store { id name displayOrder } }
   }
 }
 
 query ListReservationChangeRequests @auth(level: NO_ACCESS) {
   reservationChangeRequests(orderBy: {requestedAt: DESC}) {
-    id
-    requestedDate
-    requestedTime
-    requestedPeople
-    requestedMenuItemsJson
-    reason
-    status
-    requestedAt
-    reviewedAt
+    id requestedDate requestedTime requestedPeople requestedMenuItemsJson reason status requestedAt reviewedAt
     reservation {
-      id
-      reservationCode
-      usageDate
-      usageTime
-      expectedPeople
-      customer { id name phone email address accountType companyBranchName contactPersonName }
-      reservationDetails_on_reservation {
-        quantity
-        menu { name }
-      }
+      id reservationCode usageDate usageTime expectedPeople
+      reserverName reserverEmail reserverPhone reserverAddress
+      account { id firebaseUid }
+      reservationDetails_on_reservation { quantity menu { name } }
     }
   }
 }
 
-query ListCustomers @auth(level: NO_ACCESS) {
-  customers(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    firebaseUid
-    active
-    createdAt
-    reservations_on_customer { id reservationCode usageDate status }
+query ListAccounts @auth(level: NO_ACCESS) {
+  accounts(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
+    id firebaseUid name phone email address accountType companyBranchName contactPersonName active createdAt updatedAt
+    reservations_on_account { id reservationCode usageDate status }
   }
 }
-
-query ListInactiveCustomers @auth(level: NO_ACCESS) {
-  customers(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    firebaseUid
-    active
-    createdAt
-    reservations_on_customer { id reservationCode usageDate status }
+query ListInactiveAccounts @auth(level: NO_ACCESS) {
+  accounts(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
+    id firebaseUid name phone email address accountType companyBranchName contactPersonName active createdAt updatedAt
+    reservations_on_account { id reservationCode usageDate status }
   }
 }
-
-query GetCustomerByName($name: String!) @auth(level: NO_ACCESS) {
-  customers(where: {name: {eq: $name}, active: {eq: true}}, limit: 1) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    active
-  }
+query GetAccountById($id: UUID!) @auth(level: NO_ACCESS) {
+  account(key: {id: $id}) { id firebaseUid name phone email address accountType companyBranchName contactPersonName active }
 }
-
-query GetCustomerById($id: UUID!) @auth(level: NO_ACCESS) {
-  customer(key: {id: $id}) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    active
-  }
-}
-
-query GetCustomerByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
-  customers(where: {firebaseUid: {eq: $firebaseUid}, active: {eq: true}}, limit: 1) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    firebaseUid
-    active
-  }
-}
-
-query GetCustomerByEmail($email: String!) @auth(level: NO_ACCESS) {
-  customers(where: {email: {eq: $email}, active: {eq: true}}, orderBy: {updatedAt: DESC}, limit: 1) {
-    id
-    name
-    phone
-    email
-    address
-    accountType
-    companyBranchName
-    contactPersonName
-    firebaseUid
-    active
+query GetAccountByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
+  accounts(where: {firebaseUid: {eq: $firebaseUid}, active: {eq: true}}, limit: 1) {
+    id firebaseUid name phone email address accountType companyBranchName contactPersonName active
   }
 }
 
 query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
-  stores(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) {
-    id
-    name
-    displayOrder
-    active
-  }
+  stores(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) { id name displayOrder active }
 }
-
-query ListInactiveStores @auth(level: NO_ACCESS) {
-  stores(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
-    id
-    name
-    displayOrder
-    active
-  }
-}
-
-query GetStoreByName($name: String!) @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
-  stores(where: {name: {eq: $name}}, limit: 1) {
-    id
-    name
-    displayOrder
-    active
-  }
-}
-
-query GetStoreById($id: UUID!) @auth(level: NO_ACCESS) {
-  store(key: {id: $id}) {
-    id
-    name
-    displayOrder
-    active
-  }
-}
+query ListInactiveStores @auth(level: NO_ACCESS) { stores(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) { id name displayOrder active } }
+query GetStoreByName($name: String!) @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") { stores(where: {name: {eq: $name}}, limit: 1) { id name displayOrder active } }
+query GetStoreById($id: UUID!) @auth(level: NO_ACCESS) { store(key: {id: $id}) { id name displayOrder active } }
 
 query ListMenus @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
-  menus(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) {
-    id
-    name
-    description
-    standardPrice
-    durationMinutes
-    displayOrder
-    active
-  }
+  menus(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) { id name description standardPrice durationMinutes displayOrder active }
 }
-
-query ListInactiveMenus @auth(level: NO_ACCESS) {
-  menus(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) {
-    id
-    name
-    description
-    standardPrice
-    durationMinutes
-    displayOrder
-    active
-  }
-}
-
-query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") {
-  menus(where: {name: {eq: $name}}, limit: 1) {
-    id
-    name
-    description
-    standardPrice
-    durationMinutes
-    displayOrder
-    active
-  }
-}
+query ListInactiveMenus @auth(level: NO_ACCESS) { menus(where: {active: {eq: false}}, orderBy: {updatedAt: DESC}) { id name description standardPrice durationMinutes displayOrder active } }
+query GetMenuByName($name: String!) @auth(level: PUBLIC, insecureReason: "Menus are public booking data.") { menus(where: {name: {eq: $name}}, limit: 1) { id name description standardPrice durationMinutes displayOrder active } }
 
 query ListBillingRecords @auth(level: NO_ACCESS) {
   billings(orderBy: {billingDate: DESC}) {
-    id
-    billingType
-    amount
-    billingDate
-    status
-    reservation { id reservationCode customer { id name } }
+    id billingType amount billingDate status
+    reservation { id reservationCode reserverName }
     invoice_on_billing { id invoiceNumber issuedAt }
   }
 }

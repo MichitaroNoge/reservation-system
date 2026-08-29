@@ -1,93 +1,35 @@
-# 既知の課題
+# 既知課題
 
-## 未実装機能
+## Account分離移行
 
-- メール送信
-- 請求書発行
-- 決済
-- Cron、バッチ、非同期ジョブ
-- CI/CD
-- 監査ログ
-- 顧客本人の予約一覧・変更・キャンセルを行うマイページ
-- 店舗担当者ロールによる細かな権限分離
-- E2Eテスト
-
-## 暫定実装
-
-- `RESERVATION_REPOSITORY=file` によるローカルファイルDBは緊急退避用に残しています。
-- 確認連絡はメール送信ではなく `confirmationContactedAt` 更新のみです。
-- 管理者判定はFirebase Auth custom claimに加えて `FIREBASE_AUTH_ADMIN_EMAILS` のメール許可リストにも対応しています。本番ではcustom claim中心の運用へ寄せることを推奨します。
-- 手動ステータス変更理由は画面上では必須ですが、現時点では永続化していません。
-
-## Data Connect Repositoryの対応状況
+`Customer` がログインアカウントと予約者情報を兼ねていた旧モデルから、`Account` + `Reservation`予約者スナップショットへ移行しています。
 
 実装済み:
 
-- 予約一覧取得
-- 予約作成
-- 予約の日付・時刻・人数更新
-- 予約ステータス更新
-- 確認連絡日時更新
-- 店舗割当置換
-- 顧客一覧取得、更新、非活性化
-- 店舗一覧取得、更新、非活性化
-- メニュー一覧取得、作成、更新、非活性化
+- Data Connectスキーマを `Account` + 予約者スナップショットへ変更
+- Query / MutationをAccountモデルへ変更
+- RepositoryインターフェースをAccount APIへ変更
+- FileRepositoryで管理者・非会員予約のAccount自動作成を廃止
+- Data Connect RepositoryをAccount + Reservation snapshot前提へ変更
+- ログイン予約だけFirebase UIDでAccountに紐付け
+- Firebase UIDに対応するAccountが無い場合は初回本人予約時にAccountを作成
+- メール一致による過去予約の自動紐付けを廃止
+- `/api/accounts` 系を追加
+- `/api/customers` 系を段階移行用のAccount互換ルートへ変更
+- 管理画面の表示を「アカウント管理」へ変更
+- 予約履歴からのフォールバック表示も `accountId` 付き予約だけに限定
+- Accountと予約者スナップショット分離の回帰テストを追加
+- 既存予約ワークフローテストを新仕様へ更新
+- Data Connect Admin SDKのCJS/ESM操作ラッパーをAccount操作へ更新
 
-残っている制約:
+## Data Connect SDK
 
-- 顧客・店舗・メニュー削除は履歴保全のため物理削除ではなく非活性化です。
-- Data Connectの本番環境に対する統合テストは未整備です。
+正式にはFirebase Data Connect CLIで `src/generated/dataconnect*` を再生成するのが望ましい状態です。Admin SDKの実行ラッパーは新しいGraphQL操作名へ追随済みですが、生成型定義やクライアントSDKには旧Customer由来の記述が残る可能性があります。
 
-## サンプルデータ
+## 旧Customer命名
 
-- `lib/seed-data.ts`
-- `dataconnect/seed_data.gql`
+既存画面との段階移行のため、Reactコンポーネント名やView識別子には `CustomerManagement` / `customers` が一部残っています。機能上はAccountを扱います。新規APIは `/api/accounts` を使用してください。
 
-`data/reservation-db.json` は `RESERVATION_REPOSITORY=file` のときに使うローカルフォールバックで、Git管理対象外です。
+## CI
 
-## 技術的負債
-
-- `app/page.tsx` にはまだ画面状態と業務フローの一部が残っています。画面コンポーネント、hooks、domainロジックへの分割は継続課題です。
-- APIエラーは400/401/403/500中心で、404や409などの業務エラー分類は未整備です。
-- Data Connect emulator を使った自動テストがありません。
-- 生成SDKの再生成は手動実行です。`npx firebase dataconnect:sdk:generate` のCI組み込みは未実装です。
-
-## セキュリティ上の懸念
-
-- メール許可リストによる管理者判定を本番で使い続ける場合、運用ミスの影響が大きくなります。
-- 監査ログがないため、管理操作の追跡ができません。
-- 店舗・メニューの公開参照queryは `@auth(level: PUBLIC)` です。公開予約フォームで必要な情報に限定されていますが、公開範囲は本番前に確認が必要です。
-- 個人情報の保存期間、削除依頼対応、バックアップからの削除方針は未確認です。
-
-## テスト不足
-
-実装済み:
-
-- `npm test`
-- `tests/reservation-workflows.test.ts`
-- 予約作成、ステータス更新、店舗割当、確認連絡一括更新、メニュー削除時の金額再計算
-
-不足:
-
-- API Routeテスト
-- Firebase Authentication連携テスト
-- Data Connect emulatorまたは検証環境での統合テスト
-- ブラウザE2Eテスト
-- 権限エラー、入力エラーの網羅テスト
-
-## 実装と仕様が一致していない可能性がある箇所
-
-- Data Connect側には請求・来店詳細モデルがあるが、画面は一部静的表示です。
-- 確認連絡メールの送信仕様が未確定です。
-- キャンセルポリシー、請求、減員時ルールの正式仕様が未確認です。
-- 予約詳細編集のメニュー明細置換は複数mutationで実行されるため、途中失敗時のロールバック方針は未整備です。
-
-## 今後確認が必要な事項
-
-- Firebase Auth custom claimの正式運用方法
-- 顧客マイページ、店舗担当者ロールの権限
-- 未ログイン予約で同一メールのCustomerを再利用する運用の妥当性
-- Cloud SQLのバックアップ、監視、ログ方針
-- 本番デプロイ先
-- 店舗・メニュー公開参照queryの公開可否
-- `npm install` 後に報告された依存関係脆弱性の対応方針
+`.github/workflows/refactor-check.yml` で `npm test` と `npm run build` を実行する構成を追加しています。ただし、この作業環境からGitHub Actionsの成功結果を確認できていません。マージ前に実行結果の確認が必要です。

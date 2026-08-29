@@ -6,6 +6,7 @@ import { test } from "node:test";
 test("customer reservation portal keeps account booking choices", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
   const sessionSource = await readFile(path.join(process.cwd(), "app", "reservations", "hooks", "use-customer-session.ts"), "utf8");
+  const accountReservationsApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "reservations", "route.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -19,6 +20,9 @@ test("customer reservation portal keeps account booking choices", async () => {
     "キャンセル申請",
     "/api/accounts/me",
     "/api/accounts/me/reservations",
+    "CustomerReservationRequestStatus",
+    "予約内容変更申請",
+    "キャンセル申請",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
@@ -33,11 +37,14 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
   assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
+  assert.match(pageSource, /function CustomerReservationRequestStatus/, "customer reservation dashboard should show request statuses");
   assert.match(pageSource, /function CustomerRequestForms/, "customer request forms should stay split from CustomerPortal");
   assert.match(pageSource, /function ReservationActionButtons/, "reservation action buttons should stay split from CustomerPortal");
   assert.match(pageSource, /onSubmitCancellation[\s\S]*\{ authToken \}/, "customer cancellation requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitConfirmedReservationChange[\s\S]*\{ authToken \}/, "confirmed reservation change requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitChangeRequest[\s\S]*\{ authToken \}/, "reservation change requests must send the Firebase token when logged in");
+  assert.match(accountReservationsApiSource, /listReservationChangeRequests/, "account reservations API should return the customer's reservation change requests");
+  assert.match(accountReservationsApiSource, /reservationIds\.has\(request\.reservationId\)/, "account reservations API should not return change requests for other reservations");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
   assert.match(sessionSource, /browserLocalPersistence/, "customer login state should persist in the browser");

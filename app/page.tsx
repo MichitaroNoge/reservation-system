@@ -1138,18 +1138,20 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       {step === 2 && <div className="form-body narrow"><p className="form-kicker">STEP 2</p><h2>日時と人数</h2><div className="form-fields reservation-date-fields"><label>利用日<input type="date" value={form.date} onChange={event => setForm({ ...form, date: event.target.value })}/></label><label>開始時間<input type="time" value={form.startTime} onChange={event => setForm({ ...form, startTime: event.target.value })}/></label><label>人数<input type="number" min="1" max="999" value={form.people} onChange={event => setForm({ ...form, people: Number(event.target.value) })}/></label></div><MenuPicker menuCatalog={menuCatalog} selected={form.menuItems} onChange={menuItems => setForm({ ...form, menuItems })}/><div className="reservation-summary"><strong>終了予定 {bookingFormEndTime(form, menuCatalog)}</strong><span>{bookingFormDateTimeLabel({ ...form, endTime: bookingFormEndTime(form, menuCatalog) })}・{form.people}名</span></div><div className="form-nav"><button onClick={() => setStep(1)}>戻る</button><button className="next" disabled={!form.date || !form.startTime || !form.people} onClick={() => setStep(3)}>お客様情報へ <Icon name="arrow"/></button></div></div>}
       {step === 3 && <div className="form-body narrow"><p className="form-kicker">STEP 3</p><h2>お客様情報</h2>
         <section className="customer-account-panel">
-          <div className="customer-booking-mode-grid">
-            <button type="button" className={`customer-booking-mode-card ${bookingMode === "login" ? "selected" : ""}`} onClick={() => selectBookingMode("login")}><strong>ログイン</strong><small>登録済みのお客様情報を使います</small></button>
-            <button type="button" className={`customer-booking-mode-card ${bookingMode === "register" ? "selected" : ""}`} onClick={() => selectBookingMode("register")}><strong>アカウント登録して予約する</strong><small>次回から入力を省けます</small></button>
-          </div>
           {customerUser ? (
             <div className="customer-account-current"><span>{customerAuthLoading ? "確認中" : "ログイン中"}</span><strong>{customerUser.email}</strong><button type="button" onClick={() => signOutCustomer()}>ログアウト</button></div>
           ) : (
-            <div className="customer-account-form">
-              <input type="email" placeholder="メールアドレス" value={accountEmail} onChange={event => setAccountEmail(event.target.value)} />
-              <input type="password" placeholder="パスワード" value={accountPassword} onChange={event => setAccountPassword(event.target.value)} />
-              <button type="button" disabled={!accountEmail || !accountPassword || accountSubmitting} onClick={submitAccount}>{accountSubmitting ? "確認中" : bookingMode === "register" ? "登録" : "ログイン"}</button>
-            </div>
+            <>
+              <div className="customer-booking-mode-grid">
+                <button type="button" className={`customer-booking-mode-card ${bookingMode === "login" ? "selected" : ""}`} onClick={() => selectBookingMode("login")}><strong>ログイン</strong><small>登録済みのお客様情報を使います</small></button>
+                <button type="button" className={`customer-booking-mode-card ${bookingMode === "register" ? "selected" : ""}`} onClick={() => selectBookingMode("register")}><strong>アカウント登録して予約する</strong><small>次回から入力を省けます</small></button>
+              </div>
+              <div className="customer-account-form">
+                <input type="email" placeholder="メールアドレス" value={accountEmail} onChange={event => setAccountEmail(event.target.value)} />
+                <input type="password" placeholder="パスワード" value={accountPassword} onChange={event => setAccountPassword(event.target.value)} />
+                <button type="button" disabled={!accountEmail || !accountPassword || accountSubmitting} onClick={submitAccount}>{accountSubmitting ? "確認中" : bookingMode === "register" ? "登録" : "ログイン"}</button>
+              </div>
+            </>
           )}
           {customerAuthError ? <div className="auth-error">{customerAuthError}</div> : null}
         </section>

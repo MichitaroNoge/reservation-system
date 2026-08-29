@@ -17,13 +17,14 @@ test("customer reservation portal keeps account booking choices", async () => {
     "本予約への変更申請",
     "予約内容変更申請",
     "キャンセル申請",
-    "/api/customers/me",
-    "/api/customers/me/reservations",
+    "/api/accounts/me",
+    "/api/accounts/me/reservations",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
 
   assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
+  assert.doesNotMatch(pageSource, /\/api\/customers\/me/, "customer reservation portal should use Account APIs for logged-in profile data");
   assert.doesNotMatch(pageSource, /一般団体予約/, "individual reservations should not be labeled as group reservations");
   assert.doesNotMatch(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must not be wired");
   assert.match(pageSource, /customerAccountMode:\s*"account"/, "account reservation mode must remain wired");

@@ -919,23 +919,23 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
 
   useEffect(() => {
     if (!customerUser) return;
-    const loadCustomer = async () => {
+    const loadAccount = async () => {
       const token = await customerUser.getIdToken();
-      const { customer } = await requestJson<{ customer: Customer | null }>("/api/customers/me", { authToken: token });
+      const { account } = await requestJson<{ account: Customer | null }>("/api/accounts/me", { authToken: token });
       setForm((current) => ({
         ...current,
-        name: customer?.name || current.name,
-        email: customer?.contact || customerUser.email || current.email,
-        phone: customer?.phone || current.phone,
-        address: customer?.address || current.address,
-        accountType: customer?.accountType || current.accountType,
-        companyBranchName: customer?.companyBranchName || current.companyBranchName,
-        contactPersonName: customer?.contactPersonName || current.contactPersonName,
-        bookingContactName: current.bookingContactName || customer?.contactPersonName || "",
+        name: current.bookingType === "travel_agency_group" ? account?.companyBranchName || account?.name || current.name : account?.name || current.name,
+        email: account?.contact || customerUser.email || current.email,
+        phone: account?.phone || current.phone,
+        address: account?.address || current.address,
+        accountType: account?.accountType || current.accountType,
+        companyBranchName: account?.companyBranchName || (account?.accountType === "travel_agency" ? account.name : undefined) || current.companyBranchName,
+        contactPersonName: account?.contactPersonName || current.contactPersonName,
+        bookingContactName: current.bookingType === "travel_agency_group" ? current.bookingContactName || account?.contactPersonName || "" : current.bookingContactName,
       }));
-      setAccountEmail(customer?.contact || customerUser.email || "");
+      setAccountEmail(account?.contact || customerUser.email || "");
     };
-    loadCustomer().catch(() => notify("ログイン済みのお客様情報を取得できませんでした"));
+    loadAccount().catch(() => notify("ログイン済みのお客様情報を取得できませんでした"));
   }, [customerUser, setForm]);
 
   useEffect(() => {
@@ -945,7 +945,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       setAccountReservationError("");
       try {
         const token = await customerUser.getIdToken();
-        const { reservations } = await requestJson<{ reservations: Reservation[] }>("/api/customers/me/reservations", { authToken: token });
+        const { reservations } = await requestJson<{ reservations: Reservation[] }>("/api/accounts/me/reservations", { authToken: token });
         setAccountReservations(reservations);
       } catch {
         setAccountReservationError("予約情報を取得できませんでした。時間をおいて再度お試しください。");

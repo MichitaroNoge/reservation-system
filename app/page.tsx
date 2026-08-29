@@ -650,6 +650,15 @@ function CustomerPortalHome({ customerEmail, isLoggedIn, authError, accountEmail
 
 function CustomerAccountAccessPanel({ authError, accountEmail, accountPassword, accountSubmitting, customerAuthLoading, bookingMode, registrationForm, onBookingModeChange, onRegistrationFormChange, onAccountEmailChange, onAccountPasswordChange, onLogin, onSubmitAccount }: { authError: string; accountEmail: string; accountPassword: string; accountSubmitting: boolean; customerAuthLoading: boolean; bookingMode: "login" | "register"; registrationForm: BookingForm; onBookingModeChange: (mode: "login" | "register") => void; onRegistrationFormChange: Dispatch<SetStateAction<BookingForm>>; onAccountEmailChange: (value: string) => void; onAccountPasswordChange: (value: string) => void; onLogin: () => void; onSubmitAccount: () => void }) {
   const travelAgency = isTravelAgencyAccount(registrationForm);
+  const selectAccountType = (accountType: NonNullable<BookingForm["accountType"]>) => {
+    onRegistrationFormChange(current => ({
+      ...current,
+      accountType,
+      bookingType: accountType === "travel_agency" ? "travel_agency_group" : "individual",
+      companyBranchName: accountType === "travel_agency" ? current.companyBranchName || current.name : "",
+      contactPersonName: accountType === "travel_agency" ? current.contactPersonName : "",
+    }));
+  };
   return <>
     <p>ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。</p>
     <div className="customer-booking-mode-grid">
@@ -662,7 +671,7 @@ function CustomerAccountAccessPanel({ authError, accountEmail, accountPassword, 
       <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={bookingMode === "register" ? onSubmitAccount : onLogin}>{accountSubmitting ? "確認中" : bookingMode === "register" ? "登録" : "ログイン"}</button>
     </div>
     {bookingMode === "register" && <div className="customer-account-profile-form">
-      <label>利用者区分<select value={registrationForm.accountType ?? "individual"} onChange={event => onRegistrationFormChange(current => ({ ...current, accountType: event.target.value as BookingForm["accountType"], bookingType: event.target.value === "travel_agency" ? "travel_agency_group" : "individual", companyBranchName: event.target.value === "travel_agency" ? current.companyBranchName || current.name : "", contactPersonName: event.target.value === "travel_agency" ? current.contactPersonName : "" }))}><option value="individual">一般</option><option value="travel_agency">旅行会社</option></select></label>
+      <fieldset className="account-type-options"><legend>利用者区分</legend><button type="button" className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般</strong><small>学校・企業・各種団体・個人のお客様</small></span></button><button type="button" className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社</strong><small>旅行会社・旅行代理店の担当者様</small></span></button></fieldset>
       {travelAgency ? <>
         <label>会社・支店名<input value={registrationForm.companyBranchName ?? registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value }))} /></label>
         <label>担当者名<input value={registrationForm.contactPersonName ?? ""} onChange={event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value }))} /></label>

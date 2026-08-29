@@ -10,6 +10,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   for (const requiredText of [
     "ログイン",
     "アカウント登録して予約する",
+    "利用者区分を選択",
+    "予約種別へ",
     "一般予約",
     "予約確認",
     "本予約への変更申請",

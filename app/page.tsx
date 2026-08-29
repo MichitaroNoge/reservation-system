@@ -665,19 +665,22 @@ function CustomerAccountAccessPanel({ authError, accountEmail, accountPassword, 
       <button type="button" className={`customer-booking-mode-card ${bookingMode === "login" ? "selected" : ""}`} onClick={() => onBookingModeChange("login")}><strong>ログイン</strong><small>登録済みのお客様はこちら</small></button>
       <button type="button" className={`customer-booking-mode-card ${bookingMode === "register" ? "selected" : ""}`} onClick={() => onBookingModeChange("register")}><strong>アカウント登録</strong><small>初めて利用するお客様はこちら</small></button>
     </div>
-    <div className="customer-account-form">
+    {bookingMode === "login" && <div className="customer-account-form">
       <input type="email" placeholder="メールアドレス" value={accountEmail} onChange={event => onAccountEmailChange(event.target.value)} />
       <input type="password" placeholder="パスワード" value={accountPassword} onChange={event => onAccountPasswordChange(event.target.value)} />
-      <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={bookingMode === "register" ? onSubmitAccount : onLogin}>{accountSubmitting ? "確認中" : bookingMode === "register" ? "登録" : "ログイン"}</button>
-    </div>
+      <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={onLogin}>{accountSubmitting ? "確認中" : "ログイン"}</button>
+    </div>}
     {bookingMode === "register" && <div className="customer-account-profile-form">
       <fieldset className="account-type-options"><legend>利用者区分</legend><button type="button" className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般のお客様</strong></span></button><button type="button" className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社の担当者様</strong></span></button></fieldset>
+      <label>メールアドレス<input type="email" value={accountEmail} onChange={event => onAccountEmailChange(event.target.value)} /></label>
+      <label>パスワード<input type="password" value={accountPassword} onChange={event => onAccountPasswordChange(event.target.value)} /></label>
       {travelAgency ? <>
         <label>会社・支店名<input value={registrationForm.companyBranchName ?? registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value }))} /></label>
         <label>担当者名<input value={registrationForm.contactPersonName ?? ""} onChange={event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value }))} /></label>
       </> : <label>お名前<input value={registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value }))} /></label>}
       <label>電話番号<input value={registrationForm.phone} onChange={event => onRegistrationFormChange(current => ({ ...current, phone: event.target.value }))} /></label>
       <label>住所<input value={registrationForm.address} onChange={event => onRegistrationFormChange(current => ({ ...current, address: event.target.value }))} /></label>
+      <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={onSubmitAccount}>{accountSubmitting ? "確認中" : "登録"}</button>
     </div>}
     {authError ? <div className="auth-error">{authError}</div> : null}
   </>;

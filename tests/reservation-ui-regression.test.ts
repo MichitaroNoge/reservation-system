@@ -9,9 +9,9 @@ test("customer pages expose direct entry links for the official website", async 
     [["app", "reserve", "page.tsx"], "customerMode=reservation"],
     [["app", "customer", "page.tsx"], "customerMode=home"],
     [["app", "customer", "reservations", "page.tsx"], "customerMode=account"],
-    [["app", "customer", "change-request", "page.tsx"], "customerMode=change"],
-    [["app", "customer", "cancellation-request", "page.tsx"], "customerMode=cancellation"],
-    [["app", "customer", "confirmed-request", "page.tsx"], "customerMode=confirmedChange"],
+    [["app", "customer", "change-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "cancellation-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "confirmed-request", "page.tsx"], "/customer/reservations"],
   ] as const;
 
   assert.match(pageSource, /customerPortalModeFromSearch/);

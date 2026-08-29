@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function CustomerConfirmedRequestPage() {
-  redirect("/?customerMode=confirmedChange");
+  redirect("/customer/reservations");
 }

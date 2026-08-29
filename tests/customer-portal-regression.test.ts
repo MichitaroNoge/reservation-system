@@ -24,6 +24,7 @@ test("customer reservation portal keeps account booking choices", async () => {
     "CustomerReservationRequestStatus",
     "CustomerPortalHome",
     "ログインすると、各種手続きをログイン状態で進められます。",
+    "予約確認・変更・キャンセル",
     "予約内容変更申請",
     "キャンセル申請",
   ]) {
@@ -31,6 +32,9 @@ test("customer reservation portal keeps account booking choices", async () => {
   }
 
   assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
+  assert.doesNotMatch(pageSource, /onOpenConfirmedChange/, "confirmed change should be started from reservation cards, not the portal home");
+  assert.doesNotMatch(pageSource, /onOpenChange/, "change requests should be started from reservation cards, not the portal home");
+  assert.doesNotMatch(pageSource, /onOpenCancellation/, "cancellation should be started from reservation cards, not the portal home");
   assert.doesNotMatch(pageSource, /\/api\/customers\/me/, "customer reservation portal should use Account APIs for logged-in profile data");
   assert.doesNotMatch(pageSource, /一般団体予約/, "individual reservations should not be labeled as group reservations");
   assert.doesNotMatch(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must not be wired");

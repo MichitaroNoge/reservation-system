@@ -7,6 +7,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
   const sessionSource = await readFile(path.join(process.cwd(), "app", "reservations", "hooks", "use-customer-session.ts"), "utf8");
   const accountReservationsApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "reservations", "route.ts"), "utf8");
+  const changeRequestApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "change-requests", "route.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -45,6 +46,9 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /onSubmitChangeRequest[\s\S]*\{ authToken \}/, "reservation change requests must send the Firebase token when logged in");
   assert.match(accountReservationsApiSource, /listReservationChangeRequests/, "account reservations API should return the customer's reservation change requests");
   assert.match(accountReservationsApiSource, /reservationIds\.has\(request\.reservationId\)/, "account reservations API should not return change requests for other reservations");
+  assert.match(accountReservationsApiSource, /deduplicateChangeRequests/, "account reservations API should hide duplicate change request rows");
+  assert.match(changeRequestApiSource, /existingRequest/, "change request API should return an existing pending request instead of creating a duplicate");
+  assert.match(changeRequestApiSource, /sameMenuItems/, "change request duplicate detection should compare requested menu items");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
   assert.match(sessionSource, /browserLocalPersistence/, "customer login state should persist in the browser");

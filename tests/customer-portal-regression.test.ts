@@ -38,6 +38,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(sessionSource, /auth\/email-already-in-use/, "registered email errors should be explained to customers");
   assert.match(sessionSource, /auth\/weak-password/, "weak password errors should be explained to customers");
   assert.match(sessionSource, /auth\/operation-not-allowed/, "disabled email-password auth should be explained to customers");
+  assert.match(sessionSource, /Object\.assign\(error, \{ code \}\)/, "Firebase Auth error codes should be preserved for UI decisions");
+  assert.match(pageSource, /customerAuthErrorCode\(error\) === "auth\/email-already-in-use"/, "existing email fallback should use Firebase Auth error codes");
   assert.match(pageSource, /登録済みアカウントでログインしました/, "registration with an existing email should fall back to login when credentials match");
 });
 

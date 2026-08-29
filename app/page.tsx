@@ -20,7 +20,7 @@ import { StoreManagement } from "./reservations/components/store-management";
 import { DEFAULT_START_TIME, STATUS, VISIT_MENU_NAME, approvalStatuses, cancellationApprovalStatuses, defaultMenus, defaultStores, initialReservations, reservationApprovalStatuses, statusClass, statusOptions } from "./reservations/constants";
 import { assignmentLabel, bookingFormDateTimeLabel, bookingFormEndTime, buildCustomers, dateHeadingLabel, daysUntilVisit, fullDateHeadingLabel, isConfirmationContactDue, isTemporaryReservationExpired, menuSelectionLabel, monthIso, policyAgreementLabel, reservationCustomerSubLabel, reservationDateTimeLabel, reservationDisplayLabel, reservationMenuLabel, reservationStartTime, selectedMenuTotal, statusLabel, todayIso } from "./reservations/formatters";
 import { useAdminSession } from "./reservations/hooks/use-admin-session";
-import { useCustomerSession } from "./reservations/hooks/use-customer-session";
+import { customerAuthErrorCode, useCustomerSession } from "./reservations/hooks/use-customer-session";
 import type { BookingForm, Customer, CustomerForm, Menu, MenuForm, Reservation, ReservationChangeRequest, ReservationFilter, ReservationSortKey, ReservationSubmitOptions, SortDirection, Status, Store, StoreAssignment, StoreForm, View } from "./reservations/types";
 
 const sortByDisplayOrderThenName = <T extends { displayOrder?: number; name: string }>(items: T[]) =>
@@ -970,7 +970,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
           await registerCustomer(accountEmail, accountPassword);
           notify("アカウントを作成しました");
         } catch (error) {
-          if (error instanceof Error && error.message.includes("登録済み")) {
+          if (customerAuthErrorCode(error) === "auth/email-already-in-use") {
             await loginCustomer(accountEmail, accountPassword);
             notify("登録済みアカウントでログインしました");
           } else {

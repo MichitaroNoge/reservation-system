@@ -33,7 +33,8 @@ export function useCustomerSession() {
     setCustomerAuthError("");
     try {
       await customerAuthPersistence;
-      await signInWithEmailAndPassword(firebaseAuth, email, password);
+      const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      return credential.user;
     } catch (error) {
       const message = customerAuthMessage(error, "ログインに失敗しました。メールアドレスとパスワードを確認してください。");
       setCustomerAuthError(message);
@@ -45,7 +46,8 @@ export function useCustomerSession() {
     setCustomerAuthError("");
     try {
       await customerAuthPersistence;
-      await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      return credential.user;
     } catch (error) {
       const message = customerAuthMessage(error, "アカウント作成に失敗しました。入力内容を確認してください。");
       setCustomerAuthError(message);

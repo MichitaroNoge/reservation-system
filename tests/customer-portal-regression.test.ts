@@ -22,6 +22,8 @@ test("customer reservation portal keeps account booking choices", async () => {
     "/api/accounts/me",
     "/api/accounts/me/reservations",
     "CustomerReservationRequestStatus",
+    "CustomerPortalHome",
+    "ログインすると、各種手続きをログイン状態で進められます。",
     "予約内容変更申請",
     "キャンセル申請",
   ]) {
@@ -39,6 +41,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
   assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
   assert.match(pageSource, /function CustomerReservationRequestStatus/, "customer reservation dashboard should show request statuses");
+  assert.match(pageSource, /function CustomerPortalHome/, "customer portal home should expose shared login before procedures");
   assert.match(pageSource, /function CustomerRequestForms/, "customer request forms should stay split from CustomerPortal");
   assert.match(pageSource, /function ReservationActionButtons/, "reservation action buttons should stay split from CustomerPortal");
   assert.match(pageSource, /onSubmitCancellation[\s\S]*\{ authToken \}/, "customer cancellation requests must send the Firebase token when logged in");

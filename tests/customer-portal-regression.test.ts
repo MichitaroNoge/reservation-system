@@ -10,6 +10,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   for (const requiredText of [
     "ログイン",
     "アカウント登録して予約する",
+    "一般予約",
     "予約確認",
     "本予約への変更申請",
     "予約内容変更申請",
@@ -21,6 +22,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   }
 
   assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
+  assert.doesNotMatch(pageSource, /一般団体予約/, "individual reservations should not be labeled as group reservations");
   assert.doesNotMatch(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must not be wired");
   assert.match(pageSource, /customerAccountMode:\s*"account"/, "account reservation mode must remain wired");
   assert.match(pageSource, /CustomerRequestLoginPanel/, "customer request forms should require login before submission");

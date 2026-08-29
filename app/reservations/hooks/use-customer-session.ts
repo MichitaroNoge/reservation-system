@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
+
+const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
 
 export function useCustomerSession() {
   const [customerUser, setCustomerUser] = useState<User | null>(null);
@@ -10,15 +12,27 @@ export function useCustomerSession() {
   const [customerAuthError, setCustomerAuthError] = useState("");
 
   useEffect(() => {
-    return onAuthStateChanged(firebaseAuth, (user) => {
-      setCustomerUser(user);
-      setCustomerAuthLoading(false);
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    customerAuthPersistence.finally(() => {
+      if (cancelled) return;
+      unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+        setCustomerUser(user);
+        setCustomerAuthLoading(false);
+      });
     });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   const loginCustomer = async (email: string, password: string) => {
     setCustomerAuthError("");
     try {
+      await customerAuthPersistence;
       await signInWithEmailAndPassword(firebaseAuth, email, password);
     } catch (error) {
       const message = customerAuthMessage(error, "ログインに失敗しました。メールアドレスとパスワードを確認してください。");
@@ -30,6 +44,7 @@ export function useCustomerSession() {
   const registerCustomer = async (email: string, password: string) => {
     setCustomerAuthError("");
     try {
+      await customerAuthPersistence;
       await createUserWithEmailAndPassword(firebaseAuth, email, password);
     } catch (error) {
       const message = customerAuthMessage(error, "アカウント作成に失敗しました。入力内容を確認してください。");

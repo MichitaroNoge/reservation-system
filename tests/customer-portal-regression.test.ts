@@ -35,6 +35,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /onSubmitChangeRequest[\s\S]*\{ authToken \}/, "reservation change requests must send the Firebase token when logged in");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
+  assert.match(sessionSource, /browserLocalPersistence/, "customer login state should persist in the browser");
+  assert.match(sessionSource, /setPersistence\(firebaseAuth,\s*browserLocalPersistence\)/, "Firebase Auth persistence should be configured explicitly");
   assert.match(sessionSource, /auth\/email-already-in-use/, "registered email errors should be explained to customers");
   assert.match(sessionSource, /auth\/weak-password/, "weak password errors should be explained to customers");
   assert.match(sessionSource, /auth\/operation-not-allowed/, "disabled email-password auth should be explained to customers");

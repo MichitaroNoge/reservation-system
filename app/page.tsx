@@ -966,15 +966,24 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
     setAccountSubmitting(true);
     try {
       if (bookingMode === "register") {
-        await registerCustomer(accountEmail, accountPassword);
-        notify("アカウントを作成しました");
+        try {
+          await registerCustomer(accountEmail, accountPassword);
+          notify("アカウントを作成しました");
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("登録済み")) {
+            await loginCustomer(accountEmail, accountPassword);
+            notify("登録済みアカウントでログインしました");
+          } else {
+            throw error;
+          }
+        }
       } else {
         await loginCustomer(accountEmail, accountPassword);
         notify("ログインしました");
       }
       setForm((current) => ({ ...current, email: accountEmail }));
-    } catch {
-      notify(bookingMode === "register" ? "アカウント登録に失敗しました" : "ログインに失敗しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : bookingMode === "register" ? "アカウント登録に失敗しました" : "ログインに失敗しました");
     } finally {
       setAccountSubmitting(false);
     }
@@ -1007,8 +1016,8 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       const reservation = await onSubmitReservation(submitForm, options);
       notify("予約申請を受け付けました（" + reservation.id + "）");
       setStep(4);
-    } catch {
-      notify("予約申請の保存に失敗しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "予約申請の保存に失敗しました");
     }
   };
   const submitCancellation = async () => {

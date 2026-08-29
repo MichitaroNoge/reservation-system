@@ -39,11 +39,15 @@ export function reservationDateTimeLabel(reservation: Pick<Reservation, "date" |
 }
 
 export function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime" | "endTime">) {
+  if (!form.date && !form.startTime) return "日時未入力";
+  if (!form.date) return `日付未入力 ${form.startTime}`;
+  if (!form.startTime) return `${form.date.replaceAll("-", "/")} 時刻未入力`;
   const endTime = form.endTime ? `〜${form.endTime}` : "";
-  return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}${endTime}`;
+  return `${form.date.replaceAll("-", "/")} ${form.startTime}${endTime}`;
 }
 
 export function bookingFormEndTime(form: Pick<BookingForm, "startTime" | "menuItems" | "endTime">, menuCatalog: Pick<Menu, "name" | "duration">[]) {
+  if (!form.startTime) return "";
   return form.endTime || calculateReservationEndTime(form.startTime, form.menuItems, menuCatalog);
 }
 

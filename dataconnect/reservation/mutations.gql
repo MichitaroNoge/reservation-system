@@ -37,9 +37,9 @@ mutation ReactivateAccount($id: UUID!) @auth(level: NO_ACCESS) {
 mutation CreateReservation(
   $reservationCode: String!
   $accountId: UUID
-  $reserverName: String!
-  $reserverEmail: String!
-  $reserverPhone: String!
+  $reserverName: String
+  $reserverEmail: String
+  $reserverPhone: String
   $reserverAddress: String
   $reserverAccountType: String
   $reserverCompanyBranchName: String
@@ -101,9 +101,9 @@ mutation CreateReservation(
 
 mutation UpdateReservation(
   $id: UUID!
-  $reserverName: String!
-  $reserverEmail: String!
-  $reserverPhone: String!
+  $reserverName: String
+  $reserverEmail: String
+  $reserverPhone: String
   $reserverAddress: String
   $usageDate: Date!
   $usageTime: String!

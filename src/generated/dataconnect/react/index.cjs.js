@@ -1,43 +1,35 @@
-const { createCustomerRef, updateCustomerRef, updateCustomerIdentityRef, deactivateCustomerRef, reactivateCustomerRef, createReservationRef, addReservationDetailRef, deleteReservationDetailRef, updateReservationRef, updateReservationStatusRef, updateConfirmationContactRef, clearConfirmationContactRef, assignStoreRef, deleteStoreAssignmentRef, createReservationChangeRequestRef, updateReservationChangeRequestStatusRef, createStoreRef, updateStoreRef, deactivateStoreRef, reactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, reactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listReservationChangeRequestsRef, listCustomersRef, listInactiveCustomersRef, getCustomerByNameRef, getCustomerByIdRef, getCustomerByFirebaseUidRef, getCustomerByEmailRef, listStoresRef, listInactiveStoresRef, getStoreByNameRef, getStoreByIdRef, listMenusRef, listInactiveMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } = require('../index.cjs.js');
+const { createAccountRef, updateAccountRef, deactivateAccountRef, reactivateAccountRef, createReservationRef, updateReservationRef, addReservationDetailRef, deleteReservationDetailRef, updateReservationStatusRef, updateConfirmationContactRef, clearConfirmationContactRef, assignStoreRef, deleteStoreAssignmentRef, createReservationChangeRequestRef, updateReservationChangeRequestStatusRef, createStoreRef, updateStoreRef, deactivateStoreRef, reactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, reactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listReservationChangeRequestsRef, listAccountsRef, listInactiveAccountsRef, getAccountByIdRef, getAccountByFirebaseUidRef, listStoresRef, listInactiveStoresRef, getStoreByNameRef, getStoreByIdRef, listMenusRef, listInactiveMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } = require('../index.cjs.js');
 const { validateArgs, CallerSdkTypeEnum } = require('firebase/data-connect');
 const { useDataConnectQuery, useDataConnectMutation, validateReactArgs } = require('@tanstack-query-firebase/react/data-connect');
 
-exports.useCreateCustomer = function useCreateCustomer(dcOrOptions, options) {
+exports.useCreateAccount = function useCreateAccount(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
-    return createCustomerRef(dcInstance, vars);
+    return createAccountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useUpdateCustomer = function useUpdateCustomer(dcOrOptions, options) {
+exports.useUpdateAccount = function useUpdateAccount(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
-    return updateCustomerRef(dcInstance, vars);
+    return updateAccountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useUpdateCustomerIdentity = function useUpdateCustomerIdentity(dcOrOptions, options) {
+exports.useDeactivateAccount = function useDeactivateAccount(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
-    return updateCustomerIdentityRef(dcInstance, vars);
+    return deactivateAccountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useDeactivateCustomer = function useDeactivateCustomer(dcOrOptions, options) {
+exports.useReactivateAccount = function useReactivateAccount(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
-    return deactivateCustomerRef(dcInstance, vars);
-  }
-  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
-exports.useReactivateCustomer = function useReactivateCustomer(dcOrOptions, options) {
-  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
-  function refFactory(vars) {
-    return reactivateCustomerRef(dcInstance, vars);
+    return reactivateAccountRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -46,6 +38,14 @@ exports.useCreateReservation = function useCreateReservation(dcOrOptions, option
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return createReservationRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+exports.useUpdateReservation = function useUpdateReservation(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return updateReservationRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -62,14 +62,6 @@ exports.useDeleteReservationDetail = function useDeleteReservationDetail(dcOrOpt
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return deleteReservationDetailRef(dcInstance, vars);
-  }
-  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
-exports.useUpdateReservation = function useUpdateReservation(dcOrOptions, options) {
-  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
-  function refFactory(vars) {
-    return updateReservationRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
@@ -227,39 +219,27 @@ exports.useListReservationChangeRequests = function useListReservationChangeRequ
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useListCustomers = function useListCustomers(dcOrOptions, options) {
+exports.useListAccounts = function useListAccounts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listCustomersRef(dcInstance);
+  const ref = listAccountsRef(dcInstance);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useListInactiveCustomers = function useListInactiveCustomers(dcOrOptions, options) {
+exports.useListInactiveAccounts = function useListInactiveAccounts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
-  const ref = listInactiveCustomersRef(dcInstance);
+  const ref = listInactiveAccountsRef(dcInstance);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useGetCustomerByName = function useGetCustomerByName(dcOrVars, varsOrOptions, options) {
+exports.useGetAccountById = function useGetAccountById(dcOrVars, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  const ref = getCustomerByNameRef(dcInstance, inputVars);
+  const ref = getAccountByIdRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useGetCustomerById = function useGetCustomerById(dcOrVars, varsOrOptions, options) {
+exports.useGetAccountByFirebaseUid = function useGetAccountByFirebaseUid(dcOrVars, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  const ref = getCustomerByIdRef(dcInstance, inputVars);
-  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
-exports.useGetCustomerByFirebaseUid = function useGetCustomerByFirebaseUid(dcOrVars, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  const ref = getCustomerByFirebaseUidRef(dcInstance, inputVars);
-  return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
-}
-
-exports.useGetCustomerByEmail = function useGetCustomerByEmail(dcOrVars, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  const ref = getCustomerByEmailRef(dcInstance, inputVars);
+  const ref = getAccountByFirebaseUidRef(dcInstance, inputVars);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 

@@ -42,6 +42,11 @@ export enum ReservationStatus {
 
 
 
+export interface Account_Key {
+  id: UUIDString;
+  __typename?: 'Account_Key';
+}
+
 export interface AddReservationDetailData {
   reservationDetail_insert: ReservationDetail_Key;
 }
@@ -76,19 +81,19 @@ export interface ClearConfirmationContactVariables {
   id: UUIDString;
 }
 
-export interface CreateCustomerData {
-  customer_insert: Customer_Key;
+export interface CreateAccountData {
+  account_insert: Account_Key;
 }
 
-export interface CreateCustomerVariables {
+export interface CreateAccountVariables {
+  firebaseUid: string;
   name: string;
-  phone: string;
+  phone?: string | null;
   email: string;
   address?: string | null;
   accountType?: string | null;
   companyBranchName?: string | null;
   contactPersonName?: string | null;
-  firebaseUid?: string | null;
 }
 
 export interface CreateMenuData {
@@ -123,7 +128,14 @@ export interface CreateReservationData {
 
 export interface CreateReservationVariables {
   reservationCode: string;
-  customerId: UUIDString;
+  accountId?: UUIDString | null;
+  reserverName?: string | null;
+  reserverEmail?: string | null;
+  reserverPhone?: string | null;
+  reserverAddress?: string | null;
+  reserverAccountType?: string | null;
+  reserverCompanyBranchName?: string | null;
+  reserverContactPersonName?: string | null;
   usageDate: DateString;
   usageTime: string;
   usageEndTime?: string | null;
@@ -156,16 +168,11 @@ export interface CreateStoreVariables {
   active: boolean;
 }
 
-export interface Customer_Key {
-  id: UUIDString;
-  __typename?: 'Customer_Key';
+export interface DeactivateAccountData {
+  account_update?: Account_Key | null;
 }
 
-export interface DeactivateCustomerData {
-  customer_update?: Customer_Key | null;
-}
-
-export interface DeactivateCustomerVariables {
+export interface DeactivateAccountVariables {
   id: UUIDString;
 }
 
@@ -201,78 +208,42 @@ export interface DeleteStoreAssignmentVariables {
   id: UUIDString;
 }
 
-export interface GetCustomerByEmailData {
-  customers: ({
+export interface GetAccountByFirebaseUidData {
+  accounts: ({
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
-    firebaseUid?: string | null;
     active: boolean;
-  } & Customer_Key)[];
+  } & Account_Key)[];
 }
 
-export interface GetCustomerByEmailVariables {
-  email: string;
-}
-
-export interface GetCustomerByFirebaseUidData {
-  customers: ({
-    id: UUIDString;
-    name: string;
-    phone: string;
-    email: string;
-    address?: string | null;
-    accountType?: string | null;
-    companyBranchName?: string | null;
-    contactPersonName?: string | null;
-    firebaseUid?: string | null;
-    active: boolean;
-  } & Customer_Key)[];
-}
-
-export interface GetCustomerByFirebaseUidVariables {
+export interface GetAccountByFirebaseUidVariables {
   firebaseUid: string;
 }
 
-export interface GetCustomerByIdData {
-  customer?: {
+export interface GetAccountByIdData {
+  account?: {
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
     active: boolean;
-  } & Customer_Key;
+  } & Account_Key;
 }
 
-export interface GetCustomerByIdVariables {
+export interface GetAccountByIdVariables {
   id: UUIDString;
-}
-
-export interface GetCustomerByNameData {
-  customers: ({
-    id: UUIDString;
-    name: string;
-    phone: string;
-    email: string;
-    address?: string | null;
-    accountType?: string | null;
-    companyBranchName?: string | null;
-    contactPersonName?: string | null;
-    active: boolean;
-  } & Customer_Key)[];
-}
-
-export interface GetCustomerByNameVariables {
-  name: string;
 }
 
 export interface GetMenuByNameData {
@@ -318,16 +289,25 @@ export interface GetReservationByCodeData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -385,16 +365,25 @@ export interface GetReservationData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -468,6 +457,29 @@ export interface Invoice_Key {
   __typename?: 'Invoice_Key';
 }
 
+export interface ListAccountsData {
+  accounts: ({
+    id: UUIDString;
+    firebaseUid: string;
+    name: string;
+    phone?: string | null;
+    email: string;
+    address?: string | null;
+    accountType?: string | null;
+    companyBranchName?: string | null;
+    contactPersonName?: string | null;
+    active: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+    reservations_on_account: ({
+      id: UUIDString;
+      reservationCode: string;
+      usageDate: DateString;
+      status: ReservationStatus;
+    } & Reservation_Key)[];
+  } & Account_Key)[];
+}
+
 export interface ListBillingRecordsData {
   billings: ({
     id: UUIDString;
@@ -478,10 +490,7 @@ export interface ListBillingRecordsData {
     reservation: {
       id: UUIDString;
       reservationCode: string;
-      customer: {
-        id: UUIDString;
-        name: string;
-      } & Customer_Key;
+      reserverName?: string | null;
     } & Reservation_Key;
     invoice_on_billing?: {
       id: UUIDString;
@@ -491,48 +500,27 @@ export interface ListBillingRecordsData {
   } & Billing_Key)[];
 }
 
-export interface ListCustomersData {
-  customers: ({
+export interface ListInactiveAccountsData {
+  accounts: ({
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
-    firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
-    reservations_on_customer: ({
+    updatedAt: TimestampString;
+    reservations_on_account: ({
       id: UUIDString;
       reservationCode: string;
       usageDate: DateString;
       status: ReservationStatus;
     } & Reservation_Key)[];
-  } & Customer_Key)[];
-}
-
-export interface ListInactiveCustomersData {
-  customers: ({
-    id: UUIDString;
-    name: string;
-    phone: string;
-    email: string;
-    address?: string | null;
-    accountType?: string | null;
-    companyBranchName?: string | null;
-    contactPersonName?: string | null;
-    firebaseUid?: string | null;
-    active: boolean;
-    createdAt: TimestampString;
-    reservations_on_customer: ({
-      id: UUIDString;
-      reservationCode: string;
-      usageDate: DateString;
-      status: ReservationStatus;
-    } & Reservation_Key)[];
-  } & Customer_Key)[];
+  } & Account_Key)[];
 }
 
 export interface ListInactiveMenusData {
@@ -585,16 +573,14 @@ export interface ListReservationChangeRequestsData {
       usageDate: DateString;
       usageTime: string;
       expectedPeople: number;
-      customer: {
+      reserverName?: string | null;
+      reserverEmail?: string | null;
+      reserverPhone?: string | null;
+      reserverAddress?: string | null;
+      account?: {
         id: UUIDString;
-        name: string;
-        phone: string;
-        email: string;
-        address?: string | null;
-        accountType?: string | null;
-        companyBranchName?: string | null;
-        contactPersonName?: string | null;
-      } & Customer_Key;
+        firebaseUid: string;
+      } & Account_Key;
       reservationDetails_on_reservation: ({
         quantity: number;
         menu: {
@@ -632,16 +618,25 @@ export interface ListReservationsData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -682,11 +677,11 @@ export interface Menu_Key {
   __typename?: 'Menu_Key';
 }
 
-export interface ReactivateCustomerData {
-  customer_update?: Customer_Key | null;
+export interface ReactivateAccountData {
+  account_update?: Account_Key | null;
 }
 
-export interface ReactivateCustomerVariables {
+export interface ReactivateAccountVariables {
   id: UUIDString;
 }
 
@@ -742,6 +737,21 @@ export interface Store_Key {
   __typename?: 'Store_Key';
 }
 
+export interface UpdateAccountData {
+  account_update?: Account_Key | null;
+}
+
+export interface UpdateAccountVariables {
+  id: UUIDString;
+  name: string;
+  phone?: string | null;
+  email: string;
+  address?: string | null;
+  accountType?: string | null;
+  companyBranchName?: string | null;
+  contactPersonName?: string | null;
+}
+
 export interface UpdateConfirmationContactData {
   reservation_update?: Reservation_Key | null;
 }
@@ -749,37 +759,6 @@ export interface UpdateConfirmationContactData {
 export interface UpdateConfirmationContactVariables {
   id: UUIDString;
   confirmationContactedAt?: TimestampString | null;
-}
-
-export interface UpdateCustomerData {
-  customer_update?: Customer_Key | null;
-}
-
-export interface UpdateCustomerIdentityData {
-  customer_update?: Customer_Key | null;
-}
-
-export interface UpdateCustomerIdentityVariables {
-  id: UUIDString;
-  name: string;
-  phone: string;
-  email: string;
-  address?: string | null;
-  accountType?: string | null;
-  companyBranchName?: string | null;
-  contactPersonName?: string | null;
-  firebaseUid?: string | null;
-}
-
-export interface UpdateCustomerVariables {
-  id: UUIDString;
-  name: string;
-  phone: string;
-  email: string;
-  address?: string | null;
-  accountType?: string | null;
-  companyBranchName?: string | null;
-  contactPersonName?: string | null;
 }
 
 export interface UpdateMenuData {
@@ -822,6 +801,10 @@ export interface UpdateReservationStatusVariables {
 
 export interface UpdateReservationVariables {
   id: UUIDString;
+  reserverName?: string | null;
+  reserverEmail?: string | null;
+  reserverPhone?: string | null;
+  reserverAddress?: string | null;
   usageDate: DateString;
   usageTime: string;
   usageEndTime?: string | null;
@@ -861,65 +844,53 @@ export interface VisitRecord_Key {
   __typename?: 'VisitRecord_Key';
 }
 
-interface CreateCustomerRef {
+interface CreateAccountRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: CreateCustomerVariables): MutationRef<CreateCustomerData, CreateCustomerVariables>;
+  (vars: CreateAccountVariables): MutationRef<CreateAccountData, CreateAccountVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: CreateCustomerVariables): MutationRef<CreateCustomerData, CreateCustomerVariables>;
+  (dc: DataConnect, vars: CreateAccountVariables): MutationRef<CreateAccountData, CreateAccountVariables>;
   operationName: string;
 }
-export const createCustomerRef: CreateCustomerRef;
+export const createAccountRef: CreateAccountRef;
 
-export function createCustomer(vars: CreateCustomerVariables): MutationPromise<CreateCustomerData, CreateCustomerVariables>;
-export function createCustomer(dc: DataConnect, vars: CreateCustomerVariables): MutationPromise<CreateCustomerData, CreateCustomerVariables>;
+export function createAccount(vars: CreateAccountVariables): MutationPromise<CreateAccountData, CreateAccountVariables>;
+export function createAccount(dc: DataConnect, vars: CreateAccountVariables): MutationPromise<CreateAccountData, CreateAccountVariables>;
 
-interface UpdateCustomerRef {
+interface UpdateAccountRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateCustomerVariables): MutationRef<UpdateCustomerData, UpdateCustomerVariables>;
+  (vars: UpdateAccountVariables): MutationRef<UpdateAccountData, UpdateAccountVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateCustomerVariables): MutationRef<UpdateCustomerData, UpdateCustomerVariables>;
+  (dc: DataConnect, vars: UpdateAccountVariables): MutationRef<UpdateAccountData, UpdateAccountVariables>;
   operationName: string;
 }
-export const updateCustomerRef: UpdateCustomerRef;
+export const updateAccountRef: UpdateAccountRef;
 
-export function updateCustomer(vars: UpdateCustomerVariables): MutationPromise<UpdateCustomerData, UpdateCustomerVariables>;
-export function updateCustomer(dc: DataConnect, vars: UpdateCustomerVariables): MutationPromise<UpdateCustomerData, UpdateCustomerVariables>;
+export function updateAccount(vars: UpdateAccountVariables): MutationPromise<UpdateAccountData, UpdateAccountVariables>;
+export function updateAccount(dc: DataConnect, vars: UpdateAccountVariables): MutationPromise<UpdateAccountData, UpdateAccountVariables>;
 
-interface UpdateCustomerIdentityRef {
+interface DeactivateAccountRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateCustomerIdentityVariables): MutationRef<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
+  (vars: DeactivateAccountVariables): MutationRef<DeactivateAccountData, DeactivateAccountVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateCustomerIdentityVariables): MutationRef<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
+  (dc: DataConnect, vars: DeactivateAccountVariables): MutationRef<DeactivateAccountData, DeactivateAccountVariables>;
   operationName: string;
 }
-export const updateCustomerIdentityRef: UpdateCustomerIdentityRef;
+export const deactivateAccountRef: DeactivateAccountRef;
 
-export function updateCustomerIdentity(vars: UpdateCustomerIdentityVariables): MutationPromise<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
-export function updateCustomerIdentity(dc: DataConnect, vars: UpdateCustomerIdentityVariables): MutationPromise<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
+export function deactivateAccount(vars: DeactivateAccountVariables): MutationPromise<DeactivateAccountData, DeactivateAccountVariables>;
+export function deactivateAccount(dc: DataConnect, vars: DeactivateAccountVariables): MutationPromise<DeactivateAccountData, DeactivateAccountVariables>;
 
-interface DeactivateCustomerRef {
+interface ReactivateAccountRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: DeactivateCustomerVariables): MutationRef<DeactivateCustomerData, DeactivateCustomerVariables>;
+  (vars: ReactivateAccountVariables): MutationRef<ReactivateAccountData, ReactivateAccountVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: DeactivateCustomerVariables): MutationRef<DeactivateCustomerData, DeactivateCustomerVariables>;
+  (dc: DataConnect, vars: ReactivateAccountVariables): MutationRef<ReactivateAccountData, ReactivateAccountVariables>;
   operationName: string;
 }
-export const deactivateCustomerRef: DeactivateCustomerRef;
+export const reactivateAccountRef: ReactivateAccountRef;
 
-export function deactivateCustomer(vars: DeactivateCustomerVariables): MutationPromise<DeactivateCustomerData, DeactivateCustomerVariables>;
-export function deactivateCustomer(dc: DataConnect, vars: DeactivateCustomerVariables): MutationPromise<DeactivateCustomerData, DeactivateCustomerVariables>;
-
-interface ReactivateCustomerRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: ReactivateCustomerVariables): MutationRef<ReactivateCustomerData, ReactivateCustomerVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: ReactivateCustomerVariables): MutationRef<ReactivateCustomerData, ReactivateCustomerVariables>;
-  operationName: string;
-}
-export const reactivateCustomerRef: ReactivateCustomerRef;
-
-export function reactivateCustomer(vars: ReactivateCustomerVariables): MutationPromise<ReactivateCustomerData, ReactivateCustomerVariables>;
-export function reactivateCustomer(dc: DataConnect, vars: ReactivateCustomerVariables): MutationPromise<ReactivateCustomerData, ReactivateCustomerVariables>;
+export function reactivateAccount(vars: ReactivateAccountVariables): MutationPromise<ReactivateAccountData, ReactivateAccountVariables>;
+export function reactivateAccount(dc: DataConnect, vars: ReactivateAccountVariables): MutationPromise<ReactivateAccountData, ReactivateAccountVariables>;
 
 interface CreateReservationRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -932,6 +903,18 @@ export const createReservationRef: CreateReservationRef;
 
 export function createReservation(vars: CreateReservationVariables): MutationPromise<CreateReservationData, CreateReservationVariables>;
 export function createReservation(dc: DataConnect, vars: CreateReservationVariables): MutationPromise<CreateReservationData, CreateReservationVariables>;
+
+interface UpdateReservationRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateReservationVariables): MutationRef<UpdateReservationData, UpdateReservationVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateReservationVariables): MutationRef<UpdateReservationData, UpdateReservationVariables>;
+  operationName: string;
+}
+export const updateReservationRef: UpdateReservationRef;
+
+export function updateReservation(vars: UpdateReservationVariables): MutationPromise<UpdateReservationData, UpdateReservationVariables>;
+export function updateReservation(dc: DataConnect, vars: UpdateReservationVariables): MutationPromise<UpdateReservationData, UpdateReservationVariables>;
 
 interface AddReservationDetailRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -956,18 +939,6 @@ export const deleteReservationDetailRef: DeleteReservationDetailRef;
 
 export function deleteReservationDetail(vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
 export function deleteReservationDetail(dc: DataConnect, vars: DeleteReservationDetailVariables): MutationPromise<DeleteReservationDetailData, DeleteReservationDetailVariables>;
-
-interface UpdateReservationRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: UpdateReservationVariables): MutationRef<UpdateReservationData, UpdateReservationVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: UpdateReservationVariables): MutationRef<UpdateReservationData, UpdateReservationVariables>;
-  operationName: string;
-}
-export const updateReservationRef: UpdateReservationRef;
-
-export function updateReservation(vars: UpdateReservationVariables): MutationPromise<UpdateReservationData, UpdateReservationVariables>;
-export function updateReservation(dc: DataConnect, vars: UpdateReservationVariables): MutationPromise<UpdateReservationData, UpdateReservationVariables>;
 
 interface UpdateReservationStatusRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1209,77 +1180,53 @@ export const listReservationChangeRequestsRef: ListReservationChangeRequestsRef;
 export function listReservationChangeRequests(options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
 export function listReservationChangeRequests(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
 
-interface ListCustomersRef {
+interface ListAccountsRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListCustomersData, undefined>;
+  (): QueryRef<ListAccountsData, undefined>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListCustomersData, undefined>;
+  (dc: DataConnect): QueryRef<ListAccountsData, undefined>;
   operationName: string;
 }
-export const listCustomersRef: ListCustomersRef;
+export const listAccountsRef: ListAccountsRef;
 
-export function listCustomers(options?: ExecuteQueryOptions): QueryPromise<ListCustomersData, undefined>;
-export function listCustomers(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListCustomersData, undefined>;
+export function listAccounts(options?: ExecuteQueryOptions): QueryPromise<ListAccountsData, undefined>;
+export function listAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListAccountsData, undefined>;
 
-interface ListInactiveCustomersRef {
+interface ListInactiveAccountsRef {
   /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListInactiveCustomersData, undefined>;
+  (): QueryRef<ListInactiveAccountsData, undefined>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListInactiveCustomersData, undefined>;
+  (dc: DataConnect): QueryRef<ListInactiveAccountsData, undefined>;
   operationName: string;
 }
-export const listInactiveCustomersRef: ListInactiveCustomersRef;
+export const listInactiveAccountsRef: ListInactiveAccountsRef;
 
-export function listInactiveCustomers(options?: ExecuteQueryOptions): QueryPromise<ListInactiveCustomersData, undefined>;
-export function listInactiveCustomers(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInactiveCustomersData, undefined>;
+export function listInactiveAccounts(options?: ExecuteQueryOptions): QueryPromise<ListInactiveAccountsData, undefined>;
+export function listInactiveAccounts(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListInactiveAccountsData, undefined>;
 
-interface GetCustomerByNameRef {
+interface GetAccountByIdRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: GetCustomerByNameVariables): QueryRef<GetCustomerByNameData, GetCustomerByNameVariables>;
+  (vars: GetAccountByIdVariables): QueryRef<GetAccountByIdData, GetAccountByIdVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetCustomerByNameVariables): QueryRef<GetCustomerByNameData, GetCustomerByNameVariables>;
+  (dc: DataConnect, vars: GetAccountByIdVariables): QueryRef<GetAccountByIdData, GetAccountByIdVariables>;
   operationName: string;
 }
-export const getCustomerByNameRef: GetCustomerByNameRef;
+export const getAccountByIdRef: GetAccountByIdRef;
 
-export function getCustomerByName(vars: GetCustomerByNameVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByNameData, GetCustomerByNameVariables>;
-export function getCustomerByName(dc: DataConnect, vars: GetCustomerByNameVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByNameData, GetCustomerByNameVariables>;
+export function getAccountById(vars: GetAccountByIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByIdData, GetAccountByIdVariables>;
+export function getAccountById(dc: DataConnect, vars: GetAccountByIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByIdData, GetAccountByIdVariables>;
 
-interface GetCustomerByIdRef {
+interface GetAccountByFirebaseUidRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: GetCustomerByIdVariables): QueryRef<GetCustomerByIdData, GetCustomerByIdVariables>;
+  (vars: GetAccountByFirebaseUidVariables): QueryRef<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetCustomerByIdVariables): QueryRef<GetCustomerByIdData, GetCustomerByIdVariables>;
+  (dc: DataConnect, vars: GetAccountByFirebaseUidVariables): QueryRef<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
   operationName: string;
 }
-export const getCustomerByIdRef: GetCustomerByIdRef;
+export const getAccountByFirebaseUidRef: GetAccountByFirebaseUidRef;
 
-export function getCustomerById(vars: GetCustomerByIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByIdData, GetCustomerByIdVariables>;
-export function getCustomerById(dc: DataConnect, vars: GetCustomerByIdVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByIdData, GetCustomerByIdVariables>;
-
-interface GetCustomerByFirebaseUidRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: GetCustomerByFirebaseUidVariables): QueryRef<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetCustomerByFirebaseUidVariables): QueryRef<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
-  operationName: string;
-}
-export const getCustomerByFirebaseUidRef: GetCustomerByFirebaseUidRef;
-
-export function getCustomerByFirebaseUid(vars: GetCustomerByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
-export function getCustomerByFirebaseUid(dc: DataConnect, vars: GetCustomerByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
-
-interface GetCustomerByEmailRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: GetCustomerByEmailVariables): QueryRef<GetCustomerByEmailData, GetCustomerByEmailVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetCustomerByEmailVariables): QueryRef<GetCustomerByEmailData, GetCustomerByEmailVariables>;
-  operationName: string;
-}
-export const getCustomerByEmailRef: GetCustomerByEmailRef;
-
-export function getCustomerByEmail(vars: GetCustomerByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByEmailData, GetCustomerByEmailVariables>;
-export function getCustomerByEmail(dc: DataConnect, vars: GetCustomerByEmailVariables, options?: ExecuteQueryOptions): QueryPromise<GetCustomerByEmailData, GetCustomerByEmailVariables>;
+export function getAccountByFirebaseUid(vars: GetAccountByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
+export function getAccountByFirebaseUid(dc: DataConnect, vars: GetAccountByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
 
 interface ListStoresRef {
   /* Allow users to create refs without passing in DataConnect */

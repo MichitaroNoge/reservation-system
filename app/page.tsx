@@ -764,7 +764,7 @@ function CustomerRequestComplete({ title, message, onBack }: { title: string; me
 }
 
 function ReservationBookingTypeCell({ reservation }: { reservation: Reservation }) {
-  return <><strong>{reservationBookingTypeShortLabel(reservation)}</strong>{reservation.bookingType === "travel_agency_group" && reservation.groupName ? <small>{reservation.groupName}</small> : null}{reservation.bookingType === "travel_agency_group" && reservation.bookingContactName ? <small>担当: {reservation.bookingContactName}</small> : null}</>;
+  return <><strong>{reservationBookingTypeShortLabel(reservation)}</strong>{reservation.bookingType === "travel_agency_group" && reservation.bookingContactName ? <small>担当: {reservation.bookingContactName}</small> : null}</>;
 }
 
 function ConfirmationContactPage({ reservations, windowDays, setWindowDays, isBulkContacting, onBulkConfirmationContact, onSelect }: { reservations: Reservation[]; windowDays: number; setWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; onSelect: (r: Reservation) => void }) {

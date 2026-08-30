@@ -19,6 +19,10 @@ export function reservationCustomerSubLabel(reservation: Reservation) {
   return reservation.bookingType === "travel_agency_group" && reservation.groupName ? reservation.groupName : "";
 }
 
+export function reservationBookingTypeLabel(reservation: Pick<Reservation, "bookingType">) {
+  return reservation.bookingType === "travel_agency_group" ? "旅行会社様専用 団体予約" : "一般予約";
+}
+
 export function policyAgreementLabel(reservation: Reservation) {
   if (!reservation.policyAgreement) return "未同意";
   const label = reservation.policyAgreement.kind === "temporary" ? "仮予約の注意事項" : "キャンセルポリシー";

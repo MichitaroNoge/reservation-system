@@ -106,6 +106,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const \[reservationStatusFilters, setReservationStatusFilters\] = useState<Status\[\]>/);
+  assert.match(pageSource, /useState<Status\[\]>\(\(\) => statusOptions\.filter\(status => status !== STATUS\.cancelled && status !== STATUS\.visited\)\)/);
   assert.match(pageSource, /reservationStatusFilters\.length > 0 && !reservationStatusFilters\.includes\(reservation\.status\)/);
   assert.match(pageSource, /className="reservation-status-dropdown"/);
   assert.match(pageSource, /className="panel management-panel reservation-list-panel"/);

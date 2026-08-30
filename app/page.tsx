@@ -506,8 +506,7 @@ export default function Home() {
 
 function ManagementPage({ view, onSelectMasterView, reservations, reservationChangeRequests, confirmationContactTargets, confirmationContactWindowDays, setConfirmationContactWindowDays, isBulkContacting, onBulkConfirmationContact, customers, inactiveCustomers, stores, inactiveStores, menus, inactiveMenus, reservationFilter, setReservationFilter, reservationDateFromFilter, setReservationDateFromFilter, reservationDateToFilter, setReservationDateToFilter, reservationSearch, setReservationSearch, onSelect, updateStatus, notify, onSaveMenu, onDeleteMenu, onReactivateMenu, onCreateCustomer, onSaveCustomer, onDeleteCustomer, onReactivateCustomer, onCreateStore, onSaveStore, onDeleteStore, onReactivateStore, onOpenNewReservation, onApproveChangeRequest, onRejectChangeRequest }: { view: Exclude<View,"dashboard">; onSelectMasterView: (view: "masters" | "customers" | "stores" | "menus") => void; reservations: Reservation[]; reservationChangeRequests: ReservationChangeRequest[]; confirmationContactTargets: Reservation[]; confirmationContactWindowDays: number; setConfirmationContactWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; customers: Customer[]; inactiveCustomers: Customer[]; stores: Store[]; inactiveStores: Store[]; menus: Menu[]; inactiveMenus: Menu[]; reservationFilter: ReservationFilter; setReservationFilter: (filter: ReservationFilter) => void; reservationDateFromFilter: string; setReservationDateFromFilter: (date: string) => void; reservationDateToFilter: string; setReservationDateToFilter: (date: string) => void; reservationSearch: string; setReservationSearch: (search: string) => void; onSelect: (r: Reservation) => void; updateStatus: (id: string, status: Status, options?: { manualReason?: string }) => void; notify: (s:string) => void; onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>; onDeleteMenu: (name: string) => Promise<void>; onReactivateMenu: (menu: Menu) => Promise<void>; onCreateCustomer: (input: CustomerForm) => Promise<void>; onSaveCustomer: (originalName: string, input: CustomerForm) => Promise<void>; onDeleteCustomer: (name: string) => Promise<void>; onReactivateCustomer: (customer: Customer) => Promise<void>; onCreateStore: (input: StoreForm) => Promise<void>; onSaveStore: (originalName: string, input: StoreForm) => Promise<void>; onDeleteStore: (name: string) => Promise<void>; onReactivateStore: (store: Store) => Promise<void>; onOpenNewReservation: () => void; onApproveChangeRequest: (id: string) => Promise<void>; onRejectChangeRequest: (id: string) => Promise<void> }) {
   const [reservationSort, setReservationSort] = useState<{ key: ReservationSortKey; direction: SortDirection }>({ key: "date", direction: "asc" });
-  const [reservationStatusFilter, setReservationStatusFilter] = useState<Status | "">("");
-  const [includeVisitedReservations, setIncludeVisitedReservations] = useState(false);
+  const [reservationStatusFilters, setReservationStatusFilters] = useState<Status[]>(() => statusOptions.filter(status => status !== STATUS.visited));
   const filteredReservations = useMemo(() => reservations.filter((reservation) => {
     const effectiveDateFrom = reservationDateFromFilter && reservationDateToFilter && reservationDateFromFilter > reservationDateToFilter ? reservationDateToFilter : reservationDateFromFilter;
     const effectiveDateTo = reservationDateFromFilter && reservationDateToFilter && reservationDateFromFilter > reservationDateToFilter ? reservationDateFromFilter : reservationDateToFilter;
@@ -518,8 +517,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
     const keyword = reservationSearch.trim().toLowerCase();
     const matchesSearch = !keyword || [reservation.id, reservation.customer, reservation.groupName ?? "", reservation.phone, reservation.email ?? ""].some(value => value.toLowerCase().includes(keyword));
     if (!matchesSearch) return false;
-    if (reservationStatusFilter && reservation.status !== reservationStatusFilter) return false;
-    if (!reservationStatusFilter && !includeVisitedReservations && reservation.status === STATUS.visited) return false;
+    if (!reservationStatusFilters.includes(reservation.status)) return false;
     if (reservationFilter === "すべて") return true;
     if (reservationFilter === "承認待ち") return approvalStatuses.includes(reservation.status);
     if (reservationFilter === "仮予約確定（期限切れ）") return isTemporaryReservationExpired(reservation);
@@ -529,7 +527,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
     if (reservationFilter === "本予約確定（未確認連絡）") return isConfirmedReservation(reservation) && !reservation.confirmationContactedAt;
     if (reservationFilter === "本予約確定（来店待ち）") return isVisitReadyReservation(reservation);
     return statusLabel(reservation.status) === reservationFilter;
-  }), [includeVisitedReservations, reservationDateFromFilter, reservationDateToFilter, reservationFilter, reservationSearch, reservationStatusFilter, reservations]);
+  }), [reservationDateFromFilter, reservationDateToFilter, reservationFilter, reservationSearch, reservationStatusFilters, reservations]);
   const sortedReservations = useMemo(() => {
     const valueFor = (reservation: Reservation, key: ReservationSortKey): string | number => {
       if (key === "status") return reservationDisplayLabel(reservation);
@@ -570,7 +568,14 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
   };
   const sortLabel = (key: ReservationSortKey) => reservationSort.key === key ? (reservationSort.direction === "asc" ? "↑" : "↓") : "↕";
   const hasReservationDateFilter = Boolean(reservationDateFromFilter || reservationDateToFilter);
-  const quickFilters: ReservationFilter[] = ["すべて", "承認待ち", "仮予約確定", "仮予約確定（期限切れ）", "本予約確定", "本予約確定（メニュー未確定）", "本予約確定（店舗未割当）", "本予約確定（未確認連絡）", "本予約確定（来店待ち）"];
+  const statusFilterLabel = reservationStatusFilters.length === statusOptions.length
+    ? "すべて"
+    : reservationStatusFilters.length === 0
+      ? "未選択"
+      : `${reservationStatusFilters.length}件選択`;
+  const toggleStatusFilter = (status: Status) => {
+    setReservationStatusFilters(current => current.includes(status) ? current.filter(item => item !== status) : [...current, status]);
+  };
   const pageDescriptions: Record<Exclude<View, "dashboard">, string> = {
     reservations: "",
     reservationApprovals: "",
@@ -599,13 +604,11 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
         <div className="reservation-search-row">
           <label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label>
           <div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>〜</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>
-          <label className="reservation-status-filter"><span>ステータス</span><select value={reservationStatusFilter} onChange={(event) => setReservationStatusFilter(event.target.value as Status | "")}><option value="">すべて</option>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></label>
-          <div className="visited-filter"><span>来店済</span><div className="segmented"><button type="button" className={!includeVisitedReservations ? "active" : ""} onClick={() => setIncludeVisitedReservations(false)}>除外</button><button type="button" className={includeVisitedReservations ? "active" : ""} onClick={() => setIncludeVisitedReservations(true)}>含む</button></div></div>
+          <details className="reservation-status-dropdown"><summary><span>ステータス</span><strong>{statusFilterLabel}</strong></summary><div className="reservation-status-menu"><div className="status-menu-actions"><button type="button" onClick={() => setReservationStatusFilters([...statusOptions])}>すべて選択</button><button type="button" onClick={() => setReservationStatusFilters(statusOptions.filter(status => status !== STATUS.visited))}>来店済み以外</button><button type="button" onClick={() => setReservationStatusFilters([])}>解除</button></div>{statusOptions.map(status => <label key={status}><input type="checkbox" checked={reservationStatusFilters.includes(status)} onChange={() => toggleStatusFilter(status)}/><span>{statusLabel(status)}</span></label>)}</div></details>
           <button className={hasReservationDateFilter ? "clear-filter" : "clear-filter is-placeholder"} disabled={!hasReservationDateFilter} aria-hidden={!hasReservationDateFilter} tabIndex={hasReservationDateFilter ? 0 : -1} onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>
           <div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div>
           <button type="button" className="reservation-new-button" onClick={onOpenNewReservation}><Icon name="plus"/>新規登録</button>
         </div>
-        <div className="reservation-filter-row"><div className="segmented">{quickFilters.map(filter => <button key={filter} className={reservationFilter === filter ? "active" : ""} onClick={() => setReservationFilter(filter)}>{filter}</button>)}</div></div>
       </div>
       <div className="table-wrap"><table className="large-table">
         <thead><tr><th><button className="sort-header" onClick={() => toggleReservationSort("id")}>予約ID / 受付日時<span>{sortLabel("id")}</span></button></th><th>予約区分</th><th><button className="sort-header" onClick={() => toggleReservationSort("status")}>ステータス<span>{sortLabel("status")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("customer")}>お客様<span>{sortLabel("customer")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("date")}>利用日時・人数<span>{sortLabel("date")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("menu")}>メニュー<span>{sortLabel("menu")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("store")}>担当店舗<span>{sortLabel("store")}</span></button></th><th><button className="sort-header" onClick={() => toggleReservationSort("contact")}>確認連絡<span>{sortLabel("contact")}</span></button></th></tr></thead>

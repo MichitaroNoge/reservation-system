@@ -671,15 +671,15 @@ function CustomerAccountAccessPanel({ authError, accountEmail, accountPassword, 
       <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={onLogin}>{accountSubmitting ? "確認中" : "ログイン"}</button>
     </div>}
     {bookingMode === "register" && <div className="customer-account-profile-form">
-      <fieldset className="account-type-options"><legend>利用者区分</legend><button type="button" className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般のお客様</strong></span></button><button type="button" className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社の担当者様</strong></span></button></fieldset>
-      <label>メールアドレス<input type="email" value={accountEmail} onChange={event => onAccountEmailChange(event.target.value)} /></label>
-      <label>パスワード<input type="password" value={accountPassword} onChange={event => onAccountPasswordChange(event.target.value)} /></label>
+      <fieldset className="account-type-options"><legend>利用者区分<span className="required-mark">必須</span></legend><button type="button" className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般のお客様</strong></span></button><button type="button" className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社の担当者様</strong></span></button></fieldset>
+      <label>メールアドレス<span className="required-mark">必須</span><input type="email" value={accountEmail} onChange={event => onAccountEmailChange(event.target.value)} /></label>
+      <label>パスワード<span className="required-mark">必須</span><input type="password" value={accountPassword} onChange={event => onAccountPasswordChange(event.target.value)} /></label>
       {travelAgency ? <>
-        <label>会社・支店名<input value={registrationForm.companyBranchName ?? registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value }))} /></label>
-        <label>担当者名<input value={registrationForm.contactPersonName ?? ""} onChange={event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value }))} /></label>
-      </> : <label>お名前<input value={registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value }))} /></label>}
-      <label>電話番号<input value={registrationForm.phone} onChange={event => onRegistrationFormChange(current => ({ ...current, phone: event.target.value }))} /></label>
-      <label>住所<input value={registrationForm.address} onChange={event => onRegistrationFormChange(current => ({ ...current, address: event.target.value }))} /></label>
+        <label>会社・支店名<span className="required-mark">必須</span><input value={registrationForm.companyBranchName ?? registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value }))} /></label>
+        <label>担当者名<span className="required-mark">必須</span><input value={registrationForm.contactPersonName ?? ""} onChange={event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value }))} /></label>
+      </> : <label>お名前<span className="required-mark">必須</span><input value={registrationForm.name} onChange={event => onRegistrationFormChange(current => ({ ...current, name: event.target.value }))} /></label>}
+      <label>電話番号<span className="required-mark">必須</span><input value={registrationForm.phone} onChange={event => onRegistrationFormChange(current => ({ ...current, phone: event.target.value }))} /></label>
+      <label>住所<span className="optional-mark">任意</span><input value={registrationForm.address} onChange={event => onRegistrationFormChange(current => ({ ...current, address: event.target.value }))} /></label>
       <button type="button" disabled={accountSubmitting || customerAuthLoading || !accountEmail || !accountPassword} onClick={onSubmitAccount}>{accountSubmitting ? "確認中" : "登録"}</button>
     </div>}
     {authError ? <div className="auth-error">{authError}</div> : null}

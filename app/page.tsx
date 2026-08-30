@@ -517,7 +517,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
     const keyword = reservationSearch.trim().toLowerCase();
     const matchesSearch = !keyword || [reservation.id, reservation.customer, reservation.groupName ?? "", reservation.phone, reservation.email ?? ""].some(value => value.toLowerCase().includes(keyword));
     if (!matchesSearch) return false;
-    if (!reservationStatusFilters.includes(reservation.status)) return false;
+    if (reservationStatusFilters.length > 0 && !reservationStatusFilters.includes(reservation.status)) return false;
     if (reservationFilter === "すべて") return true;
     if (reservationFilter === "承認待ち") return approvalStatuses.includes(reservation.status);
     if (reservationFilter === "仮予約確定（期限切れ）") return isTemporaryReservationExpired(reservation);
@@ -571,7 +571,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
   const statusFilterLabel = reservationStatusFilters.length === statusOptions.length
     ? "すべて"
     : reservationStatusFilters.length === 0
-      ? "未選択"
+      ? "未選択（すべて）"
       : `${reservationStatusFilters.length}件選択`;
   const toggleStatusFilter = (status: Status) => {
     setReservationStatusFilters(current => current.includes(status) ? current.filter(item => item !== status) : [...current, status]);
@@ -604,7 +604,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
         <div className="reservation-search-row">
           <label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label>
           <div className="reservation-date-range"><span>予約日</span><input type="date" value={reservationDateFromFilter} onChange={(event) => { const value = event.target.value; setReservationDateFromFilter(value); if (value && !reservationDateToFilter) setReservationDateToFilter(value); }}/><em>〜</em><input type="date" value={reservationDateToFilter} onChange={(event) => setReservationDateToFilter(event.target.value)}/></div>
-          <details className="reservation-status-dropdown"><summary><span>ステータス</span><strong>{statusFilterLabel}</strong></summary><div className="reservation-status-menu"><div className="status-menu-actions"><button type="button" onClick={() => setReservationStatusFilters([...statusOptions])}>すべて選択</button><button type="button" onClick={() => setReservationStatusFilters(statusOptions.filter(status => status !== STATUS.visited))}>来店済み以外</button><button type="button" onClick={() => setReservationStatusFilters([])}>解除</button></div>{statusOptions.map(status => <label key={status}><input type="checkbox" checked={reservationStatusFilters.includes(status)} onChange={() => toggleStatusFilter(status)}/><span>{statusLabel(status)}</span></label>)}</div></details>
+          <details className="reservation-status-dropdown"><summary><span>ステータス</span><strong>{statusFilterLabel}</strong></summary><div className="reservation-status-menu"><div className="status-menu-actions"><button type="button" onClick={() => setReservationStatusFilters(statusOptions.filter(status => status !== STATUS.cancelled && status !== STATUS.visited))}>有効分のみ</button><button type="button" onClick={() => setReservationStatusFilters([])}>解除</button></div>{statusOptions.map(status => <label key={status}><input type="checkbox" checked={reservationStatusFilters.includes(status)} onChange={() => toggleStatusFilter(status)}/><span>{statusLabel(status)}</span></label>)}</div></details>
           <button className={hasReservationDateFilter ? "clear-filter" : "clear-filter is-placeholder"} disabled={!hasReservationDateFilter} aria-hidden={!hasReservationDateFilter} tabIndex={hasReservationDateFilter ? 0 : -1} onClick={() => { setReservationDateFromFilter(""); setReservationDateToFilter(""); }}>日付クリア</button>
           <div className="result-count"><span>該当</span><strong>{filteredReservations.length}</strong><span>件</span></div>
           <button type="button" className="reservation-new-button" onClick={onOpenNewReservation}><Icon name="plus"/>新規登録</button>

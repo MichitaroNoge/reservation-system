@@ -106,10 +106,11 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const \[reservationStatusFilters, setReservationStatusFilters\] = useState<Status\[\]>/);
-  assert.match(pageSource, /!reservationStatusFilters\.includes\(reservation\.status\)/);
+  assert.match(pageSource, /reservationStatusFilters\.length > 0 && !reservationStatusFilters\.includes\(reservation\.status\)/);
   assert.match(pageSource, /className="reservation-status-dropdown"/);
-  assert.match(pageSource, /すべて選択/);
-  assert.match(pageSource, /来店済み以外/);
+  assert.match(pageSource, /有効分のみ/);
+  assert.match(pageSource, /status !== STATUS\.cancelled && status !== STATUS\.visited/);
+  assert.doesNotMatch(pageSource, /すべて選択/);
   assert.doesNotMatch(pageSource, /className="visited-filter"/);
   assert.match(pageSource, /function MasterManagementPage/);
   assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><\/span>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*<span><strong>店舗管理<\/strong><\/span>[\s\S]*onSelectMasterView\("menus"\)[\s\S]*<span><strong>メニュー管理<\/strong><\/span>/);

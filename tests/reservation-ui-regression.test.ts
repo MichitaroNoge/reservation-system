@@ -108,6 +108,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /const \[reservationStatusFilters, setReservationStatusFilters\] = useState<Status\[\]>/);
   assert.match(pageSource, /reservationStatusFilters\.length > 0 && !reservationStatusFilters\.includes\(reservation\.status\)/);
   assert.match(pageSource, /className="reservation-status-dropdown"/);
+  assert.match(pageSource, /className="panel management-panel reservation-list-panel"/);
   assert.match(pageSource, /有効分のみ/);
   assert.match(pageSource, /status !== STATUS\.cancelled && status !== STATUS\.visited/);
   assert.doesNotMatch(pageSource, /すべて選択/);
@@ -133,6 +134,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(styleSource, /\.management table td small\{font-size:12px;color:#263149\}/);
   assert.match(styleSource, /\.reservation-status-dropdown/);
+  assert.match(styleSource, /\.reservation-list-panel\{overflow:visible\}/);
   assert.match(styleSource, /\.reservation-status-menu\{[\s\S]*max-height:min\(440px,calc\(100vh - 170px\)\);overflow-y:auto/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);

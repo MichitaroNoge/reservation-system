@@ -599,7 +599,7 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
     {view === "confirmedReservationRequests" && <ConfirmedReservationRequestPage reservations={pendingConfirmedReservationRequests} onSelect={onSelect} updateStatus={updateStatus} />}
     {view === "reservationChangeRequests" && <ReservationChangeRequestPage requests={pendingChangeRequests} reservations={reservations} onSelect={onSelect} onApproveChangeRequest={onApproveChangeRequest} onRejectChangeRequest={onRejectChangeRequest} />}
     {view === "masters" && <MasterManagementPage onSelectMasterView={onSelectMasterView} />}
-    {view === "reservations" && <section className="panel management-panel">
+    {view === "reservations" && <section className="panel management-panel reservation-list-panel">
       <div className="management-tools reservation-tools">
         <div className="reservation-search-row">
           <label className="reservation-search"><div><Icon name="search"/><input placeholder="予約ID・顧客名で検索" value={reservationSearch} onChange={(event) => setReservationSearch(event.target.value)}/></div></label>

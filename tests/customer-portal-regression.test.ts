@@ -8,6 +8,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   const sessionSource = await readFile(path.join(process.cwd(), "app", "reservations", "hooks", "use-customer-session.ts"), "utf8");
   const accountReservationsApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "reservations", "route.ts"), "utf8");
   const changeRequestApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "change-requests", "route.ts"), "utf8");
+  const authSource = await readFile(path.join(process.cwd(), "lib", "auth.ts"), "utf8");
+  const reservationApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -27,6 +29,9 @@ test("customer reservation portal keeps account booking choices", async () => {
     "予約確認・変更・キャンセル",
     "予約内容変更申請",
     "キャンセル申請",
+    "メールアドレスを確認してください",
+    "確認メールを再送",
+    "認証を確認",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
@@ -58,6 +63,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(changeRequestApiSource, /existingRequest/, "change request API should return an existing pending request instead of creating a duplicate");
   assert.match(changeRequestApiSource, /sameMenuItems/, "change request duplicate detection should compare requested menu items");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
+  assert.match(sessionSource, /sendEmailVerification\(credential\.user\)/, "customer registration should send a Firebase verification email");
+  assert.match(sessionSource, /reload\(user\)/, "customers should be able to refresh their verification state");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
   assert.match(sessionSource, /browserLocalPersistence/, "customer login state should persist in the browser");
   assert.match(sessionSource, /setPersistence\(firebaseAuth,\s*browserLocalPersistence\)/, "Firebase Auth persistence should be configured explicitly");
@@ -67,6 +74,10 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(sessionSource, /Object\.assign\(error, \{ code \}\)/, "Firebase Auth error codes should be preserved for UI decisions");
   assert.match(pageSource, /customerAuthErrorCode\(error\) === "auth\/email-already-in-use"/, "existing email fallback should use Firebase Auth error codes");
   assert.match(pageSource, /登録済みアカウントでログインしました/, "registration with an existing email should fall back to login when credentials match");
+  assert.match(pageSource, /customerUser && !customerUser\.emailVerified/, "unverified customers should see the verification panel");
+  assert.match(pageSource, /getIdToken\(true\)/, "verification completion should refresh the Firebase token claims");
+  assert.match(authSource, /user\.email_verified !== true/, "customer APIs should reject unverified Firebase tokens");
+  assert.match(reservationApiSource, /requireVerifiedFirebaseUser\(request\)/, "reservation creation should require a verified customer email");
 });
 
 function escapeRegExp(value: string) {

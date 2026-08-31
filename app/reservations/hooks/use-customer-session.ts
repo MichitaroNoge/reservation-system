@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
 
 const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
@@ -47,6 +47,7 @@ export function useCustomerSession() {
     try {
       await customerAuthPersistence;
       const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      await sendEmailVerification(credential.user);
       return credential.user;
     } catch (error) {
       const message = customerAuthMessage(error, "アカウント作成に失敗しました。入力内容を確認してください。");
@@ -55,12 +56,27 @@ export function useCustomerSession() {
     }
   };
 
+  const resendVerificationEmail = async () => {
+    if (!firebaseAuth.currentUser) throw new Error("ログイン状態を確認できませんでした。もう一度ログインしてください。");
+    await sendEmailVerification(firebaseAuth.currentUser);
+  };
+
+  const refreshEmailVerification = async () => {
+    const user = firebaseAuth.currentUser;
+    if (!user) return null;
+    await reload(user);
+    setCustomerUser(firebaseAuth.currentUser);
+    return firebaseAuth.currentUser;
+  };
+
   return {
     customerUser,
     customerAuthLoading,
     customerAuthError,
     loginCustomer,
     registerCustomer,
+    resendVerificationEmail,
+    refreshEmailVerification,
     signOutCustomer: () => signOut(firebaseAuth),
   };
 }

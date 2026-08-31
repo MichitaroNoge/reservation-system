@@ -770,6 +770,19 @@ function ReservationBookingTypeCell({ reservation }: { reservation: Reservation 
   return <><strong>{reservationBookingTypeShortLabel(reservation)}</strong>{reservation.bookingType === "travel_agency_group" && reservation.bookingContactName ? <small>担当: {reservation.bookingContactName}</small> : null}</>;
 }
 
+function CustomerEmailVerificationPanel({ email, isSubmitting, onRefresh, onResend, onLogout }: { email: string; isSubmitting: boolean; onRefresh: () => void; onResend: () => void; onLogout: () => void }) {
+  return <div className="form-body narrow email-verification-panel">
+    <p className="form-kicker">EMAIL VERIFICATION</p>
+    <h2>メールアドレスを確認してください</h2>
+    <p><strong>{email}</strong> に確認メールを送信しました。メール内のリンクを開いて認証を完了してください。</p>
+    <div className="email-verification-actions">
+      <button type="button" onClick={onResend} disabled={isSubmitting}>確認メールを再送</button>
+      <button type="button" className="next" onClick={onRefresh} disabled={isSubmitting}>{isSubmitting ? "確認中" : "認証を確認"}</button>
+    </div>
+    <button type="button" className="email-verification-logout" onClick={onLogout}>別のアカウントでログイン</button>
+  </div>;
+}
+
 function ConfirmationContactPage({ reservations, windowDays, setWindowDays, isBulkContacting, onBulkConfirmationContact, onSelect }: { reservations: Reservation[]; windowDays: number; setWindowDays: (days: number) => void; isBulkContacting: boolean; onBulkConfirmationContact: () => Promise<void>; onSelect: (r: Reservation) => void }) {
   const changeWindowDays = (days: number) => setWindowDays(Math.max(1, Math.min(60, days)));
   return <section className="panel management-panel confirmation-panel">
@@ -974,12 +987,13 @@ type CustomerContactRequestForm = { reservationId: string; email: string; phone:
 type CustomerReservationChangeRequestForm = CustomerContactRequestForm & { requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason: string };
 
 function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { initialMode: CustomerPortalMode; form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
-  const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, signOutCustomer } = useCustomerSession();
+  const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, resendVerificationEmail, refreshEmailVerification, signOutCustomer } = useCustomerSession();
   const [portalMode, setPortalMode] = useState<CustomerPortalMode>(initialMode);
   const [bookingMode, setBookingMode] = useState<"login" | "register">("login");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
   const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [verificationSubmitting, setVerificationSubmitting] = useState(false);
   const [cancellationForm, setCancellationForm] = useState({ reservationId: "", email: "", phone: "" });
   const [isSubmittingCancellation, setIsSubmittingCancellation] = useState(false);
   const [cancellationSubmitted, setCancellationSubmitted] = useState(false);
@@ -1006,7 +1020,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
   }, [initialMode, setStep]);
 
   useEffect(() => {
-    if (!customerUser) return;
+    if (!customerUser?.emailVerified) return;
     const loadAccount = async () => {
       const token = await customerUser.getIdToken();
       const { account } = await requestJson<{ account: Customer | null }>("/api/accounts/me", { authToken: token });
@@ -1027,7 +1041,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
   }, [customerUser, setForm]);
 
   useEffect(() => {
-    if (portalMode !== "account" || !customerUser) return;
+    if (portalMode !== "account" || !customerUser?.emailVerified) return;
     const loadReservations = async () => {
       setIsLoadingAccountReservations(true);
       setAccountReservationError("");
@@ -1086,7 +1100,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       if (bookingMode === "register") {
         try {
           accountUser = await registerCustomer(accountEmail, accountPassword);
-          notify("アカウントを作成しました");
+          notify("確認メールを送信しました");
         } catch (error) {
           if (customerAuthErrorCode(error) === "auth/email-already-in-use") {
             accountUser = await loginCustomer(accountEmail, accountPassword);
@@ -1105,6 +1119,38 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       notify(error instanceof Error ? error.message : bookingMode === "register" ? "アカウント登録に失敗しました" : "ログインに失敗しました");
     } finally {
       setAccountSubmitting(false);
+    }
+  };
+
+  const resendCustomerVerification = async () => {
+    if (verificationSubmitting) return;
+    setVerificationSubmitting(true);
+    try {
+      await resendVerificationEmail();
+      notify("確認メールを再送しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "確認メールを再送できませんでした");
+    } finally {
+      setVerificationSubmitting(false);
+    }
+  };
+
+  const confirmCustomerVerification = async () => {
+    if (verificationSubmitting) return;
+    setVerificationSubmitting(true);
+    try {
+      const verifiedUser = await refreshEmailVerification();
+      if (!verifiedUser?.emailVerified) {
+        notify("メール認証がまだ完了していません");
+        return;
+      }
+      const token = await verifiedUser.getIdToken(true);
+      await saveCurrentAccountProfile(token);
+      notify("メールアドレスを確認しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "メール認証を確認できませんでした");
+    } finally {
+      setVerificationSubmitting(false);
     }
   };
 
@@ -1250,6 +1296,8 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
     <header><div className="public-logo"><span>R</span><strong>Reserve</strong></div><nav><button onClick={onAdmin}>管理画面</button></nav></header>
     <section className="customer-hero restaurant-hero"><div><p>RESTAURANT RESERVATION</p><h1>{portalMode === "home" ? "お手続き" : portalMode === "account" ? "予約確認" : portalMode === "cancellation" ? "キャンセル申請" : portalMode === "confirmedChange" ? "本予約への変更申請" : portalMode === "change" ? "予約内容変更申請" : "予約フォーム"}</h1></div></section>
     <section className="booking-card">
+      {customerUser && !customerUser.emailVerified && <CustomerEmailVerificationPanel email={customerUser.email ?? ""} isSubmitting={verificationSubmitting} onRefresh={confirmCustomerVerification} onResend={resendCustomerVerification} onLogout={() => signOutCustomer()} />}
+      {(!customerUser || customerUser.emailVerified) && <>
       {portalMode === "home" && <CustomerPortalHome customerEmail={customerUser?.email ?? ""} isLoggedIn={Boolean(customerUser)} authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} onLogout={() => { setAccountReservations([]); setAccountChangeRequests([]); signOutCustomer(); }} onOpenAccount={() => { setPortalMode("account"); setAccountReservationError(""); }} onOpenReservation={() => { setPortalMode("reservation"); setStep(1); }} />}
       {portalMode === "account" && <CustomerReservationDashboard customerEmail={customerUser?.email ?? ""} isLoggedIn={Boolean(customerUser)} authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} reservations={accountReservations} changeRequests={accountChangeRequests} isLoading={isLoadingAccountReservations} reservationError={accountReservationError} canRequestConfirmedChange={canRequestConfirmedChangeFromReservation} canRequestChange={canRequestChangeFromReservation} canRequestCancellation={canRequestCancellationFromReservation} onBack={backToPortalHome} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} onLogout={() => { setAccountReservations([]); setAccountChangeRequests([]); signOutCustomer(); }} onConfirmedChange={startConfirmedChangeFromReservation} onChange={startReservationChangeFromReservation} onCancellation={startCancellationFromReservation} />}
       {portalMode === "reservation" && !customerUser && <CustomerRequestLoginPanel authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBack={backToPortalHome} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} />}
@@ -1280,6 +1328,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       {step === 5 && <div className="form-body complete"><span><Icon name="check"/></span><p className="form-kicker">REQUEST RECEIVED</p><h2>予約申請を受け付けました</h2><p>内容を確認後、予約可否をご連絡します。</p><button className="next" onClick={backToPortalHome}>トップに戻る</button></div>}</>}
       {isCustomerRequestMode(portalMode) && !customerUser && <CustomerRequestLoginPanel authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBack={backToPortalHome} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} />}
       {isCustomerRequestMode(portalMode) && customerUser && <CustomerRequestForms mode={portalMode} confirmedChangeForm={confirmedChangeForm} changeRequestForm={changeRequestForm} cancellationForm={cancellationForm} confirmedChangeSubmitted={confirmedChangeSubmitted} changeRequestSubmitted={changeRequestSubmitted} cancellationSubmitted={cancellationSubmitted} isSubmittingConfirmedChange={isSubmittingConfirmedChange} isSubmittingChangeRequest={isSubmittingChangeRequest} isSubmittingCancellation={isSubmittingCancellation} canSubmitConfirmedChange={canSubmitConfirmedChange} canSubmitChangeRequest={canSubmitChangeRequest} canSubmitCancellation={canSubmitCancellation} menuCatalog={menuCatalog} onBack={backToPortalHome} onConfirmedChangeFormChange={setConfirmedChangeForm} onChangeRequestFormChange={setChangeRequestForm} onCancellationFormChange={setCancellationForm} onSubmitConfirmedChange={submitConfirmedChange} onSubmitChangeRequest={submitChangeRequest} onSubmitCancellation={submitCancellation} />}
+      </>}
     </section>
     {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
   </main>;

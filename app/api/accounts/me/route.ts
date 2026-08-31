@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyOptionalFirebaseUser } from "@/lib/auth";
+import { requireFirebaseUser, requireVerifiedFirebaseUser } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateCustomerInput } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
 
@@ -7,8 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
-    const user = await verifyOptionalFirebaseUser(request);
-    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    const user = await requireVerifiedFirebaseUser(request);
     const account = await getReservationRepository().findAccountByFirebaseUid(user.uid);
     return NextResponse.json({ account });
   } catch (error) {
@@ -18,16 +17,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await verifyOptionalFirebaseUser(request);
-    if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-
+    const user = await requireFirebaseUser(request);
     const input = validateCustomerInput(await readJsonObject(request));
     const repository = getReservationRepository();
     const existing = await repository.findAccountByFirebaseUid(user.uid);
-    const accountInput = {
-      ...input,
-      contact: user.email ?? input.contact,
-    };
+    const accountInput = { ...input, contact: user.email ?? input.contact };
     const account = existing
       ? await repository.updateAccount(existing.id!, accountInput)
       : await repository.createAccount({ ...accountInput, firebaseUid: user.uid });

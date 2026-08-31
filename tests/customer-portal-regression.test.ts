@@ -10,6 +10,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   const changeRequestApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "change-requests", "route.ts"), "utf8");
   const authSource = await readFile(path.join(process.cwd(), "lib", "auth.ts"), "utf8");
   const reservationApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
+  const accountApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "route.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -32,6 +33,7 @@ test("customer reservation portal keeps account booking choices", async () => {
     "メールアドレスを確認してください",
     "確認メールを再送",
     "認証を確認",
+    "アカウント削除",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
@@ -73,11 +75,16 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(sessionSource, /auth\/operation-not-allowed/, "disabled email-password auth should be explained to customers");
   assert.match(sessionSource, /Object\.assign\(error, \{ code \}\)/, "Firebase Auth error codes should be preserved for UI decisions");
   assert.match(pageSource, /customerAuthErrorCode\(error\) === "auth\/email-already-in-use"/, "existing email fallback should use Firebase Auth error codes");
-  assert.match(pageSource, /登録済みアカウントでログインしました/, "registration with an existing email should fall back to login when credentials match");
+  assert.match(pageSource, /このメールアドレスはアカウント登録済みです。ログインしてください/, "registration with an existing email should clearly explain that the account already exists");
+  assert.match(pageSource, /setBookingMode\("login"\)/, "existing account registration should return customers to login mode");
   assert.match(pageSource, /customerUser && !customerUser\.emailVerified/, "unverified customers should see the verification panel");
   assert.match(pageSource, /getIdToken\(true\)/, "verification completion should refresh the Firebase token claims");
   assert.match(authSource, /user\.email_verified !== true/, "customer APIs should reject unverified Firebase tokens");
   assert.match(reservationApiSource, /requireVerifiedFirebaseUser\(request\)/, "reservation creation should require a verified customer email");
+  assert.match(accountApiSource, /listReservationsForReservationAccount\(user\.uid\)/, "account deletion should check reservation history by Firebase UID");
+  assert.match(accountApiSource, /reservations\.length > 0[\s\S]*status: 409/, "accounts with reservation history must not be deleted");
+  assert.match(accountApiSource, /deactivateAccount\(account\.id\)[\s\S]*deleteUser\(user\.uid\)/, "account deletion should remove both the account and Firebase user");
+  assert.match(accountApiSource, /reactivateAccount\(account\.id\)/, "account deletion should roll back deactivation when Firebase deletion fails");
 });
 
 function escapeRegExp(value: string) {

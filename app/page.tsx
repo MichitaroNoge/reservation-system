@@ -636,13 +636,13 @@ function ManagementPage({ view, onSelectMasterView, reservations, reservationCha
   </main>;
 }
 
-function CustomerPortalHome({ customerEmail, isLoggedIn, authError, accountEmail, accountPassword, accountSubmitting, customerAuthLoading, bookingMode, registrationForm, onBookingModeChange, onRegistrationFormChange, onAccountEmailChange, onAccountPasswordChange, onLogin, onSubmitAccount, onLogout, onOpenAccount, onOpenReservation }: { customerEmail: string; isLoggedIn: boolean; authError: string; accountEmail: string; accountPassword: string; accountSubmitting: boolean; customerAuthLoading: boolean; bookingMode: "login" | "register"; registrationForm: BookingForm; onBookingModeChange: (mode: "login" | "register") => void; onRegistrationFormChange: Dispatch<SetStateAction<BookingForm>>; onAccountEmailChange: (value: string) => void; onAccountPasswordChange: (value: string) => void; onLogin: () => void; onSubmitAccount: () => void; onLogout: () => void; onOpenAccount: () => void; onOpenReservation: () => void }) {
+function CustomerPortalHome({ customerEmail, isLoggedIn, authError, accountEmail, accountPassword, accountSubmitting, customerAuthLoading, bookingMode, registrationForm, onBookingModeChange, onRegistrationFormChange, onAccountEmailChange, onAccountPasswordChange, onLogin, onSubmitAccount, onLogout, onDeleteAccount, onOpenAccount, onOpenReservation }: { customerEmail: string; isLoggedIn: boolean; authError: string; accountEmail: string; accountPassword: string; accountSubmitting: boolean; customerAuthLoading: boolean; bookingMode: "login" | "register"; registrationForm: BookingForm; onBookingModeChange: (mode: "login" | "register") => void; onRegistrationFormChange: Dispatch<SetStateAction<BookingForm>>; onAccountEmailChange: (value: string) => void; onAccountPasswordChange: (value: string) => void; onLogin: () => void; onSubmitAccount: () => void; onLogout: () => void; onDeleteAccount: () => void; onOpenAccount: () => void; onOpenReservation: () => void }) {
   return <div className="form-body narrow portal-entry">
     <p className="form-kicker">REQUEST</p>
     <h2>お手続きを選択</h2>
     <section className="customer-account-panel portal-account-panel">
       {isLoggedIn ? (
-        <div className="customer-account-current"><span>ログイン中</span><strong>{customerEmail}</strong><button type="button" onClick={onLogout}>ログアウト</button></div>
+        <div className="customer-account-current"><span>ログイン中</span><strong>{customerEmail}</strong><button type="button" onClick={onLogout}>ログアウト</button><button type="button" className="account-delete-button" onClick={onDeleteAccount} disabled={accountSubmitting}>アカウント削除</button></div>
       ) : (
         <CustomerAccountAccessPanel authError={authError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={registrationForm} onBookingModeChange={onBookingModeChange} onRegistrationFormChange={onRegistrationFormChange} onAccountEmailChange={onAccountEmailChange} onAccountPasswordChange={onAccountPasswordChange} onLogin={onLogin} onSubmitAccount={onSubmitAccount} />
       )}
@@ -1103,8 +1103,9 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
           notify("確認メールを送信しました");
         } catch (error) {
           if (customerAuthErrorCode(error) === "auth/email-already-in-use") {
-            accountUser = await loginCustomer(accountEmail, accountPassword);
-            notify("登録済みアカウントでログインしました");
+            setBookingMode("login");
+            notify("このメールアドレスはアカウント登録済みです。ログインしてください");
+            return;
           } else {
             throw error;
           }
@@ -1162,6 +1163,24 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       notify("ログインしました");
     } catch {
       notify("ログインに失敗しました");
+    } finally {
+      setAccountSubmitting(false);
+    }
+  };
+
+  const deleteCustomerAccount = async () => {
+    if (!customerUser || accountSubmitting) return;
+    if (!window.confirm("アカウントを削除しますか？この操作は取り消せません。")) return;
+    setAccountSubmitting(true);
+    try {
+      const authToken = await customerUser.getIdToken();
+      await requestJson<{ deleted: true }>("/api/accounts/me", { method: "DELETE", authToken });
+      setAccountReservations([]);
+      setAccountChangeRequests([]);
+      await signOutCustomer();
+      notify("アカウントを削除しました");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "アカウントを削除できませんでした");
     } finally {
       setAccountSubmitting(false);
     }
@@ -1298,7 +1317,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
     <section className="booking-card">
       {customerUser && !customerUser.emailVerified && <CustomerEmailVerificationPanel email={customerUser.email ?? ""} isSubmitting={verificationSubmitting} onRefresh={confirmCustomerVerification} onResend={resendCustomerVerification} onLogout={() => signOutCustomer()} />}
       {(!customerUser || customerUser.emailVerified) && <>
-      {portalMode === "home" && <CustomerPortalHome customerEmail={customerUser?.email ?? ""} isLoggedIn={Boolean(customerUser)} authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} onLogout={() => { setAccountReservations([]); setAccountChangeRequests([]); signOutCustomer(); }} onOpenAccount={() => { setPortalMode("account"); setAccountReservationError(""); }} onOpenReservation={() => { setPortalMode("reservation"); setStep(1); }} />}
+      {portalMode === "home" && <CustomerPortalHome customerEmail={customerUser?.email ?? ""} isLoggedIn={Boolean(customerUser)} authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} onLogout={() => { setAccountReservations([]); setAccountChangeRequests([]); signOutCustomer(); }} onDeleteAccount={deleteCustomerAccount} onOpenAccount={() => { setPortalMode("account"); setAccountReservationError(""); }} onOpenReservation={() => { setPortalMode("reservation"); setStep(1); }} />}
       {portalMode === "account" && <CustomerReservationDashboard customerEmail={customerUser?.email ?? ""} isLoggedIn={Boolean(customerUser)} authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} reservations={accountReservations} changeRequests={accountChangeRequests} isLoading={isLoadingAccountReservations} reservationError={accountReservationError} canRequestConfirmedChange={canRequestConfirmedChangeFromReservation} canRequestChange={canRequestChangeFromReservation} canRequestCancellation={canRequestCancellationFromReservation} onBack={backToPortalHome} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} onLogout={() => { setAccountReservations([]); setAccountChangeRequests([]); signOutCustomer(); }} onConfirmedChange={startConfirmedChangeFromReservation} onChange={startReservationChangeFromReservation} onCancellation={startCancellationFromReservation} />}
       {portalMode === "reservation" && !customerUser && <CustomerRequestLoginPanel authError={customerAuthError} accountEmail={accountEmail} accountPassword={accountPassword} accountSubmitting={accountSubmitting} customerAuthLoading={customerAuthLoading} bookingMode={bookingMode} registrationForm={form} onBack={backToPortalHome} onBookingModeChange={selectBookingMode} onRegistrationFormChange={setForm} onAccountEmailChange={setAccountEmail} onAccountPasswordChange={setAccountPassword} onLogin={loginForAccountReservations} onSubmitAccount={submitAccount} />}
       {portalMode === "reservation" && customerUser && <><button className="portal-back-button" type="button" onClick={backToPortalHome}>手続き選択へ戻る</button><div className="stepper">{["利用者区分","予約種別","日時・人数","お客様情報","受付完了"].map((label, index)=><div key={label} className={step >= index + 1 ? "active" : ""}><span>{step > index + 1 ? <Icon name="check"/> : index + 1}</span><small>{label}</small>{index < 4 && <i/>}</div>)}</div>

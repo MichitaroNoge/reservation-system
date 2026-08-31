@@ -21,12 +21,10 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*GetReservation*](#getreservation)
   - [*GetReservationByCode*](#getreservationbycode)
   - [*ListReservationChangeRequests*](#listreservationchangerequests)
-  - [*ListCustomers*](#listcustomers)
-  - [*ListInactiveCustomers*](#listinactivecustomers)
-  - [*GetCustomerByName*](#getcustomerbyname)
-  - [*GetCustomerById*](#getcustomerbyid)
-  - [*GetCustomerByFirebaseUid*](#getcustomerbyfirebaseuid)
-  - [*GetCustomerByEmail*](#getcustomerbyemail)
+  - [*ListAccounts*](#listaccounts)
+  - [*ListInactiveAccounts*](#listinactiveaccounts)
+  - [*GetAccountById*](#getaccountbyid)
+  - [*GetAccountByFirebaseUid*](#getaccountbyfirebaseuid)
   - [*ListStores*](#liststores)
   - [*ListInactiveStores*](#listinactivestores)
   - [*GetStoreByName*](#getstorebyname)
@@ -36,15 +34,14 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*GetMenuByName*](#getmenubyname)
   - [*ListBillingRecords*](#listbillingrecords)
 - [**Mutations**](#mutations)
-  - [*CreateCustomer*](#createcustomer)
-  - [*UpdateCustomer*](#updatecustomer)
-  - [*UpdateCustomerIdentity*](#updatecustomeridentity)
-  - [*DeactivateCustomer*](#deactivatecustomer)
-  - [*ReactivateCustomer*](#reactivatecustomer)
+  - [*CreateAccount*](#createaccount)
+  - [*UpdateAccount*](#updateaccount)
+  - [*DeactivateAccount*](#deactivateaccount)
+  - [*ReactivateAccount*](#reactivateaccount)
   - [*CreateReservation*](#createreservation)
+  - [*UpdateReservation*](#updatereservation)
   - [*AddReservationDetail*](#addreservationdetail)
   - [*DeleteReservationDetail*](#deletereservationdetail)
-  - [*UpdateReservation*](#updatereservation)
   - [*UpdateReservationStatus*](#updatereservationstatus)
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
   - [*ClearConfirmationContact*](#clearconfirmationcontact)
@@ -199,16 +196,25 @@ export interface ListReservationsData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -333,16 +339,25 @@ export interface GetReservationData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -486,16 +501,25 @@ export interface GetReservationByCodeData {
     confirmationContactedAt?: TimestampString | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
-    customer: {
+    reserverName?: string | null;
+    reserverEmail?: string | null;
+    reserverPhone?: string | null;
+    reserverAddress?: string | null;
+    reserverAccountType?: string | null;
+    reserverCompanyBranchName?: string | null;
+    reserverContactPersonName?: string | null;
+    account?: {
       id: UUIDString;
-      name: string;
-      phone: string;
+      firebaseUid: string;
       email: string;
+      name: string;
+      phone?: string | null;
       address?: string | null;
       accountType?: string | null;
       companyBranchName?: string | null;
       contactPersonName?: string | null;
-    } & Customer_Key;
+      active: boolean;
+    } & Account_Key;
     reservationDetails_on_reservation: ({
       id: UUIDString;
       quantity: number;
@@ -611,16 +635,14 @@ export interface ListReservationChangeRequestsData {
       usageDate: DateString;
       usageTime: string;
       expectedPeople: number;
-      customer: {
+      reserverName?: string | null;
+      reserverEmail?: string | null;
+      reserverPhone?: string | null;
+      reserverAddress?: string | null;
+      account?: {
         id: UUIDString;
-        name: string;
-        phone: string;
-        email: string;
-        address?: string | null;
-        accountType?: string | null;
-        companyBranchName?: string | null;
-        contactPersonName?: string | null;
-      } & Customer_Key;
+        firebaseUid: string;
+      } & Account_Key;
       reservationDetails_on_reservation: ({
         quantity: number;
         menu: {
@@ -676,75 +698,76 @@ export default function ListReservationChangeRequestsComponent() {
 }
 ```
 
-## ListCustomers
-You can execute the `ListCustomers` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+## ListAccounts
+You can execute the `ListAccounts` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListCustomers(dc: DataConnect, options?: useDataConnectQueryOptions<ListCustomersData>): UseDataConnectQueryResult<ListCustomersData, undefined>;
+useListAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListAccountsData>): UseDataConnectQueryResult<ListAccountsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListCustomers(options?: useDataConnectQueryOptions<ListCustomersData>): UseDataConnectQueryResult<ListCustomersData, undefined>;
+useListAccounts(options?: useDataConnectQueryOptions<ListAccountsData>): UseDataConnectQueryResult<ListAccountsData, undefined>;
 ```
 
 ### Variables
-The `ListCustomers` Query has no variables.
+The `ListAccounts` Query has no variables.
 ### Return Type
-Recall that calling the `ListCustomers` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+Recall that calling the `ListAccounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListCustomers` Query is of type `ListCustomersData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListAccounts` Query is of type `ListAccountsData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface ListCustomersData {
-  customers: ({
+export interface ListAccountsData {
+  accounts: ({
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
-    firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
-    reservations_on_customer: ({
+    updatedAt: TimestampString;
+    reservations_on_account: ({
       id: UUIDString;
       reservationCode: string;
       usageDate: DateString;
       status: ReservationStatus;
     } & Reservation_Key)[];
-  } & Customer_Key)[];
+  } & Account_Key)[];
 }
 ```
 
 To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
 
-### Using `ListCustomers`'s Query hook function
+### Using `ListAccounts`'s Query hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@reservation-system/dataconnect';
-import { useListCustomers } from '@reservation-system/dataconnect/react'
+import { useListAccounts } from '@reservation-system/dataconnect/react'
 
-export default function ListCustomersComponent() {
+export default function ListAccountsComponent() {
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useListCustomers();
+  const query = useListAccounts();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListCustomers(dataConnect);
+  const query = useListAccounts(dataConnect);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListCustomers(options);
+  const query = useListAccounts(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListCustomers(dataConnect, options);
+  const query = useListAccounts(dataConnect, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -757,81 +780,82 @@ export default function ListCustomersComponent() {
 
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
-    console.log(query.data.customers);
+    console.log(query.data.accounts);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## ListInactiveCustomers
-You can execute the `ListInactiveCustomers` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+## ListInactiveAccounts
+You can execute the `ListInactiveAccounts` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useListInactiveCustomers(dc: DataConnect, options?: useDataConnectQueryOptions<ListInactiveCustomersData>): UseDataConnectQueryResult<ListInactiveCustomersData, undefined>;
+useListInactiveAccounts(dc: DataConnect, options?: useDataConnectQueryOptions<ListInactiveAccountsData>): UseDataConnectQueryResult<ListInactiveAccountsData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useListInactiveCustomers(options?: useDataConnectQueryOptions<ListInactiveCustomersData>): UseDataConnectQueryResult<ListInactiveCustomersData, undefined>;
+useListInactiveAccounts(options?: useDataConnectQueryOptions<ListInactiveAccountsData>): UseDataConnectQueryResult<ListInactiveAccountsData, undefined>;
 ```
 
 ### Variables
-The `ListInactiveCustomers` Query has no variables.
+The `ListInactiveAccounts` Query has no variables.
 ### Return Type
-Recall that calling the `ListInactiveCustomers` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+Recall that calling the `ListInactiveAccounts` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListInactiveCustomers` Query is of type `ListInactiveCustomersData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListInactiveAccounts` Query is of type `ListInactiveAccountsData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface ListInactiveCustomersData {
-  customers: ({
+export interface ListInactiveAccountsData {
+  accounts: ({
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
-    firebaseUid?: string | null;
     active: boolean;
     createdAt: TimestampString;
-    reservations_on_customer: ({
+    updatedAt: TimestampString;
+    reservations_on_account: ({
       id: UUIDString;
       reservationCode: string;
       usageDate: DateString;
       status: ReservationStatus;
     } & Reservation_Key)[];
-  } & Customer_Key)[];
+  } & Account_Key)[];
 }
 ```
 
 To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
 
-### Using `ListInactiveCustomers`'s Query hook function
+### Using `ListInactiveAccounts`'s Query hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
 import { connectorConfig } from '@reservation-system/dataconnect';
-import { useListInactiveCustomers } from '@reservation-system/dataconnect/react'
+import { useListInactiveAccounts } from '@reservation-system/dataconnect/react'
 
-export default function ListInactiveCustomersComponent() {
+export default function ListInactiveAccountsComponent() {
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useListInactiveCustomers();
+  const query = useListInactiveAccounts();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useListInactiveCustomers(dataConnect);
+  const query = useListInactiveAccounts(dataConnect);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useListInactiveCustomers(options);
+  const query = useListInactiveAccounts(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useListInactiveCustomers(dataConnect, options);
+  const query = useListInactiveAccounts(dataConnect, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -844,178 +868,87 @@ export default function ListInactiveCustomersComponent() {
 
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
-    console.log(query.data.customers);
+    console.log(query.data.accounts);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## GetCustomerByName
-You can execute the `GetCustomerByName` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+## GetAccountById
+You can execute the `GetAccountById` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useGetCustomerByName(dc: DataConnect, vars: GetCustomerByNameVariables, options?: useDataConnectQueryOptions<GetCustomerByNameData>): UseDataConnectQueryResult<GetCustomerByNameData, GetCustomerByNameVariables>;
+useGetAccountById(dc: DataConnect, vars: GetAccountByIdVariables, options?: useDataConnectQueryOptions<GetAccountByIdData>): UseDataConnectQueryResult<GetAccountByIdData, GetAccountByIdVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useGetCustomerByName(vars: GetCustomerByNameVariables, options?: useDataConnectQueryOptions<GetCustomerByNameData>): UseDataConnectQueryResult<GetCustomerByNameData, GetCustomerByNameVariables>;
+useGetAccountById(vars: GetAccountByIdVariables, options?: useDataConnectQueryOptions<GetAccountByIdData>): UseDataConnectQueryResult<GetAccountByIdData, GetAccountByIdVariables>;
 ```
 
 ### Variables
-The `GetCustomerByName` Query requires an argument of type `GetCustomerByNameVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `GetAccountById` Query requires an argument of type `GetAccountByIdVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface GetCustomerByNameVariables {
-  name: string;
-}
-```
-### Return Type
-Recall that calling the `GetCustomerByName` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
-
-To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
-
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetCustomerByName` Query is of type `GetCustomerByNameData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface GetCustomerByNameData {
-  customers: ({
-    id: UUIDString;
-    name: string;
-    phone: string;
-    email: string;
-    address?: string | null;
-    accountType?: string | null;
-    companyBranchName?: string | null;
-    contactPersonName?: string | null;
-    active: boolean;
-  } & Customer_Key)[];
-}
-```
-
-To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
-
-### Using `GetCustomerByName`'s Query hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, GetCustomerByNameVariables } from '@reservation-system/dataconnect';
-import { useGetCustomerByName } from '@reservation-system/dataconnect/react'
-
-export default function GetCustomerByNameComponent() {
-  // The `useGetCustomerByName` Query hook requires an argument of type `GetCustomerByNameVariables`:
-  const getCustomerByNameVars: GetCustomerByNameVariables = {
-    name: ..., 
-  };
-
-  // You don't have to do anything to "execute" the Query.
-  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useGetCustomerByName(getCustomerByNameVars);
-  // Variables can be defined inline as well.
-  const query = useGetCustomerByName({ name: ..., });
-
-  // You can also pass in a `DataConnect` instance to the Query hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const query = useGetCustomerByName(dataConnect, getCustomerByNameVars);
-
-  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
-  const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByName(getCustomerByNameVars, options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByName(dataConnect, getCustomerByNameVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Query.
-  if (query.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (query.isError) {
-    return <div>Error: {query.error.message}</div>;
-  }
-
-  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
-  if (query.isSuccess) {
-    console.log(query.data.customers);
-  }
-  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
-## GetCustomerById
-You can execute the `GetCustomerById` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
-
-```javascript
-useGetCustomerById(dc: DataConnect, vars: GetCustomerByIdVariables, options?: useDataConnectQueryOptions<GetCustomerByIdData>): UseDataConnectQueryResult<GetCustomerByIdData, GetCustomerByIdVariables>;
-```
-You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
-useGetCustomerById(vars: GetCustomerByIdVariables, options?: useDataConnectQueryOptions<GetCustomerByIdData>): UseDataConnectQueryResult<GetCustomerByIdData, GetCustomerByIdVariables>;
-```
-
-### Variables
-The `GetCustomerById` Query requires an argument of type `GetCustomerByIdVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface GetCustomerByIdVariables {
+export interface GetAccountByIdVariables {
   id: UUIDString;
 }
 ```
 ### Return Type
-Recall that calling the `GetCustomerById` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+Recall that calling the `GetAccountById` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetCustomerById` Query is of type `GetCustomerByIdData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetAccountById` Query is of type `GetAccountByIdData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface GetCustomerByIdData {
-  customer?: {
+export interface GetAccountByIdData {
+  account?: {
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
     active: boolean;
-  } & Customer_Key;
+  } & Account_Key;
 }
 ```
 
 To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
 
-### Using `GetCustomerById`'s Query hook function
+### Using `GetAccountById`'s Query hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, GetCustomerByIdVariables } from '@reservation-system/dataconnect';
-import { useGetCustomerById } from '@reservation-system/dataconnect/react'
+import { connectorConfig, GetAccountByIdVariables } from '@reservation-system/dataconnect';
+import { useGetAccountById } from '@reservation-system/dataconnect/react'
 
-export default function GetCustomerByIdComponent() {
-  // The `useGetCustomerById` Query hook requires an argument of type `GetCustomerByIdVariables`:
-  const getCustomerByIdVars: GetCustomerByIdVariables = {
+export default function GetAccountByIdComponent() {
+  // The `useGetAccountById` Query hook requires an argument of type `GetAccountByIdVariables`:
+  const getAccountByIdVars: GetAccountByIdVariables = {
     id: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useGetCustomerById(getCustomerByIdVars);
+  const query = useGetAccountById(getAccountByIdVars);
   // Variables can be defined inline as well.
-  const query = useGetCustomerById({ id: ..., });
+  const query = useGetAccountById({ id: ..., });
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useGetCustomerById(dataConnect, getCustomerByIdVars);
+  const query = useGetAccountById(dataConnect, getAccountByIdVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerById(getCustomerByIdVars, options);
+  const query = useGetAccountById(getAccountByIdVars, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerById(dataConnect, getCustomerByIdVars, options);
+  const query = useGetAccountById(dataConnect, getAccountByIdVars, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -1028,87 +961,87 @@ export default function GetCustomerByIdComponent() {
 
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
-    console.log(query.data.customer);
+    console.log(query.data.account);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## GetCustomerByFirebaseUid
-You can execute the `GetCustomerByFirebaseUid` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+## GetAccountByFirebaseUid
+You can execute the `GetAccountByFirebaseUid` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useGetCustomerByFirebaseUid(dc: DataConnect, vars: GetCustomerByFirebaseUidVariables, options?: useDataConnectQueryOptions<GetCustomerByFirebaseUidData>): UseDataConnectQueryResult<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
+useGetAccountByFirebaseUid(dc: DataConnect, vars: GetAccountByFirebaseUidVariables, options?: useDataConnectQueryOptions<GetAccountByFirebaseUidData>): UseDataConnectQueryResult<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useGetCustomerByFirebaseUid(vars: GetCustomerByFirebaseUidVariables, options?: useDataConnectQueryOptions<GetCustomerByFirebaseUidData>): UseDataConnectQueryResult<GetCustomerByFirebaseUidData, GetCustomerByFirebaseUidVariables>;
+useGetAccountByFirebaseUid(vars: GetAccountByFirebaseUidVariables, options?: useDataConnectQueryOptions<GetAccountByFirebaseUidData>): UseDataConnectQueryResult<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
 ```
 
 ### Variables
-The `GetCustomerByFirebaseUid` Query requires an argument of type `GetCustomerByFirebaseUidVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `GetAccountByFirebaseUid` Query requires an argument of type `GetAccountByFirebaseUidVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface GetCustomerByFirebaseUidVariables {
+export interface GetAccountByFirebaseUidVariables {
   firebaseUid: string;
 }
 ```
 ### Return Type
-Recall that calling the `GetCustomerByFirebaseUid` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+Recall that calling the `GetAccountByFirebaseUid` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
 To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
 
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetCustomerByFirebaseUid` Query is of type `GetCustomerByFirebaseUidData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetAccountByFirebaseUid` Query is of type `GetAccountByFirebaseUidData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface GetCustomerByFirebaseUidData {
-  customers: ({
+export interface GetAccountByFirebaseUidData {
+  accounts: ({
     id: UUIDString;
+    firebaseUid: string;
     name: string;
-    phone: string;
+    phone?: string | null;
     email: string;
     address?: string | null;
     accountType?: string | null;
     companyBranchName?: string | null;
     contactPersonName?: string | null;
-    firebaseUid?: string | null;
     active: boolean;
-  } & Customer_Key)[];
+  } & Account_Key)[];
 }
 ```
 
 To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
 
-### Using `GetCustomerByFirebaseUid`'s Query hook function
+### Using `GetAccountByFirebaseUid`'s Query hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, GetCustomerByFirebaseUidVariables } from '@reservation-system/dataconnect';
-import { useGetCustomerByFirebaseUid } from '@reservation-system/dataconnect/react'
+import { connectorConfig, GetAccountByFirebaseUidVariables } from '@reservation-system/dataconnect';
+import { useGetAccountByFirebaseUid } from '@reservation-system/dataconnect/react'
 
-export default function GetCustomerByFirebaseUidComponent() {
-  // The `useGetCustomerByFirebaseUid` Query hook requires an argument of type `GetCustomerByFirebaseUidVariables`:
-  const getCustomerByFirebaseUidVars: GetCustomerByFirebaseUidVariables = {
+export default function GetAccountByFirebaseUidComponent() {
+  // The `useGetAccountByFirebaseUid` Query hook requires an argument of type `GetAccountByFirebaseUidVariables`:
+  const getAccountByFirebaseUidVars: GetAccountByFirebaseUidVariables = {
     firebaseUid: ..., 
   };
 
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useGetCustomerByFirebaseUid(getCustomerByFirebaseUidVars);
+  const query = useGetAccountByFirebaseUid(getAccountByFirebaseUidVars);
   // Variables can be defined inline as well.
-  const query = useGetCustomerByFirebaseUid({ firebaseUid: ..., });
+  const query = useGetAccountByFirebaseUid({ firebaseUid: ..., });
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useGetCustomerByFirebaseUid(dataConnect, getCustomerByFirebaseUidVars);
+  const query = useGetAccountByFirebaseUid(dataConnect, getAccountByFirebaseUidVars);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByFirebaseUid(getCustomerByFirebaseUidVars, options);
+  const query = useGetAccountByFirebaseUid(getAccountByFirebaseUidVars, options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByFirebaseUid(dataConnect, getCustomerByFirebaseUidVars, options);
+  const query = useGetAccountByFirebaseUid(dataConnect, getAccountByFirebaseUidVars, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
@@ -1121,100 +1054,7 @@ export default function GetCustomerByFirebaseUidComponent() {
 
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
-    console.log(query.data.customers);
-  }
-  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
-## GetCustomerByEmail
-You can execute the `GetCustomerByEmail` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
-
-```javascript
-useGetCustomerByEmail(dc: DataConnect, vars: GetCustomerByEmailVariables, options?: useDataConnectQueryOptions<GetCustomerByEmailData>): UseDataConnectQueryResult<GetCustomerByEmailData, GetCustomerByEmailVariables>;
-```
-You can also pass in a `DataConnect` instance to the Query hook function.
-```javascript
-useGetCustomerByEmail(vars: GetCustomerByEmailVariables, options?: useDataConnectQueryOptions<GetCustomerByEmailData>): UseDataConnectQueryResult<GetCustomerByEmailData, GetCustomerByEmailVariables>;
-```
-
-### Variables
-The `GetCustomerByEmail` Query requires an argument of type `GetCustomerByEmailVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface GetCustomerByEmailVariables {
-  email: string;
-}
-```
-### Return Type
-Recall that calling the `GetCustomerByEmail` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
-
-To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
-
-To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetCustomerByEmail` Query is of type `GetCustomerByEmailData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface GetCustomerByEmailData {
-  customers: ({
-    id: UUIDString;
-    name: string;
-    phone: string;
-    email: string;
-    address?: string | null;
-    accountType?: string | null;
-    companyBranchName?: string | null;
-    contactPersonName?: string | null;
-    firebaseUid?: string | null;
-    active: boolean;
-  } & Customer_Key)[];
-}
-```
-
-To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
-
-### Using `GetCustomerByEmail`'s Query hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, GetCustomerByEmailVariables } from '@reservation-system/dataconnect';
-import { useGetCustomerByEmail } from '@reservation-system/dataconnect/react'
-
-export default function GetCustomerByEmailComponent() {
-  // The `useGetCustomerByEmail` Query hook requires an argument of type `GetCustomerByEmailVariables`:
-  const getCustomerByEmailVars: GetCustomerByEmailVariables = {
-    email: ..., 
-  };
-
-  // You don't have to do anything to "execute" the Query.
-  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useGetCustomerByEmail(getCustomerByEmailVars);
-  // Variables can be defined inline as well.
-  const query = useGetCustomerByEmail({ email: ..., });
-
-  // You can also pass in a `DataConnect` instance to the Query hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const query = useGetCustomerByEmail(dataConnect, getCustomerByEmailVars);
-
-  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
-  const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByEmail(getCustomerByEmailVars, options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = { staleTime: 5 * 1000 };
-  const query = useGetCustomerByEmail(dataConnect, getCustomerByEmailVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Query.
-  if (query.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (query.isError) {
-    return <div>Error: {query.error.message}</div>;
-  }
-
-  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
-  if (query.isSuccess) {
-    console.log(query.data.customers);
+    console.log(query.data.accounts);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -1816,10 +1656,7 @@ export interface ListBillingRecordsData {
     reservation: {
       id: UUIDString;
       reservationCode: string;
-      customer: {
-        id: UUIDString;
-        name: string;
-      } & Customer_Key;
+      reserverName?: string | null;
     } & Reservation_Key;
     invoice_on_billing?: {
       id: UUIDString;
@@ -1899,96 +1736,96 @@ Here's a general overview of how to use the generated Mutation hooks in your cod
 
 Below are examples of how to use the `reservation` connector's generated Mutation hook functions to execute each Mutation. You can also follow the examples from the [Data Connect documentation](https://firebase.google.com/docs/data-connect/web-sdk#operations-react-angular).
 
-## CreateCustomer
-You can execute the `CreateCustomer` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+## CreateAccount
+You can execute the `CreateAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
 ```javascript
-useCreateCustomer(options?: useDataConnectMutationOptions<CreateCustomerData, FirebaseError, CreateCustomerVariables>): UseDataConnectMutationResult<CreateCustomerData, CreateCustomerVariables>;
+useCreateAccount(options?: useDataConnectMutationOptions<CreateAccountData, FirebaseError, CreateAccountVariables>): UseDataConnectMutationResult<CreateAccountData, CreateAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
 ```javascript
-useCreateCustomer(dc: DataConnect, options?: useDataConnectMutationOptions<CreateCustomerData, FirebaseError, CreateCustomerVariables>): UseDataConnectMutationResult<CreateCustomerData, CreateCustomerVariables>;
+useCreateAccount(dc: DataConnect, options?: useDataConnectMutationOptions<CreateAccountData, FirebaseError, CreateAccountVariables>): UseDataConnectMutationResult<CreateAccountData, CreateAccountVariables>;
 ```
 
 ### Variables
-The `CreateCustomer` Mutation requires an argument of type `CreateCustomerVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `CreateAccount` Mutation requires an argument of type `CreateAccountVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface CreateCustomerVariables {
+export interface CreateAccountVariables {
+  firebaseUid: string;
   name: string;
-  phone: string;
+  phone?: string | null;
   email: string;
   address?: string | null;
   accountType?: string | null;
   companyBranchName?: string | null;
   contactPersonName?: string | null;
-  firebaseUid?: string | null;
 }
 ```
 ### Return Type
-Recall that calling the `CreateCustomer` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+Recall that calling the `CreateAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
 
 To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
 
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateCustomer` Mutation is of type `CreateCustomerData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateAccount` Mutation is of type `CreateAccountData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface CreateCustomerData {
-  customer_insert: Customer_Key;
+export interface CreateAccountData {
+  account_insert: Account_Key;
 }
 ```
 
 To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
 
-### Using `CreateCustomer`'s Mutation hook function
+### Using `CreateAccount`'s Mutation hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, CreateCustomerVariables } from '@reservation-system/dataconnect';
-import { useCreateCustomer } from '@reservation-system/dataconnect/react'
+import { connectorConfig, CreateAccountVariables } from '@reservation-system/dataconnect';
+import { useCreateAccount } from '@reservation-system/dataconnect/react'
 
-export default function CreateCustomerComponent() {
+export default function CreateAccountComponent() {
   // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useCreateCustomer();
+  const mutation = useCreateAccount();
 
   // You can also pass in a `DataConnect` instance to the Mutation hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useCreateCustomer(dataConnect);
+  const mutation = useCreateAccount(dataConnect);
 
   // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useCreateCustomer(options);
+  const mutation = useCreateAccount(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useCreateCustomer(dataConnect, options);
+  const mutation = useCreateAccount(dataConnect, options);
 
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useCreateCustomer` Mutation requires an argument of type `CreateCustomerVariables`:
-  const createCustomerVars: CreateCustomerVariables = {
+  // The `useCreateAccount` Mutation requires an argument of type `CreateAccountVariables`:
+  const createAccountVars: CreateAccountVariables = {
+    firebaseUid: ..., 
     name: ..., 
-    phone: ..., 
+    phone: ..., // optional
     email: ..., 
     address: ..., // optional
     accountType: ..., // optional
     companyBranchName: ..., // optional
     contactPersonName: ..., // optional
-    firebaseUid: ..., // optional
   };
-  mutation.mutate(createCustomerVars);
+  mutation.mutate(createAccountVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
+  mutation.mutate({ firebaseUid: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  mutation.mutate(createCustomerVars, options);
+  mutation.mutate(createAccountVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
@@ -2001,30 +1838,30 @@ export default function CreateCustomerComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
-    console.log(mutation.data.customer_insert);
+    console.log(mutation.data.account_insert);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## UpdateCustomer
-You can execute the `UpdateCustomer` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+## UpdateAccount
+You can execute the `UpdateAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
 ```javascript
-useUpdateCustomer(options?: useDataConnectMutationOptions<UpdateCustomerData, FirebaseError, UpdateCustomerVariables>): UseDataConnectMutationResult<UpdateCustomerData, UpdateCustomerVariables>;
+useUpdateAccount(options?: useDataConnectMutationOptions<UpdateAccountData, FirebaseError, UpdateAccountVariables>): UseDataConnectMutationResult<UpdateAccountData, UpdateAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
 ```javascript
-useUpdateCustomer(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateCustomerData, FirebaseError, UpdateCustomerVariables>): UseDataConnectMutationResult<UpdateCustomerData, UpdateCustomerVariables>;
+useUpdateAccount(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateAccountData, FirebaseError, UpdateAccountVariables>): UseDataConnectMutationResult<UpdateAccountData, UpdateAccountVariables>;
 ```
 
 ### Variables
-The `UpdateCustomer` Mutation requires an argument of type `UpdateCustomerVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `UpdateAccount` Mutation requires an argument of type `UpdateAccountVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface UpdateCustomerVariables {
+export interface UpdateAccountVariables {
   id: UUIDString;
   name: string;
-  phone: string;
+  phone?: string | null;
   email: string;
   address?: string | null;
   accountType?: string | null;
@@ -2033,62 +1870,62 @@ export interface UpdateCustomerVariables {
 }
 ```
 ### Return Type
-Recall that calling the `UpdateCustomer` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+Recall that calling the `UpdateAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
 
 To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
 
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateCustomer` Mutation is of type `UpdateCustomerData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateAccount` Mutation is of type `UpdateAccountData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface UpdateCustomerData {
-  customer_update?: Customer_Key | null;
+export interface UpdateAccountData {
+  account_update?: Account_Key | null;
 }
 ```
 
 To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
 
-### Using `UpdateCustomer`'s Mutation hook function
+### Using `UpdateAccount`'s Mutation hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, UpdateCustomerVariables } from '@reservation-system/dataconnect';
-import { useUpdateCustomer } from '@reservation-system/dataconnect/react'
+import { connectorConfig, UpdateAccountVariables } from '@reservation-system/dataconnect';
+import { useUpdateAccount } from '@reservation-system/dataconnect/react'
 
-export default function UpdateCustomerComponent() {
+export default function UpdateAccountComponent() {
   // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useUpdateCustomer();
+  const mutation = useUpdateAccount();
 
   // You can also pass in a `DataConnect` instance to the Mutation hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useUpdateCustomer(dataConnect);
+  const mutation = useUpdateAccount(dataConnect);
 
   // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpdateCustomer(options);
+  const mutation = useUpdateAccount(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpdateCustomer(dataConnect, options);
+  const mutation = useUpdateAccount(dataConnect, options);
 
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useUpdateCustomer` Mutation requires an argument of type `UpdateCustomerVariables`:
-  const updateCustomerVars: UpdateCustomerVariables = {
+  // The `useUpdateAccount` Mutation requires an argument of type `UpdateAccountVariables`:
+  const updateAccountVars: UpdateAccountVariables = {
     id: ..., 
     name: ..., 
-    phone: ..., 
+    phone: ..., // optional
     email: ..., 
     address: ..., // optional
     accountType: ..., // optional
     companyBranchName: ..., // optional
     contactPersonName: ..., // optional
   };
-  mutation.mutate(updateCustomerVars);
+  mutation.mutate(updateAccountVars);
   // Variables can be defined inline as well.
   mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., });
 
@@ -2096,7 +1933,7 @@ export default function UpdateCustomerComponent() {
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  mutation.mutate(updateCustomerVars, options);
+  mutation.mutate(updateAccountVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
@@ -2109,190 +1946,80 @@ export default function UpdateCustomerComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
-    console.log(mutation.data.customer_update);
+    console.log(mutation.data.account_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## UpdateCustomerIdentity
-You can execute the `UpdateCustomerIdentity` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+## DeactivateAccount
+You can execute the `DeactivateAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
 ```javascript
-useUpdateCustomerIdentity(options?: useDataConnectMutationOptions<UpdateCustomerIdentityData, FirebaseError, UpdateCustomerIdentityVariables>): UseDataConnectMutationResult<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
+useDeactivateAccount(options?: useDataConnectMutationOptions<DeactivateAccountData, FirebaseError, DeactivateAccountVariables>): UseDataConnectMutationResult<DeactivateAccountData, DeactivateAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
 ```javascript
-useUpdateCustomerIdentity(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateCustomerIdentityData, FirebaseError, UpdateCustomerIdentityVariables>): UseDataConnectMutationResult<UpdateCustomerIdentityData, UpdateCustomerIdentityVariables>;
+useDeactivateAccount(dc: DataConnect, options?: useDataConnectMutationOptions<DeactivateAccountData, FirebaseError, DeactivateAccountVariables>): UseDataConnectMutationResult<DeactivateAccountData, DeactivateAccountVariables>;
 ```
 
 ### Variables
-The `UpdateCustomerIdentity` Mutation requires an argument of type `UpdateCustomerIdentityVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `DeactivateAccount` Mutation requires an argument of type `DeactivateAccountVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface UpdateCustomerIdentityVariables {
+export interface DeactivateAccountVariables {
   id: UUIDString;
-  name: string;
-  phone: string;
-  email: string;
-  address?: string | null;
-  accountType?: string | null;
-  companyBranchName?: string | null;
-  contactPersonName?: string | null;
-  firebaseUid?: string | null;
 }
 ```
 ### Return Type
-Recall that calling the `UpdateCustomerIdentity` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+Recall that calling the `DeactivateAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
 
 To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
 
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateCustomerIdentity` Mutation is of type `UpdateCustomerIdentityData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeactivateAccount` Mutation is of type `DeactivateAccountData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface UpdateCustomerIdentityData {
-  customer_update?: Customer_Key | null;
+export interface DeactivateAccountData {
+  account_update?: Account_Key | null;
 }
 ```
 
 To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
 
-### Using `UpdateCustomerIdentity`'s Mutation hook function
+### Using `DeactivateAccount`'s Mutation hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, UpdateCustomerIdentityVariables } from '@reservation-system/dataconnect';
-import { useUpdateCustomerIdentity } from '@reservation-system/dataconnect/react'
+import { connectorConfig, DeactivateAccountVariables } from '@reservation-system/dataconnect';
+import { useDeactivateAccount } from '@reservation-system/dataconnect/react'
 
-export default function UpdateCustomerIdentityComponent() {
+export default function DeactivateAccountComponent() {
   // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useUpdateCustomerIdentity();
+  const mutation = useDeactivateAccount();
 
   // You can also pass in a `DataConnect` instance to the Mutation hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useUpdateCustomerIdentity(dataConnect);
+  const mutation = useDeactivateAccount(dataConnect);
 
   // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpdateCustomerIdentity(options);
+  const mutation = useDeactivateAccount(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useUpdateCustomerIdentity(dataConnect, options);
+  const mutation = useDeactivateAccount(dataConnect, options);
 
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useUpdateCustomerIdentity` Mutation requires an argument of type `UpdateCustomerIdentityVariables`:
-  const updateCustomerIdentityVars: UpdateCustomerIdentityVariables = {
-    id: ..., 
-    name: ..., 
-    phone: ..., 
-    email: ..., 
-    address: ..., // optional
-    accountType: ..., // optional
-    companyBranchName: ..., // optional
-    contactPersonName: ..., // optional
-    firebaseUid: ..., // optional
-  };
-  mutation.mutate(updateCustomerIdentityVars);
-  // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., name: ..., phone: ..., email: ..., address: ..., accountType: ..., companyBranchName: ..., contactPersonName: ..., firebaseUid: ..., });
-
-  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  mutation.mutate(updateCustomerIdentityVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Mutation.
-  if (mutation.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (mutation.isError) {
-    return <div>Error: {mutation.error.message}</div>;
-  }
-
-  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
-  if (mutation.isSuccess) {
-    console.log(mutation.data.customer_update);
-  }
-  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
-## DeactivateCustomer
-You can execute the `DeactivateCustomer` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
-```javascript
-useDeactivateCustomer(options?: useDataConnectMutationOptions<DeactivateCustomerData, FirebaseError, DeactivateCustomerVariables>): UseDataConnectMutationResult<DeactivateCustomerData, DeactivateCustomerVariables>;
-```
-You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
-useDeactivateCustomer(dc: DataConnect, options?: useDataConnectMutationOptions<DeactivateCustomerData, FirebaseError, DeactivateCustomerVariables>): UseDataConnectMutationResult<DeactivateCustomerData, DeactivateCustomerVariables>;
-```
-
-### Variables
-The `DeactivateCustomer` Mutation requires an argument of type `DeactivateCustomerVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface DeactivateCustomerVariables {
-  id: UUIDString;
-}
-```
-### Return Type
-Recall that calling the `DeactivateCustomer` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
-
-To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
-
-To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
-
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `DeactivateCustomer` Mutation is of type `DeactivateCustomerData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface DeactivateCustomerData {
-  customer_update?: Customer_Key | null;
-}
-```
-
-To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
-
-### Using `DeactivateCustomer`'s Mutation hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, DeactivateCustomerVariables } from '@reservation-system/dataconnect';
-import { useDeactivateCustomer } from '@reservation-system/dataconnect/react'
-
-export default function DeactivateCustomerComponent() {
-  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useDeactivateCustomer();
-
-  // You can also pass in a `DataConnect` instance to the Mutation hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useDeactivateCustomer(dataConnect);
-
-  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useDeactivateCustomer(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useDeactivateCustomer(dataConnect, options);
-
-  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useDeactivateCustomer` Mutation requires an argument of type `DeactivateCustomerVariables`:
-  const deactivateCustomerVars: DeactivateCustomerVariables = {
+  // The `useDeactivateAccount` Mutation requires an argument of type `DeactivateAccountVariables`:
+  const deactivateAccountVars: DeactivateAccountVariables = {
     id: ..., 
   };
-  mutation.mutate(deactivateCustomerVars);
+  mutation.mutate(deactivateAccountVars);
   // Variables can be defined inline as well.
   mutation.mutate({ id: ..., });
 
@@ -2300,7 +2027,7 @@ export default function DeactivateCustomerComponent() {
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  mutation.mutate(deactivateCustomerVars, options);
+  mutation.mutate(deactivateAccountVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
@@ -2313,80 +2040,80 @@ export default function DeactivateCustomerComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
-    console.log(mutation.data.customer_update);
+    console.log(mutation.data.account_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
 ```
 
-## ReactivateCustomer
-You can execute the `ReactivateCustomer` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+## ReactivateAccount
+You can execute the `ReactivateAccount` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
 ```javascript
-useReactivateCustomer(options?: useDataConnectMutationOptions<ReactivateCustomerData, FirebaseError, ReactivateCustomerVariables>): UseDataConnectMutationResult<ReactivateCustomerData, ReactivateCustomerVariables>;
+useReactivateAccount(options?: useDataConnectMutationOptions<ReactivateAccountData, FirebaseError, ReactivateAccountVariables>): UseDataConnectMutationResult<ReactivateAccountData, ReactivateAccountVariables>;
 ```
 You can also pass in a `DataConnect` instance to the Mutation hook function.
 ```javascript
-useReactivateCustomer(dc: DataConnect, options?: useDataConnectMutationOptions<ReactivateCustomerData, FirebaseError, ReactivateCustomerVariables>): UseDataConnectMutationResult<ReactivateCustomerData, ReactivateCustomerVariables>;
+useReactivateAccount(dc: DataConnect, options?: useDataConnectMutationOptions<ReactivateAccountData, FirebaseError, ReactivateAccountVariables>): UseDataConnectMutationResult<ReactivateAccountData, ReactivateAccountVariables>;
 ```
 
 ### Variables
-The `ReactivateCustomer` Mutation requires an argument of type `ReactivateCustomerVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+The `ReactivateAccount` Mutation requires an argument of type `ReactivateAccountVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 
 ```javascript
-export interface ReactivateCustomerVariables {
+export interface ReactivateAccountVariables {
   id: UUIDString;
 }
 ```
 ### Return Type
-Recall that calling the `ReactivateCustomer` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+Recall that calling the `ReactivateAccount` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
 
 To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
 
 To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
 
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ReactivateCustomer` Mutation is of type `ReactivateCustomerData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `ReactivateAccount` Mutation is of type `ReactivateAccountData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
 ```javascript
-export interface ReactivateCustomerData {
-  customer_update?: Customer_Key | null;
+export interface ReactivateAccountData {
+  account_update?: Account_Key | null;
 }
 ```
 
 To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
 
-### Using `ReactivateCustomer`'s Mutation hook function
+### Using `ReactivateAccount`'s Mutation hook function
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, ReactivateCustomerVariables } from '@reservation-system/dataconnect';
-import { useReactivateCustomer } from '@reservation-system/dataconnect/react'
+import { connectorConfig, ReactivateAccountVariables } from '@reservation-system/dataconnect';
+import { useReactivateAccount } from '@reservation-system/dataconnect/react'
 
-export default function ReactivateCustomerComponent() {
+export default function ReactivateAccountComponent() {
   // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useReactivateCustomer();
+  const mutation = useReactivateAccount();
 
   // You can also pass in a `DataConnect` instance to the Mutation hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useReactivateCustomer(dataConnect);
+  const mutation = useReactivateAccount(dataConnect);
 
   // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useReactivateCustomer(options);
+  const mutation = useReactivateAccount(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  const mutation = useReactivateCustomer(dataConnect, options);
+  const mutation = useReactivateAccount(dataConnect, options);
 
   // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useReactivateCustomer` Mutation requires an argument of type `ReactivateCustomerVariables`:
-  const reactivateCustomerVars: ReactivateCustomerVariables = {
+  // The `useReactivateAccount` Mutation requires an argument of type `ReactivateAccountVariables`:
+  const reactivateAccountVars: ReactivateAccountVariables = {
     id: ..., 
   };
-  mutation.mutate(reactivateCustomerVars);
+  mutation.mutate(reactivateAccountVars);
   // Variables can be defined inline as well.
   mutation.mutate({ id: ..., });
 
@@ -2394,7 +2121,7 @@ export default function ReactivateCustomerComponent() {
   const options = {
     onSuccess: () => { console.log('Mutation succeeded!'); }
   };
-  mutation.mutate(reactivateCustomerVars, options);
+  mutation.mutate(reactivateAccountVars, options);
 
   // Then, you can render your component dynamically based on the status of the Mutation.
   if (mutation.isPending) {
@@ -2407,7 +2134,7 @@ export default function ReactivateCustomerComponent() {
 
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
-    console.log(mutation.data.customer_update);
+    console.log(mutation.data.account_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -2429,7 +2156,14 @@ The `CreateReservation` Mutation requires an argument of type `CreateReservation
 ```javascript
 export interface CreateReservationVariables {
   reservationCode: string;
-  customerId: UUIDString;
+  accountId?: UUIDString | null;
+  reserverName?: string | null;
+  reserverEmail?: string | null;
+  reserverPhone?: string | null;
+  reserverAddress?: string | null;
+  reserverAccountType?: string | null;
+  reserverCompanyBranchName?: string | null;
+  reserverContactPersonName?: string | null;
   usageDate: DateString;
   usageTime: string;
   usageEndTime?: string | null;
@@ -2500,7 +2234,14 @@ export default function CreateReservationComponent() {
   // The `useCreateReservation` Mutation requires an argument of type `CreateReservationVariables`:
   const createReservationVars: CreateReservationVariables = {
     reservationCode: ..., 
-    customerId: ..., 
+    accountId: ..., // optional
+    reserverName: ..., // optional
+    reserverEmail: ..., // optional
+    reserverPhone: ..., // optional
+    reserverAddress: ..., // optional
+    reserverAccountType: ..., // optional
+    reserverCompanyBranchName: ..., // optional
+    reserverContactPersonName: ..., // optional
     usageDate: ..., 
     usageTime: ..., 
     usageEndTime: ..., // optional
@@ -2524,7 +2265,7 @@ export default function CreateReservationComponent() {
   };
   mutation.mutate(createReservationVars);
   // Variables can be defined inline as well.
-  mutation.mutate({ reservationCode: ..., customerId: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+  mutation.mutate({ reservationCode: ..., accountId: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., reserverAccountType: ..., reserverCompanyBranchName: ..., reserverContactPersonName: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
 
   // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
   const options = {
@@ -2544,6 +2285,140 @@ export default function CreateReservationComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.reservation_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateReservation
+You can execute the `UpdateReservation` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateReservation(options?: useDataConnectMutationOptions<UpdateReservationData, FirebaseError, UpdateReservationVariables>): UseDataConnectMutationResult<UpdateReservationData, UpdateReservationVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateReservation(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateReservationData, FirebaseError, UpdateReservationVariables>): UseDataConnectMutationResult<UpdateReservationData, UpdateReservationVariables>;
+```
+
+### Variables
+The `UpdateReservation` Mutation requires an argument of type `UpdateReservationVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateReservationVariables {
+  id: UUIDString;
+  reserverName?: string | null;
+  reserverEmail?: string | null;
+  reserverPhone?: string | null;
+  reserverAddress?: string | null;
+  usageDate: DateString;
+  usageTime: string;
+  usageEndTime?: string | null;
+  expectedPeople: number;
+  bookingType?: string | null;
+  bookingContactName?: string | null;
+  dayContactName?: string | null;
+  dayContactPhone?: string | null;
+  groupName?: string | null;
+  groupNameKana?: string | null;
+  groupType?: string | null;
+  groupTypeOther?: string | null;
+  tcCount?: number | null;
+  dgCount?: number | null;
+  paymentCondition?: string | null;
+  remarks?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpdateReservation` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateReservation` Mutation is of type `UpdateReservationData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateReservationData {
+  reservation_update?: Reservation_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateReservation`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateReservationVariables } from '@reservation-system/dataconnect';
+import { useUpdateReservation } from '@reservation-system/dataconnect/react'
+
+export default function UpdateReservationComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateReservation();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateReservation(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateReservation(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateReservation(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateReservation` Mutation requires an argument of type `UpdateReservationVariables`:
+  const updateReservationVars: UpdateReservationVariables = {
+    id: ..., 
+    reserverName: ..., // optional
+    reserverEmail: ..., // optional
+    reserverPhone: ..., // optional
+    reserverAddress: ..., // optional
+    usageDate: ..., 
+    usageTime: ..., 
+    usageEndTime: ..., // optional
+    expectedPeople: ..., 
+    bookingType: ..., // optional
+    bookingContactName: ..., // optional
+    dayContactName: ..., // optional
+    dayContactPhone: ..., // optional
+    groupName: ..., // optional
+    groupNameKana: ..., // optional
+    groupType: ..., // optional
+    groupTypeOther: ..., // optional
+    tcCount: ..., // optional
+    dgCount: ..., // optional
+    paymentCondition: ..., // optional
+    remarks: ..., // optional
+  };
+  mutation.mutate(updateReservationVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateReservationVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.reservation_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -2738,132 +2613,6 @@ export default function DeleteReservationDetailComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.reservationDetail_delete);
-  }
-  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
-}
-```
-
-## UpdateReservation
-You can execute the `UpdateReservation` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
-```javascript
-useUpdateReservation(options?: useDataConnectMutationOptions<UpdateReservationData, FirebaseError, UpdateReservationVariables>): UseDataConnectMutationResult<UpdateReservationData, UpdateReservationVariables>;
-```
-You can also pass in a `DataConnect` instance to the Mutation hook function.
-```javascript
-useUpdateReservation(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateReservationData, FirebaseError, UpdateReservationVariables>): UseDataConnectMutationResult<UpdateReservationData, UpdateReservationVariables>;
-```
-
-### Variables
-The `UpdateReservation` Mutation requires an argument of type `UpdateReservationVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface UpdateReservationVariables {
-  id: UUIDString;
-  usageDate: DateString;
-  usageTime: string;
-  usageEndTime?: string | null;
-  expectedPeople: number;
-  bookingType?: string | null;
-  bookingContactName?: string | null;
-  dayContactName?: string | null;
-  dayContactPhone?: string | null;
-  groupName?: string | null;
-  groupNameKana?: string | null;
-  groupType?: string | null;
-  groupTypeOther?: string | null;
-  tcCount?: number | null;
-  dgCount?: number | null;
-  paymentCondition?: string | null;
-  remarks?: string | null;
-}
-```
-### Return Type
-Recall that calling the `UpdateReservation` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
-
-To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
-
-To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
-
-To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateReservation` Mutation is of type `UpdateReservationData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
-```javascript
-export interface UpdateReservationData {
-  reservation_update?: Reservation_Key | null;
-}
-```
-
-To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
-
-### Using `UpdateReservation`'s Mutation hook function
-
-```javascript
-import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, UpdateReservationVariables } from '@reservation-system/dataconnect';
-import { useUpdateReservation } from '@reservation-system/dataconnect/react'
-
-export default function UpdateReservationComponent() {
-  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
-  const mutation = useUpdateReservation();
-
-  // You can also pass in a `DataConnect` instance to the Mutation hook function.
-  const dataConnect = getDataConnect(connectorConfig);
-  const mutation = useUpdateReservation(dataConnect);
-
-  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useUpdateReservation(options);
-
-  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
-  const dataConnect = getDataConnect(connectorConfig);
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  const mutation = useUpdateReservation(dataConnect, options);
-
-  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
-  // The `useUpdateReservation` Mutation requires an argument of type `UpdateReservationVariables`:
-  const updateReservationVars: UpdateReservationVariables = {
-    id: ..., 
-    usageDate: ..., 
-    usageTime: ..., 
-    usageEndTime: ..., // optional
-    expectedPeople: ..., 
-    bookingType: ..., // optional
-    bookingContactName: ..., // optional
-    dayContactName: ..., // optional
-    dayContactPhone: ..., // optional
-    groupName: ..., // optional
-    groupNameKana: ..., // optional
-    groupType: ..., // optional
-    groupTypeOther: ..., // optional
-    tcCount: ..., // optional
-    dgCount: ..., // optional
-    paymentCondition: ..., // optional
-    remarks: ..., // optional
-  };
-  mutation.mutate(updateReservationVars);
-  // Variables can be defined inline as well.
-  mutation.mutate({ id: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., });
-
-  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
-  const options = {
-    onSuccess: () => { console.log('Mutation succeeded!'); }
-  };
-  mutation.mutate(updateReservationVars, options);
-
-  // Then, you can render your component dynamically based on the status of the Mutation.
-  if (mutation.isPending) {
-    return <div>Loading...</div>;
-  }
-
-  if (mutation.isError) {
-    return <div>Error: {mutation.error.message}</div>;
-  }
-
-  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
-  if (mutation.isSuccess) {
-    console.log(mutation.data.reservation_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

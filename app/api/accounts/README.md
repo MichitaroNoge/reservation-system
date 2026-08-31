@@ -8,6 +8,7 @@
 - `DELETE /api/accounts/:id` 管理者向け無効化
 - `POST /api/accounts/:id/reactivate` 管理者向け再有効化
 - `GET /api/accounts/me` ログイン本人のAccount
+- `POST /api/accounts/me` ログイン本人のAccount作成・更新
 - `GET /api/accounts/me/reservations` ログイン本人がログイン状態で作成した予約のみ
 
 通常の利用者登録では、Firebase Authユーザー作成後、初回のログイン予約時に `POST /api/reservations` がFirebase UIDでAccountを取得し、未作成ならそのUIDでAccountを作成します。メールアドレスで既存予約を検索・統合しません。

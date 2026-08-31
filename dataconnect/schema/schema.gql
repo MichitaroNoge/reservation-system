@@ -55,9 +55,9 @@ type Reservation @table {
   id: UUID! @default(expr: "uuidV4()")
   reservationCode: String! @unique @col(dataType: "varchar(30)")
   account: Account
-  reserverName: String! @col(dataType: "varchar(100)")
-  reserverEmail: String! @col(dataType: "varchar(255)")
-  reserverPhone: String! @col(dataType: "varchar(30)")
+  reserverName: String @col(dataType: "varchar(100)")
+  reserverEmail: String @col(dataType: "varchar(255)")
+  reserverPhone: String @col(dataType: "varchar(30)")
   reserverAddress: String @col(dataType: "varchar(500)")
   reserverAccountType: String @col(dataType: "varchar(30)")
   reserverCompanyBranchName: String @col(dataType: "varchar(100)")

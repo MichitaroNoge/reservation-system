@@ -9,9 +9,9 @@ test("customer pages expose direct entry links for the official website", async 
     [["app", "reserve", "page.tsx"], "customerMode=reservation"],
     [["app", "customer", "page.tsx"], "customerMode=home"],
     [["app", "customer", "reservations", "page.tsx"], "customerMode=account"],
-    [["app", "customer", "change-request", "page.tsx"], "customerMode=change"],
-    [["app", "customer", "cancellation-request", "page.tsx"], "customerMode=cancellation"],
-    [["app", "customer", "confirmed-request", "page.tsx"], "customerMode=confirmedChange"],
+    [["app", "customer", "change-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "cancellation-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "confirmed-request", "page.tsx"], "/customer/reservations"],
   ] as const;
 
   assert.match(pageSource, /customerPortalModeFromSearch/);
@@ -105,11 +105,16 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /event\.stopPropagation\(\); onApproveChangeRequest/);
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
-  assert.match(pageSource, /const \[includeVisitedReservations, setIncludeVisitedReservations\] = useState\(false\)/);
-  assert.match(pageSource, /!reservationStatusFilter && !includeVisitedReservations && reservation\.status === STATUS\.visited/);
-  assert.match(pageSource, /<div className="visited-filter"><span>来店済<\/span>/);
-  assert.match(pageSource, /setIncludeVisitedReservations\(false\)[\s\S]*除外/);
-  assert.match(pageSource, /setIncludeVisitedReservations\(true\)[\s\S]*含む/);
+  assert.match(pageSource, /const \[reservationStatusFilters, setReservationStatusFilters\] = useState<Status\[\]>/);
+  assert.match(pageSource, /useState<Status\[\]>\(\(\) => statusOptions\.filter\(status => status !== STATUS\.cancelled && status !== STATUS\.visited\)\)/);
+  assert.match(pageSource, /reservationStatusFilters\.length > 0 && !reservationStatusFilters\.includes\(reservation\.status\)/);
+  assert.match(pageSource, /className="reservation-status-dropdown"/);
+  assert.match(pageSource, /className="panel management-panel reservation-list-panel"/);
+  assert.match(pageSource, /有効分のみ/);
+  assert.match(pageSource, /removeAttribute\("open"\)\}>閉じる/);
+  assert.match(pageSource, /status !== STATUS\.cancelled && status !== STATUS\.visited/);
+  assert.doesNotMatch(pageSource, /すべて選択/);
+  assert.doesNotMatch(pageSource, /className="visited-filter"/);
   assert.match(pageSource, /function MasterManagementPage/);
   assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><\/span>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*<span><strong>店舗管理<\/strong><\/span>[\s\S]*onSelectMasterView\("menus"\)[\s\S]*<span><strong>メニュー管理<\/strong><\/span>/);
   assert.doesNotMatch(pageSource, /<small>予約者の連絡先/);
@@ -130,7 +135,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head\{[\s\S]*justify-content:flex-end[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(styleSource, /\.management table td small\{font-size:12px;color:#263149\}/);
-  assert.match(styleSource, /\.visited-filter\{/);
+  assert.match(styleSource, /\.reservation-status-dropdown/);
+  assert.match(styleSource, /\.reservation-list-panel\{overflow:visible\}/);
+  assert.match(styleSource, /\.reservation-status-menu\{[\s\S]*max-height:min\(440px,calc\(100vh - 170px\)\);overflow-y:auto/);
+  assert.match(styleSource, /\.status-menu-actions\{display:grid;grid-template-columns:1fr 1fr 1fr/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);
   assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);

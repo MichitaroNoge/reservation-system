@@ -19,6 +19,44 @@ export function reservationCustomerSubLabel(reservation: Reservation) {
   return reservation.bookingType === "travel_agency_group" && reservation.groupName ? reservation.groupName : "";
 }
 
+export function reservationBookingTypeLabel(reservation: Pick<Reservation, "bookingType">) {
+  return reservation.bookingType === "travel_agency_group" ? "旅行会社様専用 団体予約" : "一般予約";
+}
+
+export function reservationBookingTypeShortLabel(reservation: Pick<Reservation, "bookingType">) {
+  return reservation.bookingType === "travel_agency_group" ? "旅行会社" : "一般";
+}
+
+function formatDateTimeToMinute(date: Date) {
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${year}/${month}/${day} ${hour}:${minute}`;
+}
+
+export function dateTimeMinuteLabel(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return "";
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) return formatDateTimeToMinute(parsed);
+  const legacyMatch = normalized.match(/^(\d{1,2})月(\d{1,2})日\s+(\d{1,2}):(\d{2})$/);
+  if (legacyMatch) {
+    const [, month, day, hour, minute] = legacyMatch;
+    const legacyDate = new Date(Number(todayIso().slice(0, 4)), Number(month) - 1, Number(day), Number(hour), Number(minute));
+    return formatDateTimeToMinute(legacyDate);
+  }
+  const slashMatch = normalized.match(/^(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+  if (slashMatch) {
+    const [, month, day, hour, minute] = slashMatch;
+    const legacyDate = new Date(Number(todayIso().slice(0, 4)), Number(month) - 1, Number(day), Number(hour), Number(minute));
+    return formatDateTimeToMinute(legacyDate);
+  }
+  return normalized;
+}
+
 export function policyAgreementLabel(reservation: Reservation) {
   if (!reservation.policyAgreement) return "未同意";
   const label = reservation.policyAgreement.kind === "temporary" ? "仮予約の注意事項" : "キャンセルポリシー";
@@ -39,11 +77,15 @@ export function reservationDateTimeLabel(reservation: Pick<Reservation, "date" |
 }
 
 export function bookingFormDateTimeLabel(form: Pick<BookingForm, "date" | "startTime" | "endTime">) {
+  if (!form.date && !form.startTime) return "日時未入力";
+  if (!form.date) return `日付未入力 ${form.startTime}`;
+  if (!form.startTime) return `${form.date.replaceAll("-", "/")} 時刻未入力`;
   const endTime = form.endTime ? `〜${form.endTime}` : "";
-  return `${form.date.replaceAll("-", "/")} ${form.startTime || DEFAULT_START_TIME}${endTime}`;
+  return `${form.date.replaceAll("-", "/")} ${form.startTime}${endTime}`;
 }
 
 export function bookingFormEndTime(form: Pick<BookingForm, "startTime" | "menuItems" | "endTime">, menuCatalog: Pick<Menu, "name" | "duration">[]) {
+  if (!form.startTime) return "";
   return form.endTime || calculateReservationEndTime(form.startTime, form.menuItems, menuCatalog);
 }
 

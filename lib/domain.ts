@@ -178,6 +178,34 @@ export function reservationAssignments(reservation: Pick<Reservation, "store" | 
       : [];
 }
 
+export function shouldResetConfirmationContact(reservation: Reservation, input: UpdateReservationInput) {
+  if (!reservation.confirmationContactedAt) return false;
+  return (input.date !== undefined && input.date !== reservation.date)
+    || (input.startTime !== undefined && input.startTime !== reservation.startTime)
+    || (input.endTime !== undefined && input.endTime !== reservation.endTime)
+    || (input.people !== undefined && input.people !== reservation.people)
+    || (input.email !== undefined && input.email !== reservation.email)
+    || (input.menuItems !== undefined && !sameStringItems(input.menuItems, reservation.menuItems ?? []));
+}
+
+export function shouldResetConfirmationContactForAssignments(reservation: Reservation, assignments: StoreAssignment[]) {
+  if (!reservation.confirmationContactedAt) return false;
+  const current = reservationAssignments(reservation).map(assignmentKey).sort();
+  const next = assignments.map(assignmentKey).sort();
+  return !sameStringItems(current, next);
+}
+
+function assignmentKey(assignment: StoreAssignment) {
+  return `${assignment.store}\u0000${assignment.people}`;
+}
+
+function sameStringItems(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
+}
+
 export function isConfirmedReservationStatus(status: ReservationStatus) {
   return status === "confirmed" || status === "waiting_for_visit";
 }

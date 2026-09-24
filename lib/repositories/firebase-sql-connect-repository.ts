@@ -7,6 +7,8 @@ import {
   normalizeReservationRequestType,
   normalizeReservationStatus,
   reservationStatusCodes,
+  shouldResetConfirmationContact,
+  shouldResetConfirmationContactForAssignments,
   toDataConnectReservationStatus,
   type Account,
   type CreateReservationChangeRequestInput,
@@ -129,6 +131,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateReservation(id: string, input: UpdateReservationInput) {
     const current = await this.getReservationWithInternalId(id);
+    const resetConfirmationContact = shouldResetConfirmationContact(current, input);
     const shouldCalculateEndTime = input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined || !current.endTime);
     const menuCatalog = shouldCalculateEndTime ? await this.listMenus() : [];
 
@@ -159,6 +162,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     });
 
     if (input.menuItems !== undefined) await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
+    if (resetConfirmationContact) await op("clearConfirmationContact")(this.connection(), { id: current.dataConnectId });
     return this.getReservationWithInternalId(id);
   }
 
@@ -185,11 +189,13 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const valid = assignments.filter((item) => item.store && item.people > 0).map((item) => ({ store: item.store, people: Number(item.people) }));
     const total = valid.reduce((sum, item) => sum + item.people, 0);
     if (valid.length > 0 && total !== reservation.people) throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
+    const resetConfirmationContact = shouldResetConfirmationContactForAssignments(reservation, valid);
     for (const assignment of reservation.dataConnectStoreAssignments) await op("deleteStoreAssignment")(this.connection(), { id: assignment.id });
     for (const assignment of valid) {
       const store = await this.getRawStoreByName(assignment.store);
       await op("assignStore")(this.connection(), { reservationId: reservation.dataConnectId, storeId: store.id, people: assignment.people });
     }
+    if (resetConfirmationContact) await op("clearConfirmationContact")(this.connection(), { id: reservation.dataConnectId });
     return this.getReservationWithInternalId(id);
   }
 

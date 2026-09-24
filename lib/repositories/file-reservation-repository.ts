@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type Account, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -159,6 +159,7 @@ export class FileReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    const resetConfirmationContact = shouldResetConfirmationContact(reservation, input);
     if (input.date !== undefined) reservation.date = input.date;
     if (input.startTime !== undefined) reservation.startTime = input.startTime;
     if (input.endTime !== undefined) reservation.endTime = input.endTime;
@@ -181,6 +182,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.remarks !== undefined) reservation.remarks = input.remarks;
     if (input.menuItems !== undefined) { reservation.menuItems = input.menuItems; reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus); }
     if (input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined)) reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     await this.writeDatabase(database);
     return reservation;
   }
@@ -215,8 +217,10 @@ export class FileReservationRepository implements ReservationRepository {
     const validAssignments = assignments.filter((assignment) => assignment.store && assignment.people > 0).map((assignment) => ({ store: assignment.store, people: Number(assignment.people) }));
     const assignedPeople = validAssignments.reduce((total, assignment) => total + assignment.people, 0);
     if (validAssignments.length > 0 && assignedPeople !== reservation.people) throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
+    const resetConfirmationContact = shouldResetConfirmationContactForAssignments(reservation, validAssignments);
     reservation.storeAssignments = validAssignments;
     reservation.store = validAssignments.length === 1 ? validAssignments[0].store : validAssignments.length > 1 ? "複数店舗" : null;
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     await this.writeDatabase(database);
     return reservation;
   }
@@ -248,6 +252,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
+    const resetConfirmationContact = shouldResetConfirmationContact(reservation, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     const shouldResetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     reservation.date = request.requestedDate;
     reservation.startTime = request.requestedStartTime;
@@ -255,6 +260,7 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.menuItems = request.requestedMenuItems;
     reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     if (shouldResetAssignments) { reservation.store = null; reservation.storeAssignments = []; }
     reservation.status = getAutomaticReservationStatus(reservation);
     request.status = "approved";

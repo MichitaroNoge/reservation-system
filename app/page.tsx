@@ -89,6 +89,23 @@ export default function Home() {
   const [adminForm, setAdminForm] = useState<BookingForm>(() => emptyReservationForm(STATUS.confirmed));
   const [customerEntryMode, setCustomerEntryMode] = useState<CustomerPortalMode>("home");
 
+  const openCustomerPortal = (mode: CustomerPortalMode = "home") => {
+    const url = new URL(window.location.href);
+    url.pathname = "/";
+    url.searchParams.set("customerMode", mode);
+    window.history.replaceState(null, "", url);
+    setCustomerEntryMode(mode);
+    setRole("customer");
+  };
+
+  const openAdmin = () => {
+    const url = new URL(window.location.href);
+    url.pathname = "/";
+    url.searchParams.delete("customerMode");
+    window.history.replaceState(null, "", url);
+    setRole("admin");
+  };
+
   useEffect(() => {
     const directMode = customerPortalModeFromSearch(new URLSearchParams(window.location.search).get("customerMode"));
     if (!directMode) return;
@@ -463,15 +480,15 @@ export default function Home() {
     setView("reservations");
   };
 
-  if (role === "customer") return <CustomerPortal initialMode={customerEntryMode} form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={() => setRole("admin")} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
+  if (role === "customer") return <CustomerPortal initialMode={customerEntryMode} form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={openAdmin} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
   if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
-  if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => setRole("customer")} error={authError} />;
+  if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => openCustomerPortal()} error={authError} />;
 
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="logo"><span>R</span><strong>Reserve</strong><small>Operations</small></div>
       <nav><button className={view === "dashboard" ? "active" : ""} onClick={() => setView("dashboard")}><Icon name="grid"/>ダッシュボード</button><button className={view === "reservations" ? "active" : ""} onClick={() => openReservations("すべて")}><Icon name="calendar"/>予約一覧</button><button className={view === "reservationApprovals" ? "active" : ""} onClick={() => setView("reservationApprovals")}><Icon name="check"/>予約承認{taskCounts.reservationApprovals > 0 && <i>{taskCounts.reservationApprovals}</i>}</button><button className={view === "confirmedReservationRequests" ? "active" : ""} onClick={() => setView("confirmedReservationRequests")}><Icon name="check"/>本予約変更承認{taskCounts.confirmedReservationRequests > 0 && <i>{taskCounts.confirmedReservationRequests}</i>}</button><button className={view === "reservationChangeRequests" ? "active" : ""} onClick={() => setView("reservationChangeRequests")}><Icon name="check"/>予約変更承認{taskCounts.changeRequests > 0 && <i>{taskCounts.changeRequests}</i>}</button><button className={view === "cancellationApprovals" ? "active" : ""} onClick={() => setView("cancellationApprovals")}><Icon name="check"/>キャンセル承認{taskCounts.cancellationApprovals > 0 && <i>{taskCounts.cancellationApprovals}</i>}</button><button className={view === "confirmationContacts" ? "active" : ""} onClick={() => setView("confirmationContacts")}><Icon name="check"/>確認連絡{taskCounts.preContactDue > 0 && <i>{taskCounts.preContactDue}</i>}</button><button className={view === "masters" || view === "customers" || view === "stores" || view === "menus" ? "active" : ""} onClick={() => setView("masters")}><Icon name="settings"/>マスタ管理</button><button className={view === "billing" ? "active" : ""} onClick={() => setView("billing")}><Icon name="chart"/>利用実績・請求</button></nav>
-      <div className="sidebar-bottom"><button onClick={() => setRole("customer")}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
+      <div className="sidebar-bottom"><button onClick={() => openCustomerPortal()}>顧客画面を表示 <Icon name="arrow"/></button><button className="logout-button" onClick={signOutAdmin}>ログアウト</button><div className="profile"><span>{(adminSession.email ?? "AD").slice(0, 2).toUpperCase()}</span><div><strong>{adminSession.email ?? "管理者"}</strong><small>システム管理者</small></div></div></div>
     </aside>
     <div className="workspace">
       <header className="topbar"><h1>{{dashboard:"ダッシュボード",reservations:"予約一覧",reservationApprovals:"予約承認",cancellationApprovals:"キャンセル承認",confirmedReservationRequests:"本予約変更承認",reservationChangeRequests:"予約変更承認",confirmationContacts:"確認連絡",masters:"マスタ管理",customers:"顧客管理",stores:"店舗管理",menus:"メニュー管理",billing:"利用実績・請求"}[view]}</h1><div className="topbar-meta"><span>管理画面</span><strong>{fullDateHeadingLabel(todayIso())}</strong></div></header>
@@ -1018,6 +1035,13 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
     setPortalMode(initialMode);
     if (initialMode === "reservation") setStep(1);
   }, [initialMode, setStep]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.pathname = "/";
+    url.searchParams.set("customerMode", portalMode);
+    window.history.replaceState(null, "", url);
+  }, [portalMode]);
 
   useEffect(() => {
     if (!customerUser?.emailVerified) return;

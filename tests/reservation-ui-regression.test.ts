@@ -17,6 +17,10 @@ test("customer pages expose direct entry links for the official website", async 
   assert.match(pageSource, /customerPortalModeFromSearch/);
   assert.match(pageSource, /setRole\("customer"\)/);
   assert.match(pageSource, /initialMode=\{customerEntryMode\}/);
+  assert.match(pageSource, /const openCustomerPortal/);
+  assert.match(pageSource, /searchParams\.set\("customerMode", mode\)/, "opening the customer portal should persist its mode in the URL");
+  assert.match(pageSource, /searchParams\.set\("customerMode", portalMode\)/, "customer portal navigation should keep the URL reload-safe");
+  assert.match(pageSource, /searchParams\.delete\("customerMode"\)/, "returning to admin should clear the customer mode URL parameter");
 
   for (const [routePath, query] of directPages) {
     const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");

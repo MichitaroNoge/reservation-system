@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reservationStatusCodes, type Reservation } from "../lib/domain";
+import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type Reservation } from "../lib/domain";
 import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
 import { receiptEmailIdempotencyKey, sendPendingReceiptEmails, sendReceiptEmailForReservation } from "../lib/services/receipt-email-service";
+import { approvalEmailDeliveryKey, requestAndSendApprovalEmail, sendPendingApprovalEmails } from "../lib/services/approval-email-service";
 import type { ReservationRepository } from "../lib/repositories/reservation-repository";
 
 const now = new Date("2026-08-14T00:00:00+09:00");
@@ -175,6 +176,28 @@ test("receipt email safely stops retrying when an address is missing", async () 
   assert.equal(repository.get("RSV-RECEIPT-NO-EMAIL")?.receiptEmailSentAt, null);
 });
 
+test("approval email service sends each approval event only once", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-APPROVAL" })]);
+  const emailClient = new RecordingEmailClient();
+
+  await requestAndSendApprovalEmail(repository, "RSV-APPROVAL", "reservation_approved", undefined, { now, emailClient });
+  await requestAndSendApprovalEmail(repository, "RSV-APPROVAL", "reservation_approved", undefined, { now, emailClient });
+
+  assert.equal(emailClient.sent.length, 1);
+  assert.match(emailClient.sent[0].subject, /予約申請が承認されました/);
+  assert.equal(emailClient.sent[0].idempotencyKey, `reservation-approval/${approvalEmailDeliveryKey("RSV-APPROVAL", "reservation_approved")}`);
+});
+
+test("approval emails retain failures for periodic retry", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-CHANGE" })]);
+  await assert.rejects(() => requestAndSendApprovalEmail(repository, "RSV-CHANGE", "reservation_change_approved", "RCR-1", { now, emailClient: new RecordingEmailClient(new Error("Resend unavailable")) }));
+
+  const result = await sendPendingApprovalEmails(repository, { now, emailClient: new RecordingEmailClient() });
+  assert.equal(result.sent, 1);
+  assert.equal((await repository.listApprovalEmailDeliveries())[0].retryCount, 2);
+  assert.ok((await repository.listApprovalEmailDeliveries())[0].sentAt);
+});
+
 class RecordingEmailClient implements EmailClient {
   sent: SendEmailInput[] = [];
 
@@ -188,6 +211,7 @@ class RecordingEmailClient implements EmailClient {
 }
 
 class MemoryReservationRepository implements ReservationRepository {
+  private approvalEmailDeliveries: ApprovalEmailDelivery[] = [];
   constructor(private reservations: Reservation[]) {}
 
   get(id: string) {
@@ -213,6 +237,23 @@ class MemoryReservationRepository implements ReservationRepository {
     target.receiptEmailRetryCount = input.retryCount;
     target.receiptEmailLastError = input.lastError ?? null;
     return target;
+  }
+
+  async listApprovalEmailDeliveries() { return this.approvalEmailDeliveries; }
+
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+    const existing = this.approvalEmailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const delivery: ApprovalEmailDelivery = { ...input, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
+    this.approvalEmailDeliveries.push(delivery);
+    return delivery;
+  }
+
+  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const delivery = this.approvalEmailDeliveries.find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
+    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    return delivery;
   }
 
   listReservationsForReservationAccount = unsupported;

@@ -1,4 +1,4 @@
-import type { Account, CreateReservationChangeRequestInput, CreateReservationInput, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import type { Account, ApprovalEmailDelivery, ApprovalEmailType, CreateReservationChangeRequestInput, CreateReservationInput, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
   listReservations(): Promise<Reservation[]>;
@@ -8,6 +8,9 @@ export type ReservationRepository = {
   updateReservationStatus(id: string, status: ReservationStatus, options?: { requestType?: ReservationRequestType | null }): Promise<Reservation>;
   updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation>;
   updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }): Promise<Reservation>;
+  listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]>;
+  createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }): Promise<ApprovalEmailDelivery>;
+  updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }): Promise<ApprovalEmailDelivery>;
   assignStores(id: string, assignments: StoreAssignment[]): Promise<Reservation>;
   listReservationChangeRequests(): Promise<ReservationChangeRequest[]>;
   createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest>;

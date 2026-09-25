@@ -58,6 +58,11 @@ export interface AddReservationDetailVariables {
   unitPrice: number;
 }
 
+export interface ApprovalEmailDelivery_Key {
+  id: UUIDString;
+  __typename?: 'ApprovalEmailDelivery_Key';
+}
+
 export interface AssignStoreData {
   storeAssignment_insert: StoreAssignment_Key;
 }
@@ -94,6 +99,18 @@ export interface CreateAccountVariables {
   accountType?: string | null;
   companyBranchName?: string | null;
   contactPersonName?: string | null;
+}
+
+export interface CreateApprovalEmailDeliveryData {
+  approvalEmailDelivery_insert: ApprovalEmailDelivery_Key;
+}
+
+export interface CreateApprovalEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId: UUIDString;
+  emailType: string;
+  referenceId?: string | null;
+  requestedAt: TimestampString;
 }
 
 export interface CreateMenuData {
@@ -167,6 +184,11 @@ export interface CreateStoreVariables {
   name: string;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface Customer_Key {
+  id: UUIDString;
+  __typename?: 'Customer_Key';
 }
 
 export interface DeactivateAccountData {
@@ -491,6 +513,23 @@ export interface ListAccountsData {
   } & Account_Key)[];
 }
 
+export interface ListApprovalEmailDeliveriesData {
+  approvalEmailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    emailType: string;
+    referenceId?: string | null;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastAttemptAt?: TimestampString | null;
+    retryCount: number;
+    lastError?: string | null;
+    reservation: {
+      reservationCode: string;
+    };
+  } & ApprovalEmailDelivery_Key)[];
+}
+
 export interface ListBillingRecordsData {
   billings: ({
     id: UUIDString;
@@ -768,6 +807,18 @@ export interface UpdateAccountVariables {
   contactPersonName?: string | null;
 }
 
+export interface UpdateApprovalEmailDeliveryData {
+  approvalEmailDelivery_update?: ApprovalEmailDelivery_Key | null;
+}
+
+export interface UpdateApprovalEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
+}
+
 export interface UpdateConfirmationContactData {
   reservation_update?: Reservation_Key | null;
 }
@@ -1016,6 +1067,30 @@ export const updateReceiptEmailDeliveryRef: UpdateReceiptEmailDeliveryRef;
 export function updateReceiptEmailDelivery(vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
 export function updateReceiptEmailDelivery(dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
 
+interface CreateApprovalEmailDeliveryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateApprovalEmailDeliveryVariables): MutationRef<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateApprovalEmailDeliveryVariables): MutationRef<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+  operationName: string;
+}
+export const createApprovalEmailDeliveryRef: CreateApprovalEmailDeliveryRef;
+
+export function createApprovalEmailDelivery(vars: CreateApprovalEmailDeliveryVariables): MutationPromise<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+export function createApprovalEmailDelivery(dc: DataConnect, vars: CreateApprovalEmailDeliveryVariables): MutationPromise<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+
+interface UpdateApprovalEmailDeliveryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateApprovalEmailDeliveryVariables): MutationRef<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateApprovalEmailDeliveryVariables): MutationRef<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+  operationName: string;
+}
+export const updateApprovalEmailDeliveryRef: UpdateApprovalEmailDeliveryRef;
+
+export function updateApprovalEmailDelivery(vars: UpdateApprovalEmailDeliveryVariables): MutationPromise<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+export function updateApprovalEmailDelivery(dc: DataConnect, vars: UpdateApprovalEmailDeliveryVariables): MutationPromise<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+
 interface AssignStoreRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: AssignStoreVariables): MutationRef<AssignStoreData, AssignStoreVariables>;
@@ -1219,6 +1294,18 @@ export const listReservationChangeRequestsRef: ListReservationChangeRequestsRef;
 
 export function listReservationChangeRequests(options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
 export function listReservationChangeRequests(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListReservationChangeRequestsData, undefined>;
+
+interface ListApprovalEmailDeliveriesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListApprovalEmailDeliveriesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListApprovalEmailDeliveriesData, undefined>;
+  operationName: string;
+}
+export const listApprovalEmailDeliveriesRef: ListApprovalEmailDeliveriesRef;
+
+export function listApprovalEmailDeliveries(options?: ExecuteQueryOptions): QueryPromise<ListApprovalEmailDeliveriesData, undefined>;
+export function listApprovalEmailDeliveries(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListApprovalEmailDeliveriesData, undefined>;
 
 interface ListAccountsRef {
   /* Allow users to create refs without passing in DataConnect */

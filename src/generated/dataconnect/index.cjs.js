@@ -217,6 +217,34 @@ exports.updateReceiptEmailDelivery = function updateReceiptEmailDelivery(dcOrVar
 }
 ;
 
+const createApprovalEmailDeliveryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateApprovalEmailDelivery', inputVars);
+}
+createApprovalEmailDeliveryRef.operationName = 'CreateApprovalEmailDelivery';
+exports.createApprovalEmailDeliveryRef = createApprovalEmailDeliveryRef;
+
+exports.createApprovalEmailDelivery = function createApprovalEmailDelivery(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createApprovalEmailDeliveryRef(dcInstance, inputVars));
+}
+;
+
+const updateApprovalEmailDeliveryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateApprovalEmailDelivery', inputVars);
+}
+updateApprovalEmailDeliveryRef.operationName = 'UpdateApprovalEmailDelivery';
+exports.updateApprovalEmailDeliveryRef = updateApprovalEmailDeliveryRef;
+
+exports.updateApprovalEmailDelivery = function updateApprovalEmailDelivery(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateApprovalEmailDeliveryRef(dcInstance, inputVars));
+}
+;
+
 const assignStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -456,6 +484,21 @@ exports.listReservationChangeRequests = function listReservationChangeRequests(d
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listReservationChangeRequestsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listApprovalEmailDeliveriesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListApprovalEmailDeliveries');
+}
+listApprovalEmailDeliveriesRef.operationName = 'ListApprovalEmailDeliveries';
+exports.listApprovalEmailDeliveriesRef = listApprovalEmailDeliveriesRef;
+
+exports.listApprovalEmailDeliveries = function listApprovalEmailDeliveries(dcOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listApprovalEmailDeliveriesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

@@ -11,6 +11,19 @@ export type ReservationStatus =
   | "cancelled";
 
 export type ReservationRequestType = "confirmed_from_temporary";
+export type ApprovalEmailType = "reservation_approved" | "confirmed_change_approved" | "reservation_change_approved" | "cancellation_approved";
+export type ApprovalEmailDelivery = {
+  id?: string;
+  deliveryKey: string;
+  reservationId: string;
+  type: ApprovalEmailType;
+  referenceId?: string | null;
+  requestedAt: string;
+  sentAt?: string | null;
+  lastAttemptAt?: string | null;
+  retryCount: number;
+  lastError?: string | null;
+};
 export type AccountType = "individual" | "travel_agency";
 export type CustomerAccountType = AccountType;
 export type ReservationBookingType = "individual" | "travel_agency_group";

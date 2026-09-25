@@ -126,6 +126,20 @@ function updateReceiptEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.updateReceiptEmailDelivery = updateReceiptEmailDelivery;
 
+function createApprovalEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateApprovalEmailDelivery', inputVars, inputOpts);
+}
+exports.createApprovalEmailDelivery = createApprovalEmailDelivery;
+
+function updateApprovalEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateApprovalEmailDelivery', inputVars, inputOpts);
+}
+exports.updateApprovalEmailDelivery = updateApprovalEmailDelivery;
+
 function assignStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -244,6 +258,13 @@ function listReservationChangeRequests(dcOrOptions, options) {
   return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
 }
 exports.listReservationChangeRequests = listReservationChangeRequests;
+
+function listApprovalEmailDeliveries(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListApprovalEmailDeliveries', undefined, inputOpts);
+}
+exports.listApprovalEmailDeliveries = listApprovalEmailDeliveries;
 
 function listAccounts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);

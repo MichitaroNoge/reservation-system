@@ -11,6 +11,8 @@ import {
   shouldResetConfirmationContactForAssignments,
   toDataConnectReservationStatus,
   type Account,
+  type ApprovalEmailDelivery,
+  type ApprovalEmailType,
   type CreateReservationChangeRequestInput,
   type CreateReservationInput,
   type Menu,
@@ -195,6 +197,32 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       lastError: input.lastError ?? null,
     });
     return this.getReservationWithInternalId(id);
+  }
+
+  async listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]> {
+    const { data } = await op("listApprovalEmailDeliveries")(this.connection());
+    return (data.approvalEmailDeliveries ?? []).map((raw: any) => ({
+      id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode,
+      type: raw.emailType as ApprovalEmailType, referenceId: raw.referenceId ?? null,
+      requestedAt: String(raw.requestedAt), sentAt: raw.sentAt ? String(raw.sentAt) : null,
+      lastAttemptAt: raw.lastAttemptAt ? String(raw.lastAttemptAt) : null,
+      retryCount: Number(raw.retryCount ?? 0), lastError: raw.lastError ?? null,
+    }));
+  }
+
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+    const existing = (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const reservation = await this.getReservationWithInternalId(input.reservationId);
+    await op("createApprovalEmailDelivery")(this.connection(), { deliveryKey: input.deliveryKey, reservationId: reservation.dataConnectId, emailType: input.type, referenceId: input.referenceId ?? null, requestedAt: input.requestedAt });
+    return (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === input.deliveryKey)!;
+  }
+
+  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const delivery = (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery?.id) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
+    await op("updateApprovalEmailDelivery")(this.connection(), { id: delivery.id, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    return { ...delivery, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null };
   }
 
   async assignStores(id: string, assignments: StoreAssignment[]) {

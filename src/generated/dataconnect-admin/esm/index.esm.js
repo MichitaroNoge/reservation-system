@@ -109,6 +109,18 @@ export function updateReceiptEmailDelivery(dcOrVarsOrOptions, varsOrOptions, opt
   return dcInstance.executeMutation('UpdateReceiptEmailDelivery', inputVars, inputOpts);
 }
 
+export function createApprovalEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateApprovalEmailDelivery', inputVars, inputOpts);
+}
+
+export function updateApprovalEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateApprovalEmailDelivery', inputVars, inputOpts);
+}
+
 export function assignStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -209,6 +221,12 @@ export function listReservationChangeRequests(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
   dcInstance.useGen(true);
   return dcInstance.executeQuery('ListReservationChangeRequests', undefined, inputOpts);
+}
+
+export function listApprovalEmailDeliveries(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListApprovalEmailDeliveries', undefined, inputOpts);
 }
 
 export function listAccounts(dcOrOptions, options) {

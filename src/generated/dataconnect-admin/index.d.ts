@@ -51,6 +51,11 @@ export interface AddReservationDetailVariables {
   unitPrice: number;
 }
 
+export interface ApprovalEmailDelivery_Key {
+  id: UUIDString;
+  __typename?: 'ApprovalEmailDelivery_Key';
+}
+
 export interface AssignStoreData {
   storeAssignment_insert: StoreAssignment_Key;
 }
@@ -87,6 +92,18 @@ export interface CreateAccountVariables {
   accountType?: string | null;
   companyBranchName?: string | null;
   contactPersonName?: string | null;
+}
+
+export interface CreateApprovalEmailDeliveryData {
+  approvalEmailDelivery_insert: ApprovalEmailDelivery_Key;
+}
+
+export interface CreateApprovalEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId: UUIDString;
+  emailType: string;
+  referenceId?: string | null;
+  requestedAt: TimestampString;
 }
 
 export interface CreateMenuData {
@@ -160,6 +177,11 @@ export interface CreateStoreVariables {
   name: string;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface Customer_Key {
+  id: UUIDString;
+  __typename?: 'Customer_Key';
 }
 
 export interface DeactivateAccountData {
@@ -484,6 +506,23 @@ export interface ListAccountsData {
   } & Account_Key)[];
 }
 
+export interface ListApprovalEmailDeliveriesData {
+  approvalEmailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    emailType: string;
+    referenceId?: string | null;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastAttemptAt?: TimestampString | null;
+    retryCount: number;
+    lastError?: string | null;
+    reservation: {
+      reservationCode: string;
+    };
+  } & ApprovalEmailDelivery_Key)[];
+}
+
 export interface ListBillingRecordsData {
   billings: ({
     id: UUIDString;
@@ -761,6 +800,18 @@ export interface UpdateAccountVariables {
   contactPersonName?: string | null;
 }
 
+export interface UpdateApprovalEmailDeliveryData {
+  approvalEmailDelivery_update?: ApprovalEmailDelivery_Key | null;
+}
+
+export interface UpdateApprovalEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
+}
+
 export interface UpdateConfirmationContactData {
   reservation_update?: Reservation_Key | null;
 }
@@ -925,6 +976,16 @@ export function updateReceiptEmailDelivery(dc: DataConnect, vars: UpdateReceiptE
 /** Generated Node Admin SDK operation action function for the 'UpdateReceiptEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateReceiptEmailDelivery(vars: UpdateReceiptEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReceiptEmailDeliveryData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateApprovalEmailDelivery' Mutation. Allow users to execute without passing in DataConnect. */
+export function createApprovalEmailDelivery(dc: DataConnect, vars: CreateApprovalEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateApprovalEmailDeliveryData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateApprovalEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createApprovalEmailDelivery(vars: CreateApprovalEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateApprovalEmailDeliveryData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateApprovalEmailDelivery' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateApprovalEmailDelivery(dc: DataConnect, vars: UpdateApprovalEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateApprovalEmailDeliveryData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateApprovalEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateApprovalEmailDelivery(vars: UpdateApprovalEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateApprovalEmailDeliveryData>>;
+
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function assignStore(dc: DataConnect, vars: AssignStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AssignStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -1009,6 +1070,11 @@ export function getReservationByCode(vars: GetReservationByCodeVariables, option
 export function listReservationChangeRequests(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListReservationChangeRequestsData>>;
 /** Generated Node Admin SDK operation action function for the 'ListReservationChangeRequests' Query. Allow users to pass in custom DataConnect instances. */
 export function listReservationChangeRequests(options?: OperationOptions): Promise<ExecuteOperationResponse<ListReservationChangeRequestsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListApprovalEmailDeliveries' Query. Allow users to execute without passing in DataConnect. */
+export function listApprovalEmailDeliveries(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListApprovalEmailDeliveriesData>>;
+/** Generated Node Admin SDK operation action function for the 'ListApprovalEmailDeliveries' Query. Allow users to pass in custom DataConnect instances. */
+export function listApprovalEmailDeliveries(options?: OperationOptions): Promise<ExecuteOperationResponse<ListApprovalEmailDeliveriesData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListAccounts' Query. Allow users to execute without passing in DataConnect. */
 export function listAccounts(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAccountsData>>;

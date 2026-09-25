@@ -3,6 +3,7 @@ import { apiErrorResponse } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
 import { sendDueConfirmationEmails } from "@/lib/services/confirmation-email-service";
 import { sendPendingReceiptEmails } from "@/lib/services/receipt-email-service";
+import { sendPendingApprovalEmails } from "@/lib/services/approval-email-service";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,8 @@ async function run(request: Request) {
     const repository = getReservationRepository();
     const result = await sendDueConfirmationEmails(repository);
     const receiptEmails = await sendPendingReceiptEmails(repository);
-    return NextResponse.json({ ...result, receiptEmails });
+    const approvalEmails = await sendPendingApprovalEmails(repository);
+    return NextResponse.json({ ...result, receiptEmails, approvalEmails });
   } catch (error) {
     return apiErrorResponse(error);
   }

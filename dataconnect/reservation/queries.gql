@@ -48,6 +48,13 @@ query ListReservationChangeRequests @auth(level: NO_ACCESS) {
   }
 }
 
+query ListApprovalEmailDeliveries @auth(level: NO_ACCESS) {
+  approvalEmailDeliveries(orderBy: {requestedAt: ASC}) {
+    id deliveryKey emailType referenceId requestedAt sentAt lastAttemptAt retryCount lastError
+    reservation { reservationCode }
+  }
+}
+
 query ListAccounts @auth(level: NO_ACCESS) {
   accounts(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
     id firebaseUid name phone email address accountType companyBranchName contactPersonName active createdAt updatedAt

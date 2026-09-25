@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -10,6 +10,7 @@ type Database = {
   menus: Menu[];
   stores: Store[];
   accounts?: Account[];
+  approvalEmailDeliveries?: ApprovalEmailDelivery[];
 };
 
 const defaultStartTime = "10:00";
@@ -24,11 +25,12 @@ async function readDatabase(databasePath: string): Promise<Database> {
       menus: legacy.menus,
       stores: legacy.stores,
       accounts: legacy.accounts ?? [],
+      approvalEmailDeliveries: legacy.approvalEmailDeliveries ?? [],
     };
     database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
     return database;
   } catch {
-    const initial: Database = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, accounts: [] };
+    const initial: Database = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, accounts: [], approvalEmailDeliveries: [] };
     await writeDatabase(databasePath, initial);
     return initial;
   }
@@ -225,6 +227,28 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.receiptEmailLastError = input.lastError ?? null;
     await this.writeDatabase(database);
     return reservation;
+  }
+
+  async listApprovalEmailDeliveries() { return (await this.readDatabase()).approvalEmailDeliveries ?? []; }
+
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+    const database = await this.readDatabase();
+    database.approvalEmailDeliveries ??= [];
+    const existing = database.approvalEmailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const delivery: ApprovalEmailDelivery = { ...input, id: `AED-${database.approvalEmailDeliveries.length + 1}`, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
+    database.approvalEmailDeliveries.push(delivery);
+    await this.writeDatabase(database);
+    return delivery;
+  }
+
+  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const database = await this.readDatabase();
+    const delivery = (database.approvalEmailDeliveries ?? []).find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
+    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    await this.writeDatabase(database);
+    return delivery;
   }
 
   async assignStores(id: string, assignments: StoreAssignment[]) {

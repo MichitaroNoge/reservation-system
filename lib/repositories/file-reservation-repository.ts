@@ -147,6 +147,11 @@ export class FileReservationRepository implements ReservationRepository {
       requestType: input.requestType ?? null,
       policyAgreement: input.policyAgreement,
       confirmationContactedAt: null,
+      receiptEmailRequestedAt: input.receiptEmailRequestedAt ?? null,
+      receiptEmailSentAt: null,
+      receiptEmailLastAttemptAt: null,
+      receiptEmailRetryCount: 0,
+      receiptEmailLastError: null,
       received: receivedLabel(),
       phone: input.phone,
     };
@@ -206,6 +211,18 @@ export class FileReservationRepository implements ReservationRepository {
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     reservation.confirmationContactedAt = contactedAt;
+    await this.writeDatabase(database);
+    return reservation;
+  }
+
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const database = await this.readDatabase();
+    const reservation = database.reservations.find((item) => item.id === id);
+    if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    reservation.receiptEmailSentAt = input.sentAt ?? null;
+    reservation.receiptEmailLastAttemptAt = input.lastAttemptAt;
+    reservation.receiptEmailRetryCount = input.retryCount;
+    reservation.receiptEmailLastError = input.lastError ?? null;
     await this.writeDatabase(database);
     return reservation;
   }

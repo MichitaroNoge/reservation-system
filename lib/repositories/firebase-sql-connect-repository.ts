@@ -118,6 +118,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       remarks: input.remarks ?? null,
       policyAgreementKind: input.policyAgreement?.kind ?? null,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt ?? null,
+      receiptEmailRequestedAt: input.receiptEmailRequestedAt ?? null,
     });
 
     const reservationId = data.reservation_insert.id;
@@ -181,6 +182,18 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const current = await this.getReservationWithInternalId(id);
     if (contactedAt === null) await op("clearConfirmationContact")(this.connection(), { id: current.dataConnectId });
     else await op("updateConfirmationContact")(this.connection(), { id: current.dataConnectId, confirmationContactedAt: contactedAt });
+    return this.getReservationWithInternalId(id);
+  }
+
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const current = await this.getReservationWithInternalId(id);
+    await op("updateReceiptEmailDelivery")(this.connection(), {
+      id: current.dataConnectId,
+      sentAt: input.sentAt ?? null,
+      lastAttemptAt: input.lastAttemptAt,
+      retryCount: input.retryCount,
+      lastError: input.lastError ?? null,
+    });
     return this.getReservationWithInternalId(id);
   }
 
@@ -441,6 +454,11 @@ function toReservation(raw: RawReservation): Reservation {
     requestType: normalizeReservationRequestType(raw.requestType),
     policyAgreement: raw.policyAgreementKind && raw.policyAgreementAcceptedAt ? { kind: raw.policyAgreementKind, acceptedAt: String(raw.policyAgreementAcceptedAt) } : undefined,
     confirmationContactedAt: raw.confirmationContactedAt ? String(raw.confirmationContactedAt) : null,
+    receiptEmailRequestedAt: raw.receiptEmailRequestedAt ? String(raw.receiptEmailRequestedAt) : null,
+    receiptEmailSentAt: raw.receiptEmailSentAt ? String(raw.receiptEmailSentAt) : null,
+    receiptEmailLastAttemptAt: raw.receiptEmailLastAttemptAt ? String(raw.receiptEmailLastAttemptAt) : null,
+    receiptEmailRetryCount: Number(raw.receiptEmailRetryCount ?? 0),
+    receiptEmailLastError: raw.receiptEmailLastError ?? null,
     received: raw.receivedAt ? String(raw.receivedAt) : "",
   };
 }

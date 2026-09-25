@@ -7,6 +7,7 @@ export type ReservationRepository = {
   updateReservation(id: string, input: UpdateReservationInput): Promise<Reservation>;
   updateReservationStatus(id: string, status: ReservationStatus, options?: { requestType?: ReservationRequestType | null }): Promise<Reservation>;
   updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation>;
+  updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }): Promise<Reservation>;
   assignStores(id: string, assignments: StoreAssignment[]): Promise<Reservation>;
   listReservationChangeRequests(): Promise<ReservationChangeRequest[]>;
   createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest>;

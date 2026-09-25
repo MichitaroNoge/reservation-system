@@ -83,6 +83,11 @@ type Reservation @table {
   policyAgreementKind: String @col(dataType: "varchar(20)")
   policyAgreementAcceptedAt: Timestamp
   confirmationContactedAt: Timestamp
+  receiptEmailRequestedAt: Timestamp
+  receiptEmailSentAt: Timestamp
+  receiptEmailLastAttemptAt: Timestamp
+  receiptEmailRetryCount: Int! @default(value: 0)
+  receiptEmailLastError: String
   receivedAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time")
 }

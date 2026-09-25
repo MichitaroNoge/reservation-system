@@ -65,6 +65,19 @@ test("customer request APIs use authenticated reservation ownership when availab
   }
 });
 
+test("customer reservation creation sends a retryable receipt email", async () => {
+  const routeSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
+  const serviceSource = await readFile(path.join(process.cwd(), "lib", "services", "receipt-email-service.ts"), "utf8");
+
+  assert.match(routeSource, /input\.receiptEmailRequestedAt = new Date\(\)\.toISOString\(\)/);
+  assert.match(routeSource, /sendReceiptEmailForReservation\(repository, reservation\.id\)/);
+  assert.match(routeSource, /receiptEmail = \{ status: "failed"/);
+  assert.match(routeSource, /return NextResponse\.json\(\{ reservation, receiptEmail \}, \{ status: 201 \}\)/);
+  assert.match(serviceSource, /reservation-receipt\/\$\{reservation\.id\}/);
+  assert.match(serviceSource, /updateReceiptEmailDelivery/);
+  assert.match(serviceSource, /receiptEmailRetryCount/);
+});
+
 test("reservation and cancellation approval screens stay separated", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
   const commonSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "common.tsx"), "utf8");
@@ -168,7 +181,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /confirmation-send-confirm/);
   assert.doesNotMatch(pageSource, /メールアドレス未登録|reservationDateTimeLabel\(r\)<\/small>/);
   assert.doesNotMatch(pageSource, /確認連絡済みにする|一括更新|更新中/);
-  assert.match(resendClientSource, /確認メールの送信に失敗しました/);
+  assert.match(resendClientSource, /メールの送信に失敗しました/);
   assert.doesNotMatch(resendClientSource, /遒ｺ隱|縺|繧|螟/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);

@@ -64,6 +64,7 @@ mutation CreateReservation(
   $remarks: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
+  $receiptEmailRequestedAt: Timestamp
 )
 @auth(level: NO_ACCESS) {
   reservation_insert(data: {
@@ -96,6 +97,7 @@ mutation CreateReservation(
     remarks: $remarks
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
+    receiptEmailRequestedAt: $receiptEmailRequestedAt
   })
 }
 
@@ -160,6 +162,15 @@ mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timesta
 }
 mutation ClearConfirmationContact($id: UUID!) @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: { confirmationContactedAt: null updatedAt_expr: "request.time" })
+}
+mutation UpdateReceiptEmailDelivery($id: UUID!, $sentAt: Timestamp, $lastAttemptAt: Timestamp!, $retryCount: Int!, $lastError: String) @auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: {
+    receiptEmailSentAt: $sentAt
+    receiptEmailLastAttemptAt: $lastAttemptAt
+    receiptEmailRetryCount: $retryCount
+    receiptEmailLastError: $lastError
+    updatedAt_expr: "request.time"
+  })
 }
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!) @auth(level: NO_ACCESS) {
   storeAssignment_insert(data: { reservationId: $reservationId storeId: $storeId people: $people assignedAt_expr: "request.time" })

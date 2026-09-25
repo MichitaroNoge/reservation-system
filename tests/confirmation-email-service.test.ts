@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { reservationStatusCodes, type Reservation } from "../lib/domain";
 import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
+import { receiptEmailIdempotencyKey, sendPendingReceiptEmails, sendReceiptEmailForReservation } from "../lib/services/receipt-email-service";
 import type { ReservationRepository } from "../lib/repositories/reservation-repository";
 
 const now = new Date("2026-08-14T00:00:00+09:00");
@@ -132,6 +133,48 @@ test("email delivery errors can be returned as API errors", () => {
   assert.equal(error.statusCode, 502);
 });
 
+test("receipt email service sends a requested receipt once and records delivery", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-RECEIPT", receiptEmailRequestedAt: now.toISOString() }),
+  ]);
+  const emailClient = new RecordingEmailClient();
+
+  const first = await sendPendingReceiptEmails(repository, { now, emailClient });
+  const second = await sendPendingReceiptEmails(repository, { now, emailClient });
+
+  assert.equal(first.sent, 1);
+  assert.equal(second.pending, 0);
+  assert.equal(emailClient.sent.length, 1);
+  assert.equal(emailClient.sent[0].idempotencyKey, receiptEmailIdempotencyKey({ id: "RSV-RECEIPT" }));
+  assert.equal(repository.get("RSV-RECEIPT")?.receiptEmailSentAt, now.toISOString());
+});
+
+test("receipt email failure is recorded and remains retryable", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-RECEIPT-FAIL", receiptEmailRequestedAt: now.toISOString() }),
+  ]);
+  const emailClient = new RecordingEmailClient(new Error("Resend unavailable"));
+
+  await assert.rejects(() => sendReceiptEmailForReservation(repository, "RSV-RECEIPT-FAIL", { now, emailClient }), /Resend unavailable/);
+
+  const failed = repository.get("RSV-RECEIPT-FAIL");
+  assert.equal(failed?.receiptEmailSentAt, null);
+  assert.equal(failed?.receiptEmailRetryCount, 1);
+  assert.equal(failed?.receiptEmailLastError, "Resend unavailable");
+});
+
+test("receipt email safely stops retrying when an address is missing", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-RECEIPT-NO-EMAIL", email: undefined, receiptEmailRequestedAt: now.toISOString() }),
+  ]);
+
+  const result = await sendPendingReceiptEmails(repository, { now });
+
+  assert.equal(result.skipped, 1);
+  assert.equal(repository.get("RSV-RECEIPT-NO-EMAIL")?.receiptEmailRetryCount, 5);
+  assert.equal(repository.get("RSV-RECEIPT-NO-EMAIL")?.receiptEmailSentAt, null);
+});
+
 class RecordingEmailClient implements EmailClient {
   sent: SendEmailInput[] = [];
 
@@ -159,6 +202,16 @@ class MemoryReservationRepository implements ReservationRepository {
     const target = this.get(id);
     if (!target) throw new Error(`Reservation not found: ${id}`);
     target.confirmationContactedAt = contactedAt;
+    return target;
+  }
+
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const target = this.get(id);
+    if (!target) throw new Error(`Reservation not found: ${id}`);
+    target.receiptEmailSentAt = input.sentAt ?? null;
+    target.receiptEmailLastAttemptAt = input.lastAttemptAt;
+    target.receiptEmailRetryCount = input.retryCount;
+    target.receiptEmailLastError = input.lastError ?? null;
     return target;
   }
 

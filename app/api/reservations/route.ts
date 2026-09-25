@@ -3,6 +3,7 @@ import { isAdminToken, requireAdmin, requireVerifiedFirebaseUser } from "@/lib/a
 import { apiErrorResponse, readJsonObject, validateCreateReservationInput } from "@/lib/api-validation";
 import { reservationStatusCodes } from "@/lib/domain";
 import { getReservationRepository } from "@/lib/repositories";
+import { sendReceiptEmailForReservation } from "@/lib/services/receipt-email-service";
 
 export const runtime = "nodejs";
 
@@ -47,14 +48,24 @@ export async function POST(request: Request) {
         }
         input.accountFirebaseUid = user.uid;
         input.customerAccountMode = "account";
+        input.receiptEmailRequestedAt = new Date().toISOString();
       } else {
         input.customerAccountMode = "admin";
         input.accountFirebaseUid = undefined;
       }
     }
 
-    const reservation = await repository.createReservation(input);
-    return NextResponse.json({ reservation }, { status: 201 });
+    let reservation = await repository.createReservation(input);
+    let receiptEmail: { status: "not_requested" | "sent" | "failed"; error?: string } = { status: "not_requested" };
+    if (reservation.receiptEmailRequestedAt) {
+      try {
+        reservation = await sendReceiptEmailForReservation(repository, reservation.id);
+        receiptEmail = { status: "sent" };
+      } catch (error) {
+        receiptEmail = { status: "failed", error: error instanceof Error ? error.message : "Unknown email error" };
+      }
+    }
+    return NextResponse.json({ reservation, receiptEmail }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);
   }

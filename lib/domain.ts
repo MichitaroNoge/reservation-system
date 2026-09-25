@@ -134,6 +134,11 @@ export type Reservation = {
   requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
+  receiptEmailRequestedAt?: string | null;
+  receiptEmailSentAt?: string | null;
+  receiptEmailLastAttemptAt?: string | null;
+  receiptEmailRetryCount?: number;
+  receiptEmailLastError?: string | null;
   received: string;
   phone: string;
 };
@@ -158,6 +163,7 @@ export type CreateReservationInput = {
   accountType?:AccountType; companyBranchName?:string; contactPersonName?:string; bookingType?:ReservationBookingType; bookingContactName?:string;
   dayContactName?:string; dayContactPhone?:string; groupName?:string; groupNameKana?:string; groupType?:string; groupTypeOther?:string;
   tcCount?:number; dgCount?:number; paymentCondition?:PaymentCondition; remarks?:string;
+  receiptEmailRequestedAt?: string;
 };
 export type UpdateReservationInput = Partial<Pick<Reservation,"date"|"startTime"|"endTime"|"people"|"menuItems"|"customer"|"email"|"phone"|"address"|"bookingType"|"bookingContactName"|"dayContactName"|"dayContactPhone"|"groupName"|"groupNameKana"|"groupType"|"groupTypeOther"|"tcCount"|"dgCount"|"paymentCondition"|"remarks">>;
 export type UpdateStoreAssignmentsInput = { assignments:StoreAssignment[] };

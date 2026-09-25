@@ -174,6 +174,18 @@ export function clearConfirmationContact(dcOrVars, vars) {
   return executeMutation(clearConfirmationContactRef(dcInstance, inputVars));
 }
 
+export const updateReceiptEmailDeliveryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateReceiptEmailDelivery', inputVars);
+}
+updateReceiptEmailDeliveryRef.operationName = 'UpdateReceiptEmailDelivery';
+
+export function updateReceiptEmailDelivery(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateReceiptEmailDeliveryRef(dcInstance, inputVars));
+}
+
 export const assignStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();

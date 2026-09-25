@@ -38,6 +38,7 @@ This README will guide you through the process of using the generated JavaScript
   - [*UpdateReservationStatus*](#updatereservationstatus)
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
   - [*ClearConfirmationContact*](#clearconfirmationcontact)
+  - [*UpdateReceiptEmailDelivery*](#updatereceiptemaildelivery)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
   - [*CreateReservationChangeRequest*](#createreservationchangerequest)
@@ -158,6 +159,11 @@ export interface ListReservationsData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -323,6 +329,11 @@ export interface GetReservationData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -512,6 +523,11 @@ export interface GetReservationByCodeData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -2602,6 +2618,7 @@ export interface CreateReservationVariables {
   remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
+  receiptEmailRequestedAt?: TimestampString | null;
 }
 ```
 ### Return Type
@@ -2650,13 +2667,14 @@ const createReservationVars: CreateReservationVariables = {
   remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
+  receiptEmailRequestedAt: ..., // optional
 };
 
 // Call the `createReservation()` function to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await createReservation(createReservationVars);
 // Variables can be defined inline as well.
-const { data } = await createReservation({ reservationCode: ..., accountId: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., reserverAccountType: ..., reserverCompanyBranchName: ..., reserverContactPersonName: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const { data } = await createReservation({ reservationCode: ..., accountId: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., reserverAccountType: ..., reserverCompanyBranchName: ..., reserverContactPersonName: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., receiptEmailRequestedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -2708,12 +2726,13 @@ const createReservationVars: CreateReservationVariables = {
   remarks: ..., // optional
   policyAgreementKind: ..., // optional
   policyAgreementAcceptedAt: ..., // optional
+  receiptEmailRequestedAt: ..., // optional
 };
 
 // Call the `createReservationRef()` function to get a reference to the mutation.
 const ref = createReservationRef(createReservationVars);
 // Variables can be defined inline as well.
-const ref = createReservationRef({ reservationCode: ..., accountId: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., reserverAccountType: ..., reserverCompanyBranchName: ..., reserverContactPersonName: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., });
+const ref = createReservationRef({ reservationCode: ..., accountId: ..., reserverName: ..., reserverEmail: ..., reserverPhone: ..., reserverAddress: ..., reserverAccountType: ..., reserverCompanyBranchName: ..., reserverContactPersonName: ..., usageDate: ..., usageTime: ..., usageEndTime: ..., expectedPeople: ..., status: ..., requestType: ..., bookingType: ..., bookingContactName: ..., dayContactName: ..., dayContactPhone: ..., groupName: ..., groupNameKana: ..., groupType: ..., groupTypeOther: ..., tcCount: ..., dgCount: ..., paymentCondition: ..., remarks: ..., policyAgreementKind: ..., policyAgreementAcceptedAt: ..., receiptEmailRequestedAt: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -3450,6 +3469,127 @@ const ref = clearConfirmationContactRef({ id: ..., });
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);
 const ref = clearConfirmationContactRef(dataConnect, clearConfirmationContactVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.reservation_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.reservation_update);
+});
+```
+
+## UpdateReceiptEmailDelivery
+You can execute the `UpdateReceiptEmailDelivery` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+updateReceiptEmailDelivery(vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+
+interface UpdateReceiptEmailDeliveryRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateReceiptEmailDeliveryVariables): MutationRef<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+}
+export const updateReceiptEmailDeliveryRef: UpdateReceiptEmailDeliveryRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateReceiptEmailDelivery(dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+
+interface UpdateReceiptEmailDeliveryRef {
+  ...
+  (dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables): MutationRef<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+}
+export const updateReceiptEmailDeliveryRef: UpdateReceiptEmailDeliveryRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateReceiptEmailDeliveryRef:
+```typescript
+const name = updateReceiptEmailDeliveryRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateReceiptEmailDelivery` mutation requires an argument of type `UpdateReceiptEmailDeliveryVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateReceiptEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpdateReceiptEmailDelivery` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateReceiptEmailDeliveryData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateReceiptEmailDeliveryData {
+  reservation_update?: Reservation_Key | null;
+}
+```
+### Using `UpdateReceiptEmailDelivery`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateReceiptEmailDelivery, UpdateReceiptEmailDeliveryVariables } from '@reservation-system/dataconnect';
+
+// The `UpdateReceiptEmailDelivery` mutation requires an argument of type `UpdateReceiptEmailDeliveryVariables`:
+const updateReceiptEmailDeliveryVars: UpdateReceiptEmailDeliveryVariables = {
+  id: ..., 
+  sentAt: ..., // optional
+  lastAttemptAt: ..., 
+  retryCount: ..., 
+  lastError: ..., // optional
+};
+
+// Call the `updateReceiptEmailDelivery()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateReceiptEmailDelivery(updateReceiptEmailDeliveryVars);
+// Variables can be defined inline as well.
+const { data } = await updateReceiptEmailDelivery({ id: ..., sentAt: ..., lastAttemptAt: ..., retryCount: ..., lastError: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateReceiptEmailDelivery(dataConnect, updateReceiptEmailDeliveryVars);
+
+console.log(data.reservation_update);
+
+// Or, you can use the `Promise` API.
+updateReceiptEmailDelivery(updateReceiptEmailDeliveryVars).then((response) => {
+  const data = response.data;
+  console.log(data.reservation_update);
+});
+```
+
+### Using `UpdateReceiptEmailDelivery`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateReceiptEmailDeliveryRef, UpdateReceiptEmailDeliveryVariables } from '@reservation-system/dataconnect';
+
+// The `UpdateReceiptEmailDelivery` mutation requires an argument of type `UpdateReceiptEmailDeliveryVariables`:
+const updateReceiptEmailDeliveryVars: UpdateReceiptEmailDeliveryVariables = {
+  id: ..., 
+  sentAt: ..., // optional
+  lastAttemptAt: ..., 
+  retryCount: ..., 
+  lastError: ..., // optional
+};
+
+// Call the `updateReceiptEmailDeliveryRef()` function to get a reference to the mutation.
+const ref = updateReceiptEmailDeliveryRef(updateReceiptEmailDeliveryVars);
+// Variables can be defined inline as well.
+const ref = updateReceiptEmailDeliveryRef({ id: ..., sentAt: ..., lastAttemptAt: ..., retryCount: ..., lastError: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateReceiptEmailDeliveryRef(dataConnect, updateReceiptEmailDeliveryVars);
 
 // Call `executeMutation()` on the reference to execute the mutation.
 // You can use the `await` keyword to wait for the promise to resolve.

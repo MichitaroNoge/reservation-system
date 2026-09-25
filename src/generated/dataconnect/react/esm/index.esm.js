@@ -1,4 +1,4 @@
-import { createAccountRef, updateAccountRef, deactivateAccountRef, reactivateAccountRef, createReservationRef, updateReservationRef, addReservationDetailRef, deleteReservationDetailRef, updateReservationStatusRef, updateConfirmationContactRef, clearConfirmationContactRef, assignStoreRef, deleteStoreAssignmentRef, createReservationChangeRequestRef, updateReservationChangeRequestStatusRef, createStoreRef, updateStoreRef, deactivateStoreRef, reactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, reactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listReservationChangeRequestsRef, listAccountsRef, listInactiveAccountsRef, getAccountByIdRef, getAccountByFirebaseUidRef, listStoresRef, listInactiveStoresRef, getStoreByNameRef, getStoreByIdRef, listMenusRef, listInactiveMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } from '../../esm/index.esm.js';
+import { createAccountRef, updateAccountRef, deactivateAccountRef, reactivateAccountRef, createReservationRef, updateReservationRef, addReservationDetailRef, deleteReservationDetailRef, updateReservationStatusRef, updateConfirmationContactRef, clearConfirmationContactRef, updateReceiptEmailDeliveryRef, assignStoreRef, deleteStoreAssignmentRef, createReservationChangeRequestRef, updateReservationChangeRequestStatusRef, createStoreRef, updateStoreRef, deactivateStoreRef, reactivateStoreRef, createMenuRef, updateMenuRef, deactivateMenuRef, reactivateMenuRef, recordVisitRef, listReservationsRef, getReservationRef, getReservationByCodeRef, listReservationChangeRequestsRef, listAccountsRef, listInactiveAccountsRef, getAccountByIdRef, getAccountByFirebaseUidRef, listStoresRef, listInactiveStoresRef, getStoreByNameRef, getStoreByIdRef, listMenusRef, listInactiveMenusRef, getMenuByNameRef, listBillingRecordsRef, connectorConfig } from '../../esm/index.esm.js';
 import { validateArgs, CallerSdkTypeEnum } from 'firebase/data-connect';
 import { useDataConnectQuery, useDataConnectMutation, validateReactArgs } from '@tanstack-query-firebase/react/data-connect';
 
@@ -86,6 +86,14 @@ export function useClearConfirmationContact(dcOrOptions, options) {
   const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
   function refFactory(vars) {
     return clearConfirmationContactRef(dcInstance, vars);
+  }
+  return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
+}
+
+export function useUpdateReceiptEmailDelivery(dcOrOptions, options) {
+  const { dc: dcInstance, vars: inputOpts } = validateArgs(connectorConfig, dcOrOptions, options);
+  function refFactory(vars) {
+    return updateReceiptEmailDeliveryRef(dcInstance, vars);
   }
   return useDataConnectMutation(refFactory, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }

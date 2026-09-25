@@ -149,6 +149,7 @@ export interface CreateReservationVariables {
   remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
+  receiptEmailRequestedAt?: TimestampString | null;
 }
 
 export interface CreateStoreData {
@@ -280,6 +281,11 @@ export interface GetReservationByCodeData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -356,6 +362,11 @@ export interface GetReservationData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -609,6 +620,11 @@ export interface ListReservationsData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -768,6 +784,18 @@ export interface UpdateMenuVariables {
   active: boolean;
 }
 
+export interface UpdateReceiptEmailDeliveryData {
+  reservation_update?: Reservation_Key | null;
+}
+
+export interface UpdateReceiptEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
+}
+
 export interface UpdateReservationChangeRequestStatusData {
   reservationChangeRequest_update?: ReservationChangeRequest_Key | null;
 }
@@ -891,6 +919,11 @@ export function updateConfirmationContact(vars: UpdateConfirmationContactVariabl
 export function clearConfirmationContact(dc: DataConnect, vars: ClearConfirmationContactVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ClearConfirmationContactData>>;
 /** Generated Node Admin SDK operation action function for the 'ClearConfirmationContact' Mutation. Allow users to pass in custom DataConnect instances. */
 export function clearConfirmationContact(vars: ClearConfirmationContactVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ClearConfirmationContactData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateReceiptEmailDelivery' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateReceiptEmailDelivery(dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReceiptEmailDeliveryData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateReceiptEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateReceiptEmailDelivery(vars: UpdateReceiptEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateReceiptEmailDeliveryData>>;
 
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function assignStore(dc: DataConnect, vars: AssignStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AssignStoreData>>;

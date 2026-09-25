@@ -156,6 +156,7 @@ export interface CreateReservationVariables {
   remarks?: string | null;
   policyAgreementKind?: string | null;
   policyAgreementAcceptedAt?: TimestampString | null;
+  receiptEmailRequestedAt?: TimestampString | null;
 }
 
 export interface CreateStoreData {
@@ -287,6 +288,11 @@ export interface GetReservationByCodeData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -363,6 +369,11 @@ export interface GetReservationData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -616,6 +627,11 @@ export interface ListReservationsData {
     policyAgreementKind?: string | null;
     policyAgreementAcceptedAt?: TimestampString | null;
     confirmationContactedAt?: TimestampString | null;
+    receiptEmailRequestedAt?: TimestampString | null;
+    receiptEmailSentAt?: TimestampString | null;
+    receiptEmailLastAttemptAt?: TimestampString | null;
+    receiptEmailRetryCount: number;
+    receiptEmailLastError?: string | null;
     receivedAt: TimestampString;
     updatedAt: TimestampString;
     reserverName?: string | null;
@@ -773,6 +789,18 @@ export interface UpdateMenuVariables {
   durationMinutes: number;
   displayOrder?: number | null;
   active: boolean;
+}
+
+export interface UpdateReceiptEmailDeliveryData {
+  reservation_update?: Reservation_Key | null;
+}
+
+export interface UpdateReceiptEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
 }
 
 export interface UpdateReservationChangeRequestStatusData {
@@ -975,6 +1003,18 @@ export const clearConfirmationContactRef: ClearConfirmationContactRef;
 
 export function clearConfirmationContact(vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
 export function clearConfirmationContact(dc: DataConnect, vars: ClearConfirmationContactVariables): MutationPromise<ClearConfirmationContactData, ClearConfirmationContactVariables>;
+
+interface UpdateReceiptEmailDeliveryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateReceiptEmailDeliveryVariables): MutationRef<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables): MutationRef<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+  operationName: string;
+}
+export const updateReceiptEmailDeliveryRef: UpdateReceiptEmailDeliveryRef;
+
+export function updateReceiptEmailDelivery(vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
+export function updateReceiptEmailDelivery(dc: DataConnect, vars: UpdateReceiptEmailDeliveryVariables): MutationPromise<UpdateReceiptEmailDeliveryData, UpdateReceiptEmailDeliveryVariables>;
 
 interface AssignStoreRef {
   /* Allow users to create refs without passing in DataConnect */

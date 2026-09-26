@@ -9,14 +9,18 @@ test("customer pages expose direct entry links for the official website", async 
     [["app", "reserve", "page.tsx"], "customerMode=reservation"],
     [["app", "customer", "page.tsx"], "customerMode=home"],
     [["app", "customer", "reservations", "page.tsx"], "customerMode=account"],
-    [["app", "customer", "change-request", "page.tsx"], "customerMode=change"],
-    [["app", "customer", "cancellation-request", "page.tsx"], "customerMode=cancellation"],
-    [["app", "customer", "confirmed-request", "page.tsx"], "customerMode=confirmedChange"],
+    [["app", "customer", "change-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "cancellation-request", "page.tsx"], "/customer/reservations"],
+    [["app", "customer", "confirmed-request", "page.tsx"], "/customer/reservations"],
   ] as const;
 
   assert.match(pageSource, /customerPortalModeFromSearch/);
   assert.match(pageSource, /setRole\("customer"\)/);
   assert.match(pageSource, /initialMode=\{customerEntryMode\}/);
+  assert.match(pageSource, /const openCustomerPortal/);
+  assert.match(pageSource, /searchParams\.set\("customerMode", mode\)/, "opening the customer portal should persist its mode in the URL");
+  assert.match(pageSource, /searchParams\.set\("customerMode", portalMode\)/, "customer portal navigation should keep the URL reload-safe");
+  assert.match(pageSource, /searchParams\.delete\("customerMode"\)/, "returning to admin should clear the customer mode URL parameter");
 
   for (const [routePath, query] of directPages) {
     const routeSource = await readFile(path.join(process.cwd(), ...routePath), "utf8");
@@ -59,6 +63,19 @@ test("customer request APIs use authenticated reservation ownership when availab
     assert.match(routeSource, /allowMissingContact:\s*true/);
     assert.doesNotMatch(routeSource, /emailMatches|phoneMatches/);
   }
+});
+
+test("customer reservation creation sends a retryable receipt email", async () => {
+  const routeSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
+  const serviceSource = await readFile(path.join(process.cwd(), "lib", "services", "receipt-email-service.ts"), "utf8");
+
+  assert.match(routeSource, /input\.receiptEmailRequestedAt = new Date\(\)\.toISOString\(\)/);
+  assert.match(routeSource, /sendReceiptEmailForReservation\(repository, reservation\.id\)/);
+  assert.match(routeSource, /receiptEmail = \{ status: "failed"/);
+  assert.match(routeSource, /return NextResponse\.json\(\{ reservation, receiptEmail \}, \{ status: 201 \}\)/);
+  assert.match(serviceSource, /reservation-receipt\/\$\{reservation\.id\}/);
+  assert.match(serviceSource, /updateReceiptEmailDelivery/);
+  assert.match(serviceSource, /receiptEmailRetryCount/);
 });
 
 test("reservation and cancellation approval screens stay separated", async () => {
@@ -105,11 +122,16 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /event\.stopPropagation\(\); onApproveChangeRequest/);
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
-  assert.match(pageSource, /const \[includeVisitedReservations, setIncludeVisitedReservations\] = useState\(false\)/);
-  assert.match(pageSource, /!reservationStatusFilter && !includeVisitedReservations && reservation\.status === STATUS\.visited/);
-  assert.match(pageSource, /<div className="visited-filter"><span>来店済<\/span>/);
-  assert.match(pageSource, /setIncludeVisitedReservations\(false\)[\s\S]*除外/);
-  assert.match(pageSource, /setIncludeVisitedReservations\(true\)[\s\S]*含む/);
+  assert.match(pageSource, /const \[reservationStatusFilters, setReservationStatusFilters\] = useState<Status\[\]>/);
+  assert.match(pageSource, /useState<Status\[\]>\(\(\) => statusOptions\.filter\(status => status !== STATUS\.cancelled && status !== STATUS\.visited\)\)/);
+  assert.match(pageSource, /reservationStatusFilters\.length > 0 && !reservationStatusFilters\.includes\(reservation\.status\)/);
+  assert.match(pageSource, /className="reservation-status-dropdown"/);
+  assert.match(pageSource, /className="panel management-panel reservation-list-panel"/);
+  assert.match(pageSource, /有効分のみ/);
+  assert.match(pageSource, /removeAttribute\("open"\)\}>閉じる/);
+  assert.match(pageSource, /status !== STATUS\.cancelled && status !== STATUS\.visited/);
+  assert.doesNotMatch(pageSource, /すべて選択/);
+  assert.doesNotMatch(pageSource, /className="visited-filter"/);
   assert.match(pageSource, /function MasterManagementPage/);
   assert.match(pageSource, /onSelectMasterView\("customers"\)[\s\S]*<span><strong>顧客管理<\/strong><\/span>[\s\S]*onSelectMasterView\("stores"\)[\s\S]*<span><strong>店舗管理<\/strong><\/span>[\s\S]*onSelectMasterView\("menus"\)[\s\S]*<span><strong>メニュー管理<\/strong><\/span>/);
   assert.doesNotMatch(pageSource, /<small>予約者の連絡先/);
@@ -130,7 +152,10 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(styleSource, /\.change-request-head\{[\s\S]*justify-content:flex-end[\s\S]*background:#fbfcfe/);
   assert.match(styleSource, /\.management-panel table thead th,\.change-request-screen table thead th\{background:#fafbfc\}/);
   assert.match(styleSource, /\.management table td small\{font-size:12px;color:#263149\}/);
-  assert.match(styleSource, /\.visited-filter\{/);
+  assert.match(styleSource, /\.reservation-status-dropdown/);
+  assert.match(styleSource, /\.reservation-list-panel\{overflow:visible\}/);
+  assert.match(styleSource, /\.reservation-status-menu\{[\s\S]*max-height:min\(440px,calc\(100vh - 170px\)\);overflow-y:auto/);
+  assert.match(styleSource, /\.status-menu-actions\{display:grid;grid-template-columns:1fr 1fr 1fr/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);
   assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);
@@ -156,7 +181,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /confirmation-send-confirm/);
   assert.doesNotMatch(pageSource, /メールアドレス未登録|reservationDateTimeLabel\(r\)<\/small>/);
   assert.doesNotMatch(pageSource, /確認連絡済みにする|一括更新|更新中/);
-  assert.match(resendClientSource, /確認メールの送信に失敗しました/);
+  assert.match(resendClientSource, /メールの送信に失敗しました/);
   assert.doesNotMatch(resendClientSource, /遒ｺ隱|縺|繧|螟/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);

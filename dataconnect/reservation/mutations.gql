@@ -37,9 +37,9 @@ mutation ReactivateAccount($id: UUID!) @auth(level: NO_ACCESS) {
 mutation CreateReservation(
   $reservationCode: String!
   $accountId: UUID
-  $reserverName: String!
-  $reserverEmail: String!
-  $reserverPhone: String!
+  $reserverName: String
+  $reserverEmail: String
+  $reserverPhone: String
   $reserverAddress: String
   $reserverAccountType: String
   $reserverCompanyBranchName: String
@@ -64,6 +64,7 @@ mutation CreateReservation(
   $remarks: String
   $policyAgreementKind: String
   $policyAgreementAcceptedAt: Timestamp
+  $receiptEmailRequestedAt: Timestamp
 )
 @auth(level: NO_ACCESS) {
   reservation_insert(data: {
@@ -96,14 +97,15 @@ mutation CreateReservation(
     remarks: $remarks
     policyAgreementKind: $policyAgreementKind
     policyAgreementAcceptedAt: $policyAgreementAcceptedAt
+    receiptEmailRequestedAt: $receiptEmailRequestedAt
   })
 }
 
 mutation UpdateReservation(
   $id: UUID!
-  $reserverName: String!
-  $reserverEmail: String!
-  $reserverPhone: String!
+  $reserverName: String
+  $reserverEmail: String
+  $reserverPhone: String
   $reserverAddress: String
   $usageDate: Date!
   $usageTime: String!
@@ -160,6 +162,21 @@ mutation UpdateConfirmationContact($id: UUID!, $confirmationContactedAt: Timesta
 }
 mutation ClearConfirmationContact($id: UUID!) @auth(level: NO_ACCESS) {
   reservation_update(key: {id: $id}, data: { confirmationContactedAt: null updatedAt_expr: "request.time" })
+}
+mutation UpdateReceiptEmailDelivery($id: UUID!, $sentAt: Timestamp, $lastAttemptAt: Timestamp!, $retryCount: Int!, $lastError: String) @auth(level: NO_ACCESS) {
+  reservation_update(key: {id: $id}, data: {
+    receiptEmailSentAt: $sentAt
+    receiptEmailLastAttemptAt: $lastAttemptAt
+    receiptEmailRetryCount: $retryCount
+    receiptEmailLastError: $lastError
+    updatedAt_expr: "request.time"
+  })
+}
+mutation CreateApprovalEmailDelivery($deliveryKey: String!, $reservationId: UUID!, $emailType: String!, $referenceId: String, $requestedAt: Timestamp!) @auth(level: NO_ACCESS) {
+  approvalEmailDelivery_insert(data: { deliveryKey: $deliveryKey reservationId: $reservationId emailType: $emailType referenceId: $referenceId requestedAt: $requestedAt })
+}
+mutation UpdateApprovalEmailDelivery($id: UUID!, $sentAt: Timestamp, $lastAttemptAt: Timestamp!, $retryCount: Int!, $lastError: String) @auth(level: NO_ACCESS) {
+  approvalEmailDelivery_update(key: {id: $id}, data: { sentAt: $sentAt lastAttemptAt: $lastAttemptAt retryCount: $retryCount lastError: $lastError })
 }
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!) @auth(level: NO_ACCESS) {
   storeAssignment_insert(data: { reservationId: $reservationId storeId: $storeId people: $people assignedAt_expr: "request.time" })

@@ -1,4 +1,4 @@
-import { ApiAuthError, verifyOptionalFirebaseUser } from "./auth";
+import { ApiAuthError, requireVerifiedFirebaseUser } from "./auth";
 import type { Reservation } from "./domain";
 import type { ReservationRepository } from "./repositories/reservation-repository";
 
@@ -7,8 +7,7 @@ export async function findOwnedReservationByAuthenticatedCustomer(
   repository: ReservationRepository,
   reservationId: string,
 ): Promise<Reservation> {
-  const user = await verifyOptionalFirebaseUser(request);
-  if (!user) throw new ApiAuthError("Customer authentication required.", 401);
+  const user = await requireVerifiedFirebaseUser(request);
 
   const reservation = (await repository.listReservationsForReservationAccount(user.uid))
     .find((item) => normalizeReservationId(item.id) === normalizeReservationId(reservationId));

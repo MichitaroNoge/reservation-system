@@ -11,6 +11,19 @@ export type ReservationStatus =
   | "cancelled";
 
 export type ReservationRequestType = "confirmed_from_temporary";
+export type ApprovalEmailType = "reservation_approved" | "confirmed_change_approved" | "reservation_change_approved" | "cancellation_approved";
+export type ApprovalEmailDelivery = {
+  id?: string;
+  deliveryKey: string;
+  reservationId: string;
+  type: ApprovalEmailType;
+  referenceId?: string | null;
+  requestedAt: string;
+  sentAt?: string | null;
+  lastAttemptAt?: string | null;
+  retryCount: number;
+  lastError?: string | null;
+};
 export type AccountType = "individual" | "travel_agency";
 export type CustomerAccountType = AccountType;
 export type ReservationBookingType = "individual" | "travel_agency_group";
@@ -134,6 +147,11 @@ export type Reservation = {
   requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
   confirmationContactedAt?: string | null;
+  receiptEmailRequestedAt?: string | null;
+  receiptEmailSentAt?: string | null;
+  receiptEmailLastAttemptAt?: string | null;
+  receiptEmailRetryCount?: number;
+  receiptEmailLastError?: string | null;
   received: string;
   phone: string;
 };
@@ -158,6 +176,7 @@ export type CreateReservationInput = {
   accountType?:AccountType; companyBranchName?:string; contactPersonName?:string; bookingType?:ReservationBookingType; bookingContactName?:string;
   dayContactName?:string; dayContactPhone?:string; groupName?:string; groupNameKana?:string; groupType?:string; groupTypeOther?:string;
   tcCount?:number; dgCount?:number; paymentCondition?:PaymentCondition; remarks?:string;
+  receiptEmailRequestedAt?: string;
 };
 export type UpdateReservationInput = Partial<Pick<Reservation,"date"|"startTime"|"endTime"|"people"|"menuItems"|"customer"|"email"|"phone"|"address"|"bookingType"|"bookingContactName"|"dayContactName"|"dayContactPhone"|"groupName"|"groupNameKana"|"groupType"|"groupTypeOther"|"tcCount"|"dgCount"|"paymentCondition"|"remarks">>;
 export type UpdateStoreAssignmentsInput = { assignments:StoreAssignment[] };
@@ -176,6 +195,34 @@ export function reservationAssignments(reservation: Pick<Reservation, "store" | 
     : reservation.store
       ? [{ store: reservation.store, people: reservation.people }]
       : [];
+}
+
+export function shouldResetConfirmationContact(reservation: Reservation, input: UpdateReservationInput) {
+  if (!reservation.confirmationContactedAt) return false;
+  return (input.date !== undefined && input.date !== reservation.date)
+    || (input.startTime !== undefined && input.startTime !== reservation.startTime)
+    || (input.endTime !== undefined && input.endTime !== reservation.endTime)
+    || (input.people !== undefined && input.people !== reservation.people)
+    || (input.email !== undefined && input.email !== reservation.email)
+    || (input.menuItems !== undefined && !sameStringItems(input.menuItems, reservation.menuItems ?? []));
+}
+
+export function shouldResetConfirmationContactForAssignments(reservation: Reservation, assignments: StoreAssignment[]) {
+  if (!reservation.confirmationContactedAt) return false;
+  const current = reservationAssignments(reservation).map(assignmentKey).sort();
+  const next = assignments.map(assignmentKey).sort();
+  return !sameStringItems(current, next);
+}
+
+function assignmentKey(assignment: StoreAssignment) {
+  return `${assignment.store}\u0000${assignment.people}`;
+}
+
+function sameStringItems(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
 }
 
 export function isConfirmedReservationStatus(status: ReservationStatus) {

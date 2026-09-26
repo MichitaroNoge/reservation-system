@@ -2,7 +2,7 @@ query ListReservations @auth(level: NO_ACCESS) {
   reservations(orderBy: {receivedAt: DESC}) {
     id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
     dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
-    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receiptEmailRequestedAt receiptEmailSentAt receiptEmailLastAttemptAt receiptEmailRetryCount receiptEmailLastError receivedAt updatedAt
     reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
     account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
     reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
@@ -14,7 +14,7 @@ query GetReservation($id: UUID!) @auth(level: NO_ACCESS) {
   reservation(key: {id: $id}) {
     id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
     dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
-    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receiptEmailRequestedAt receiptEmailSentAt receiptEmailLastAttemptAt receiptEmailRetryCount receiptEmailLastError receivedAt updatedAt
     reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
     account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
     reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
@@ -28,7 +28,7 @@ query GetReservationByCode($reservationCode: String!) @auth(level: NO_ACCESS) {
   reservations(where: {reservationCode: {eq: $reservationCode}}, limit: 1) {
     id reservationCode usageDate usageTime usageEndTime status requestType bookingType bookingContactName
     dayContactName dayContactPhone groupName groupNameKana groupType groupTypeOther tcCount dgCount paymentCondition remarks
-    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receivedAt updatedAt
+    expectedPeople policyAgreementKind policyAgreementAcceptedAt confirmationContactedAt receiptEmailRequestedAt receiptEmailSentAt receiptEmailLastAttemptAt receiptEmailRetryCount receiptEmailLastError receivedAt updatedAt
     reserverName reserverEmail reserverPhone reserverAddress reserverAccountType reserverCompanyBranchName reserverContactPersonName
     account { id firebaseUid email name phone address accountType companyBranchName contactPersonName active }
     reservationDetails_on_reservation { id quantity unitPrice menu { id name description standardPrice durationMinutes displayOrder } }
@@ -45,6 +45,13 @@ query ListReservationChangeRequests @auth(level: NO_ACCESS) {
       account { id firebaseUid }
       reservationDetails_on_reservation { quantity menu { name } }
     }
+  }
+}
+
+query ListApprovalEmailDeliveries @auth(level: NO_ACCESS) {
+  approvalEmailDeliveries(orderBy: {requestedAt: ASC}) {
+    id deliveryKey emailType referenceId requestedAt sentAt lastAttemptAt retryCount lastError
+    reservation { reservationCode }
   }
 }
 

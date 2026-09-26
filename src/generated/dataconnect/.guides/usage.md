@@ -12,28 +12,28 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useCreateCustomer, useUpdateCustomer, useUpdateCustomerIdentity, useDeactivateCustomer, useReactivateCustomer, useCreateReservation, useAddReservationDetail, useDeleteReservationDetail, useUpdateReservation, useUpdateReservationStatus } from '@reservation-system/dataconnect/react';
+import { useCreateAccount, useUpdateAccount, useDeactivateAccount, useReactivateAccount, useCreateReservation, useUpdateReservation, useAddReservationDetail, useDeleteReservationDetail, useUpdateReservationStatus, useUpdateConfirmationContact } from '@reservation-system/dataconnect/react';
 // The types of these hooks are available in react/index.d.ts
 
-const { data, isPending, isSuccess, isError, error } = useCreateCustomer(createCustomerVars);
+const { data, isPending, isSuccess, isError, error } = useCreateAccount(createAccountVars);
 
-const { data, isPending, isSuccess, isError, error } = useUpdateCustomer(updateCustomerVars);
+const { data, isPending, isSuccess, isError, error } = useUpdateAccount(updateAccountVars);
 
-const { data, isPending, isSuccess, isError, error } = useUpdateCustomerIdentity(updateCustomerIdentityVars);
+const { data, isPending, isSuccess, isError, error } = useDeactivateAccount(deactivateAccountVars);
 
-const { data, isPending, isSuccess, isError, error } = useDeactivateCustomer(deactivateCustomerVars);
-
-const { data, isPending, isSuccess, isError, error } = useReactivateCustomer(reactivateCustomerVars);
+const { data, isPending, isSuccess, isError, error } = useReactivateAccount(reactivateAccountVars);
 
 const { data, isPending, isSuccess, isError, error } = useCreateReservation(createReservationVars);
+
+const { data, isPending, isSuccess, isError, error } = useUpdateReservation(updateReservationVars);
 
 const { data, isPending, isSuccess, isError, error } = useAddReservationDetail(addReservationDetailVars);
 
 const { data, isPending, isSuccess, isError, error } = useDeleteReservationDetail(deleteReservationDetailVars);
 
-const { data, isPending, isSuccess, isError, error } = useUpdateReservation(updateReservationVars);
-
 const { data, isPending, isSuccess, isError, error } = useUpdateReservationStatus(updateReservationStatusVars);
+
+const { data, isPending, isSuccess, isError, error } = useUpdateConfirmationContact(updateConfirmationContactVars);
 
 ```
 
@@ -72,26 +72,26 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { createCustomer, updateCustomer, updateCustomerIdentity, deactivateCustomer, reactivateCustomer, createReservation, addReservationDetail, deleteReservationDetail, updateReservation, updateReservationStatus } from '@reservation-system/dataconnect';
+import { createAccount, updateAccount, deactivateAccount, reactivateAccount, createReservation, updateReservation, addReservationDetail, deleteReservationDetail, updateReservationStatus, updateConfirmationContact } from '@reservation-system/dataconnect';
 
 
-// Operation CreateCustomer:  For variables, look at type CreateCustomerVars in ../index.d.ts
-const { data } = await CreateCustomer(dataConnect, createCustomerVars);
+// Operation CreateAccount:  For variables, look at type CreateAccountVars in ../index.d.ts
+const { data } = await CreateAccount(dataConnect, createAccountVars);
 
-// Operation UpdateCustomer:  For variables, look at type UpdateCustomerVars in ../index.d.ts
-const { data } = await UpdateCustomer(dataConnect, updateCustomerVars);
+// Operation UpdateAccount:  For variables, look at type UpdateAccountVars in ../index.d.ts
+const { data } = await UpdateAccount(dataConnect, updateAccountVars);
 
-// Operation UpdateCustomerIdentity:  For variables, look at type UpdateCustomerIdentityVars in ../index.d.ts
-const { data } = await UpdateCustomerIdentity(dataConnect, updateCustomerIdentityVars);
+// Operation DeactivateAccount:  For variables, look at type DeactivateAccountVars in ../index.d.ts
+const { data } = await DeactivateAccount(dataConnect, deactivateAccountVars);
 
-// Operation DeactivateCustomer:  For variables, look at type DeactivateCustomerVars in ../index.d.ts
-const { data } = await DeactivateCustomer(dataConnect, deactivateCustomerVars);
-
-// Operation ReactivateCustomer:  For variables, look at type ReactivateCustomerVars in ../index.d.ts
-const { data } = await ReactivateCustomer(dataConnect, reactivateCustomerVars);
+// Operation ReactivateAccount:  For variables, look at type ReactivateAccountVars in ../index.d.ts
+const { data } = await ReactivateAccount(dataConnect, reactivateAccountVars);
 
 // Operation CreateReservation:  For variables, look at type CreateReservationVars in ../index.d.ts
 const { data } = await CreateReservation(dataConnect, createReservationVars);
+
+// Operation UpdateReservation:  For variables, look at type UpdateReservationVars in ../index.d.ts
+const { data } = await UpdateReservation(dataConnect, updateReservationVars);
 
 // Operation AddReservationDetail:  For variables, look at type AddReservationDetailVars in ../index.d.ts
 const { data } = await AddReservationDetail(dataConnect, addReservationDetailVars);
@@ -99,11 +99,11 @@ const { data } = await AddReservationDetail(dataConnect, addReservationDetailVar
 // Operation DeleteReservationDetail:  For variables, look at type DeleteReservationDetailVars in ../index.d.ts
 const { data } = await DeleteReservationDetail(dataConnect, deleteReservationDetailVars);
 
-// Operation UpdateReservation:  For variables, look at type UpdateReservationVars in ../index.d.ts
-const { data } = await UpdateReservation(dataConnect, updateReservationVars);
-
 // Operation UpdateReservationStatus:  For variables, look at type UpdateReservationStatusVars in ../index.d.ts
 const { data } = await UpdateReservationStatus(dataConnect, updateReservationStatusVars);
+
+// Operation UpdateConfirmationContact:  For variables, look at type UpdateConfirmationContactVars in ../index.d.ts
+const { data } = await UpdateConfirmationContact(dataConnect, updateConfirmationContactVars);
 
 
 ```

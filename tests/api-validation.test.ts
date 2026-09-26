@@ -23,3 +23,19 @@ test("Data Connect errors are returned with actionable messages", async () => {
     console.error = originalConsoleError;
   }
 });
+
+test("missing deployed Data Connect operations are explained", async () => {
+  const error = new Error('operation "GetAccountByFirebaseUid" not found');
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    const response = apiErrorResponse(error);
+    const body = await response.json();
+
+    assert.equal(response.status, 502);
+    assert.equal(body.error, "Data Connectの更新に失敗しました: Data Connectに GetAccountByFirebaseUid が反映されていません。firebase dataconnect:sdk:generate と firebase deploy --only dataconnect を実行してください。");
+  } finally {
+    console.error = originalConsoleError;
+  }
+});

@@ -6,21 +6,45 @@ import { test } from "node:test";
 test("customer reservation portal keeps account booking choices", async () => {
   const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
   const sessionSource = await readFile(path.join(process.cwd(), "app", "reservations", "hooks", "use-customer-session.ts"), "utf8");
+  const accountReservationsApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "reservations", "route.ts"), "utf8");
+  const changeRequestApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "change-requests", "route.ts"), "utf8");
+  const authSource = await readFile(path.join(process.cwd(), "lib", "auth.ts"), "utf8");
+  const reservationApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
+  const accountApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "route.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
-    "アカウント登録して予約する",
+    "アカウント登録",
+    "利用者区分を選択",
+    "予約種別へ",
+    "一般予約",
     "予約確認",
     "本予約への変更申請",
     "予約内容変更申請",
     "キャンセル申請",
-    "/api/customers/me",
-    "/api/customers/me/reservations",
+    "/api/accounts/me",
+    "/api/accounts/me/reservations",
+    "CustomerReservationRequestStatus",
+    "CustomerPortalHome",
+    "ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。",
+    "予約確認・変更・キャンセル",
+    "予約内容変更申請",
+    "キャンセル申請",
+    "メールアドレスを確認してください",
+    "確認メールを再送",
+    "認証を確認",
+    "アカウント削除",
   ]) {
     assert.match(pageSource, new RegExp(escapeRegExp(requiredText)), `${requiredText} should remain in the customer portal`);
   }
 
   assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
+  assert.doesNotMatch(pageSource, /アカウント登録して予約する/, "registration should be presented before procedures, not as a guest-like booking shortcut");
+  assert.doesNotMatch(pageSource, /onOpenConfirmedChange/, "confirmed change should be started from reservation cards, not the portal home");
+  assert.doesNotMatch(pageSource, /onOpenChange/, "change requests should be started from reservation cards, not the portal home");
+  assert.doesNotMatch(pageSource, /onOpenCancellation/, "cancellation should be started from reservation cards, not the portal home");
+  assert.doesNotMatch(pageSource, /\/api\/customers\/me/, "customer reservation portal should use Account APIs for logged-in profile data");
+  assert.doesNotMatch(pageSource, /一般団体予約/, "individual reservations should not be labeled as group reservations");
   assert.doesNotMatch(pageSource, /customerAccountMode[^;\n]+guest/, "guest reservation mode must not be wired");
   assert.match(pageSource, /customerAccountMode:\s*"account"/, "account reservation mode must remain wired");
   assert.match(pageSource, /CustomerRequestLoginPanel/, "customer request forms should require login before submission");
@@ -28,13 +52,39 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
   assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
+  assert.match(pageSource, /function CustomerReservationRequestStatus/, "customer reservation dashboard should show request statuses");
+  assert.match(pageSource, /function CustomerPortalHome/, "customer portal home should expose shared login before procedures");
   assert.match(pageSource, /function CustomerRequestForms/, "customer request forms should stay split from CustomerPortal");
   assert.match(pageSource, /function ReservationActionButtons/, "reservation action buttons should stay split from CustomerPortal");
   assert.match(pageSource, /onSubmitCancellation[\s\S]*\{ authToken \}/, "customer cancellation requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitConfirmedReservationChange[\s\S]*\{ authToken \}/, "confirmed reservation change requests must send the Firebase token when logged in");
   assert.match(pageSource, /onSubmitChangeRequest[\s\S]*\{ authToken \}/, "reservation change requests must send the Firebase token when logged in");
+  assert.match(accountReservationsApiSource, /listReservationChangeRequests/, "account reservations API should return the customer's reservation change requests");
+  assert.match(accountReservationsApiSource, /reservationIds\.has\(request\.reservationId\)/, "account reservations API should not return change requests for other reservations");
+  assert.match(accountReservationsApiSource, /deduplicateChangeRequests/, "account reservations API should hide duplicate change request rows");
+  assert.match(changeRequestApiSource, /existingRequest/, "change request API should return an existing pending request instead of creating a duplicate");
+  assert.match(changeRequestApiSource, /sameMenuItems/, "change request duplicate detection should compare requested menu items");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
+  assert.match(sessionSource, /sendEmailVerification\(credential\.user\)/, "customer registration should send a Firebase verification email");
+  assert.match(sessionSource, /reload\(user\)/, "customers should be able to refresh their verification state");
   assert.match(sessionSource, /signInWithEmailAndPassword/, "customer login must remain wired to Firebase Auth");
+  assert.match(sessionSource, /browserLocalPersistence/, "customer login state should persist in the browser");
+  assert.match(sessionSource, /setPersistence\(firebaseAuth,\s*browserLocalPersistence\)/, "Firebase Auth persistence should be configured explicitly");
+  assert.match(sessionSource, /auth\/email-already-in-use/, "registered email errors should be explained to customers");
+  assert.match(sessionSource, /auth\/weak-password/, "weak password errors should be explained to customers");
+  assert.match(sessionSource, /auth\/operation-not-allowed/, "disabled email-password auth should be explained to customers");
+  assert.match(sessionSource, /Object\.assign\(error, \{ code \}\)/, "Firebase Auth error codes should be preserved for UI decisions");
+  assert.match(pageSource, /customerAuthErrorCode\(error\) === "auth\/email-already-in-use"/, "existing email fallback should use Firebase Auth error codes");
+  assert.match(pageSource, /このメールアドレスはアカウント登録済みです。ログインしてください/, "registration with an existing email should clearly explain that the account already exists");
+  assert.match(pageSource, /setBookingMode\("login"\)/, "existing account registration should return customers to login mode");
+  assert.match(pageSource, /customerUser && !customerUser\.emailVerified/, "unverified customers should see the verification panel");
+  assert.match(pageSource, /getIdToken\(true\)/, "verification completion should refresh the Firebase token claims");
+  assert.match(authSource, /user\.email_verified !== true/, "customer APIs should reject unverified Firebase tokens");
+  assert.match(reservationApiSource, /requireVerifiedFirebaseUser\(request\)/, "reservation creation should require a verified customer email");
+  assert.match(accountApiSource, /listReservationsForReservationAccount\(user\.uid\)/, "account deletion should check reservation history by Firebase UID");
+  assert.match(accountApiSource, /reservations\.length > 0[\s\S]*status: 409/, "accounts with reservation history must not be deleted");
+  assert.match(accountApiSource, /deactivateAccount\(account\.id\)[\s\S]*deleteUser\(user\.uid\)/, "account deletion should remove both the account and Firebase user");
+  assert.match(accountApiSource, /reactivateAccount\(account\.id\)/, "account deletion should roll back deactivation when Firebase deletion fails");
 });
 
 function escapeRegExp(value: string) {

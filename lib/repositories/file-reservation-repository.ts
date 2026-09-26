@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, type Account, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -10,6 +10,7 @@ type Database = {
   menus: Menu[];
   stores: Store[];
   accounts?: Account[];
+  approvalEmailDeliveries?: ApprovalEmailDelivery[];
 };
 
 const defaultStartTime = "10:00";
@@ -24,11 +25,12 @@ async function readDatabase(databasePath: string): Promise<Database> {
       menus: legacy.menus,
       stores: legacy.stores,
       accounts: legacy.accounts ?? [],
+      approvalEmailDeliveries: legacy.approvalEmailDeliveries ?? [],
     };
     database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
     return database;
   } catch {
-    const initial: Database = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, accounts: [] };
+    const initial: Database = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, accounts: [], approvalEmailDeliveries: [] };
     await writeDatabase(databasePath, initial);
     return initial;
   }
@@ -147,6 +149,11 @@ export class FileReservationRepository implements ReservationRepository {
       requestType: input.requestType ?? null,
       policyAgreement: input.policyAgreement,
       confirmationContactedAt: null,
+      receiptEmailRequestedAt: input.receiptEmailRequestedAt ?? null,
+      receiptEmailSentAt: null,
+      receiptEmailLastAttemptAt: null,
+      receiptEmailRetryCount: 0,
+      receiptEmailLastError: null,
       received: receivedLabel(),
       phone: input.phone,
     };
@@ -159,6 +166,7 @@ export class FileReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    const resetConfirmationContact = shouldResetConfirmationContact(reservation, input);
     if (input.date !== undefined) reservation.date = input.date;
     if (input.startTime !== undefined) reservation.startTime = input.startTime;
     if (input.endTime !== undefined) reservation.endTime = input.endTime;
@@ -181,6 +189,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (input.remarks !== undefined) reservation.remarks = input.remarks;
     if (input.menuItems !== undefined) { reservation.menuItems = input.menuItems; reservation.totalAmount = calculateTotalAmount(input.menuItems, database.menus); }
     if (input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined)) reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     await this.writeDatabase(database);
     return reservation;
   }
@@ -208,6 +217,40 @@ export class FileReservationRepository implements ReservationRepository {
     return reservation;
   }
 
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const database = await this.readDatabase();
+    const reservation = database.reservations.find((item) => item.id === id);
+    if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    reservation.receiptEmailSentAt = input.sentAt ?? null;
+    reservation.receiptEmailLastAttemptAt = input.lastAttemptAt;
+    reservation.receiptEmailRetryCount = input.retryCount;
+    reservation.receiptEmailLastError = input.lastError ?? null;
+    await this.writeDatabase(database);
+    return reservation;
+  }
+
+  async listApprovalEmailDeliveries() { return (await this.readDatabase()).approvalEmailDeliveries ?? []; }
+
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+    const database = await this.readDatabase();
+    database.approvalEmailDeliveries ??= [];
+    const existing = database.approvalEmailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const delivery: ApprovalEmailDelivery = { ...input, id: `AED-${database.approvalEmailDeliveries.length + 1}`, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
+    database.approvalEmailDeliveries.push(delivery);
+    await this.writeDatabase(database);
+    return delivery;
+  }
+
+  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const database = await this.readDatabase();
+    const delivery = (database.approvalEmailDeliveries ?? []).find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
+    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    await this.writeDatabase(database);
+    return delivery;
+  }
+
   async assignStores(id: string, assignments: StoreAssignment[]) {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
@@ -215,8 +258,10 @@ export class FileReservationRepository implements ReservationRepository {
     const validAssignments = assignments.filter((assignment) => assignment.store && assignment.people > 0).map((assignment) => ({ store: assignment.store, people: Number(assignment.people) }));
     const assignedPeople = validAssignments.reduce((total, assignment) => total + assignment.people, 0);
     if (validAssignments.length > 0 && assignedPeople !== reservation.people) throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
+    const resetConfirmationContact = shouldResetConfirmationContactForAssignments(reservation, validAssignments);
     reservation.storeAssignments = validAssignments;
     reservation.store = validAssignments.length === 1 ? validAssignments[0].store : validAssignments.length > 1 ? "複数店舗" : null;
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     await this.writeDatabase(database);
     return reservation;
   }
@@ -248,6 +293,7 @@ export class FileReservationRepository implements ReservationRepository {
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
+    const resetConfirmationContact = shouldResetConfirmationContact(reservation, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     const shouldResetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     reservation.date = request.requestedDate;
     reservation.startTime = request.requestedStartTime;
@@ -255,6 +301,7 @@ export class FileReservationRepository implements ReservationRepository {
     reservation.menuItems = request.requestedMenuItems;
     reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
     reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
+    if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     if (shouldResetAssignments) { reservation.store = null; reservation.storeAssignments = []; }
     reservation.status = getAutomaticReservationStatus(reservation);
     request.status = "approved";

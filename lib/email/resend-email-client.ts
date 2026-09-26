@@ -51,8 +51,8 @@ export class ResendEmailClient implements EmailClient {
         idempotencyKey: input.idempotencyKey,
       },
     );
-    if (error) throw new EmailDeliveryError(`確認メールの送信に失敗しました: ${error.message}`);
-    if (!data?.id) throw new EmailDeliveryError("確認メールの送信結果を確認できませんでした。");
+    if (error) throw new EmailDeliveryError(`メールの送信に失敗しました: ${error.message}`);
+    if (!data?.id) throw new EmailDeliveryError("メールの送信結果を確認できませんでした。");
     return { id: data.id };
   }
 }

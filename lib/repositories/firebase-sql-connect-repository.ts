@@ -7,8 +7,12 @@ import {
   normalizeReservationRequestType,
   normalizeReservationStatus,
   reservationStatusCodes,
+  shouldResetConfirmationContact,
+  shouldResetConfirmationContactForAssignments,
   toDataConnectReservationStatus,
   type Account,
+  type ApprovalEmailDelivery,
+  type ApprovalEmailType,
   type CreateReservationChangeRequestInput,
   type CreateReservationInput,
   type Menu,
@@ -116,6 +120,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
       remarks: input.remarks ?? null,
       policyAgreementKind: input.policyAgreement?.kind ?? null,
       policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt ?? null,
+      receiptEmailRequestedAt: input.receiptEmailRequestedAt ?? null,
     });
 
     const reservationId = data.reservation_insert.id;
@@ -129,6 +134,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async updateReservation(id: string, input: UpdateReservationInput) {
     const current = await this.getReservationWithInternalId(id);
+    const resetConfirmationContact = shouldResetConfirmationContact(current, input);
     const shouldCalculateEndTime = input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined || !current.endTime);
     const menuCatalog = shouldCalculateEndTime ? await this.listMenus() : [];
 
@@ -159,6 +165,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     });
 
     if (input.menuItems !== undefined) await this.replaceReservationDetails(current.dataConnectId, current.dataConnectReservationDetails, input.menuItems);
+    if (resetConfirmationContact) await op("clearConfirmationContact")(this.connection(), { id: current.dataConnectId });
     return this.getReservationWithInternalId(id);
   }
 
@@ -180,16 +187,56 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return this.getReservationWithInternalId(id);
   }
 
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const current = await this.getReservationWithInternalId(id);
+    await op("updateReceiptEmailDelivery")(this.connection(), {
+      id: current.dataConnectId,
+      sentAt: input.sentAt ?? null,
+      lastAttemptAt: input.lastAttemptAt,
+      retryCount: input.retryCount,
+      lastError: input.lastError ?? null,
+    });
+    return this.getReservationWithInternalId(id);
+  }
+
+  async listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]> {
+    const { data } = await op("listApprovalEmailDeliveries")(this.connection());
+    return (data.approvalEmailDeliveries ?? []).map((raw: any) => ({
+      id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode,
+      type: raw.emailType as ApprovalEmailType, referenceId: raw.referenceId ?? null,
+      requestedAt: String(raw.requestedAt), sentAt: raw.sentAt ? String(raw.sentAt) : null,
+      lastAttemptAt: raw.lastAttemptAt ? String(raw.lastAttemptAt) : null,
+      retryCount: Number(raw.retryCount ?? 0), lastError: raw.lastError ?? null,
+    }));
+  }
+
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+    const existing = (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const reservation = await this.getReservationWithInternalId(input.reservationId);
+    await op("createApprovalEmailDelivery")(this.connection(), { deliveryKey: input.deliveryKey, reservationId: reservation.dataConnectId, emailType: input.type, referenceId: input.referenceId ?? null, requestedAt: input.requestedAt });
+    return (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === input.deliveryKey)!;
+  }
+
+  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+    const delivery = (await this.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery?.id) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
+    await op("updateApprovalEmailDelivery")(this.connection(), { id: delivery.id, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    return { ...delivery, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null };
+  }
+
   async assignStores(id: string, assignments: StoreAssignment[]) {
     const reservation = await this.getReservationWithInternalId(id);
     const valid = assignments.filter((item) => item.store && item.people > 0).map((item) => ({ store: item.store, people: Number(item.people) }));
     const total = valid.reduce((sum, item) => sum + item.people, 0);
     if (valid.length > 0 && total !== reservation.people) throw new Error(`Assigned people must equal reservation people: ${reservation.people}`);
+    const resetConfirmationContact = shouldResetConfirmationContactForAssignments(reservation, valid);
     for (const assignment of reservation.dataConnectStoreAssignments) await op("deleteStoreAssignment")(this.connection(), { id: assignment.id });
     for (const assignment of valid) {
       const store = await this.getRawStoreByName(assignment.store);
       await op("assignStore")(this.connection(), { reservationId: reservation.dataConnectId, storeId: store.id, people: assignment.people });
     }
+    if (resetConfirmationContact) await op("clearConfirmationContact")(this.connection(), { id: reservation.dataConnectId });
     return this.getReservationWithInternalId(id);
   }
 
@@ -407,9 +454,9 @@ function toReservation(raw: RawReservation): Reservation {
   return {
     id: raw.reservationCode,
     accountId: raw.account?.id ?? null,
-    customer: raw.reserverName,
-    email: raw.reserverEmail,
-    phone: raw.reserverPhone,
+    customer: raw.reserverName ?? "",
+    email: raw.reserverEmail ?? "",
+    phone: raw.reserverPhone ?? "",
     address: raw.reserverAddress ?? undefined,
     date: String(raw.usageDate),
     startTime: raw.usageTime,
@@ -435,6 +482,11 @@ function toReservation(raw: RawReservation): Reservation {
     requestType: normalizeReservationRequestType(raw.requestType),
     policyAgreement: raw.policyAgreementKind && raw.policyAgreementAcceptedAt ? { kind: raw.policyAgreementKind, acceptedAt: String(raw.policyAgreementAcceptedAt) } : undefined,
     confirmationContactedAt: raw.confirmationContactedAt ? String(raw.confirmationContactedAt) : null,
+    receiptEmailRequestedAt: raw.receiptEmailRequestedAt ? String(raw.receiptEmailRequestedAt) : null,
+    receiptEmailSentAt: raw.receiptEmailSentAt ? String(raw.receiptEmailSentAt) : null,
+    receiptEmailLastAttemptAt: raw.receiptEmailLastAttemptAt ? String(raw.receiptEmailLastAttemptAt) : null,
+    receiptEmailRetryCount: Number(raw.receiptEmailRetryCount ?? 0),
+    receiptEmailLastError: raw.receiptEmailLastError ?? null,
     received: raw.receivedAt ? String(raw.receivedAt) : "",
   };
 }
@@ -444,9 +496,9 @@ function toReservationChangeRequest(raw: Record<string, any>): ReservationChange
   return {
     id: raw.id,
     reservationId: reservation.reservationCode,
-    customer: reservation.reserverName,
-    email: reservation.reserverEmail,
-    phone: reservation.reserverPhone,
+    customer: reservation.reserverName ?? "",
+    email: reservation.reserverEmail ?? "",
+    phone: reservation.reserverPhone ?? "",
     currentDate: String(reservation.usageDate),
     currentStartTime: reservation.usageTime,
     currentPeople: reservation.expectedPeople,

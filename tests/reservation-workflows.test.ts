@@ -148,6 +148,56 @@ test("important reservation workflows", async (t) => {
     assert.equal(reservation.endTime, "12:45");
   });
 
+  await t.test("resets confirmation contact only when customer-facing reservation details change", async () => {
+    const reservation = await repository.createReservation({
+      date: "2026-08-05",
+      startTime: "12:00",
+      people: 2,
+      name: "確認 連絡",
+      email: "contact@example.jp",
+      phone: "080-4444-5555",
+      menuItems: [menus[0].name],
+      status: reservationStatusCodes.confirmed,
+    });
+    const contactedAt = "2026-08-01T09:00:00.000Z";
+    await repository.updateConfirmationContact(reservation.id, contactedAt);
+
+    const remarksOnly = await repository.updateReservation(reservation.id, { remarks: "アレルギー確認済み" });
+    assert.equal(remarksOnly.confirmationContactedAt, contactedAt);
+
+    const dateChanged = await repository.updateReservation(reservation.id, { date: "2026-08-06" });
+    assert.equal(dateChanged.confirmationContactedAt, null);
+
+    await repository.updateConfirmationContact(reservation.id, contactedAt);
+    const storeChanged = await repository.assignStores(reservation.id, [{ store: "渋谷店", people: 2 }]);
+    assert.equal(storeChanged.confirmationContactedAt, null);
+  });
+
+  await t.test("resets confirmation contact when an approved change request changes reservation details", async () => {
+    const reservation = await repository.createReservation({
+      date: "2026-08-07",
+      startTime: "18:00",
+      people: 2,
+      name: "変更 申請",
+      email: "change-contact@example.jp",
+      phone: "080-5555-6666",
+      menuItems: [menus[0].name],
+      status: reservationStatusCodes.confirmed,
+    });
+    await repository.updateConfirmationContact(reservation.id, "2026-08-01T09:00:00.000Z");
+    const request = await repository.createReservationChangeRequest({
+      reservationId: reservation.id,
+      email: reservation.email,
+      requestedDate: "2026-08-08",
+      requestedStartTime: "18:30",
+      requestedPeople: 3,
+      requestedMenuItems: [menus[0].name],
+    });
+
+    const approved = await repository.approveReservationChangeRequest(request.id);
+    assert.equal(approved.reservation.confirmationContactedAt, null);
+  });
+
   await t.test("creates travel agency group reservations as reservation snapshots without creating Account", async () => {
     const reservation = await repository.createReservation({
       date: "2026-08-10",

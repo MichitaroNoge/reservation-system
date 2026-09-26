@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
 import { sendDueConfirmationEmails } from "@/lib/services/confirmation-email-service";
+import { sendPendingReceiptEmails } from "@/lib/services/receipt-email-service";
+import { sendPendingApprovalEmails } from "@/lib/services/approval-email-service";
 
 export const runtime = "nodejs";
 
@@ -16,8 +18,11 @@ export async function POST(request: Request) {
 async function run(request: Request) {
   try {
     requireCronSecret(request);
-    const result = await sendDueConfirmationEmails(getReservationRepository());
-    return NextResponse.json(result);
+    const repository = getReservationRepository();
+    const result = await sendDueConfirmationEmails(repository);
+    const receiptEmails = await sendPendingReceiptEmails(repository);
+    const approvalEmails = await sendPendingApprovalEmails(repository);
+    return NextResponse.json({ ...result, receiptEmails, approvalEmails });
   } catch (error) {
     return apiErrorResponse(error);
   }

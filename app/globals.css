@@ -74,3 +74,32 @@ body{font-size:14px;line-height:1.55}.sidebar nav p{font-size:11px}.sidebar nav 
 
 .email-verification-panel{text-align:center}.email-verification-panel>p{font-size:12px;line-height:1.8}.email-verification-panel>p strong{color:#243149}.email-verification-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}.email-verification-actions button{height:44px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#536074;font-size:12px}.email-verification-actions .next{justify-content:center;margin:0;background:var(--blue);color:#fff;border-color:var(--blue)}.email-verification-actions button:disabled{opacity:.5}.email-verification-logout{margin-top:14px;border:0;background:transparent;color:#748094;font-size:11px}@media(max-width:760px){.email-verification-actions{grid-template-columns:1fr}}
 .customer-account-current .account-delete-button{border-color:#f1c4c8;color:#c43f4b}.customer-account-current .account-delete-button:disabled{opacity:.5}
+
+/* Customer authentication */
+.customer-account-panel:has(.customer-auth-card){padding:0;background:#fff;overflow:hidden}
+.customer-auth-card{color:#18243a}
+.customer-auth-intro{margin:0;padding:18px 24px 14px;color:#667085;font-size:12px;line-height:1.7}
+.customer-auth-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);background:#f7f9fc}
+.customer-auth-tabs button{height:52px;border:0;border-bottom:2px solid transparent;background:transparent;color:#667085;font-size:13px;font-weight:700}
+.customer-auth-tabs button.selected{border-bottom-color:var(--blue);background:#fff;color:#18336f}
+.customer-auth-tabs button:focus-visible,.auth-primary-button:focus-visible,.password-reset-link:focus-visible,.password-field button:focus-visible{outline:3px solid rgba(65,105,225,.2);outline-offset:2px}
+.customer-auth-form{display:grid;gap:17px;padding:24px}
+.customer-auth-form.registration{gap:15px}
+.auth-field{display:grid;gap:7px;color:#344054;font-size:12px;font-weight:700}
+.auth-field>span{display:flex;align-items:center;gap:7px}
+.auth-field em{border-radius:4px;background:#edf2ff;color:#315bc7;padding:2px 6px;font-size:9px;font-style:normal}
+.auth-input-wrap{position:relative}
+.auth-input-wrap>svg{position:absolute;left:13px;top:50%;width:17px;height:17px;transform:translateY(-50%);color:#8490a5;pointer-events:none}
+.auth-input-wrap>svg+input{padding-left:40px}
+.auth-input-wrap input{width:100%;height:46px;border:1px solid #cfd7e5;border-radius:7px;background:#fff;padding:0 13px;color:#18243a;font-size:14px;outline:0;transition:border-color .15s,box-shadow .15s}
+.auth-input-wrap input:focus{border-color:#5877df;box-shadow:0 0 0 3px rgba(65,105,225,.12)}
+.auth-field.has-error .auth-input-wrap input{border-color:#d65b65}.auth-field.has-error .auth-input-wrap input:focus{box-shadow:0 0 0 3px rgba(214,91,101,.12)}
+.auth-field>small{color:#bc3845;font-size:11px;font-weight:500}
+.password-field{position:relative}.password-field input{padding-right:46px}.password-field button{position:absolute;right:5px;top:5px;width:36px;height:36px;border:0;border-radius:6px;background:transparent;color:#667085;display:grid;place-items:center}.password-field button:hover{background:#f0f3f8}.password-field svg{width:17px;height:17px}
+.customer-auth-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:2px}
+.password-reset-link{border:0;background:transparent;color:#315bc7;padding:8px 0;font-size:11px}
+.auth-primary-button{min-width:150px;height:44px;border:0;border-radius:7px;background:#3f66dc;color:#fff;padding:0 18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px}
+.auth-primary-button:hover:not(:disabled){background:#3158cb}.auth-primary-button:disabled{opacity:.55;cursor:not-allowed}.auth-primary-button svg{width:16px;height:16px}
+.spin{animation:auth-spin .8s linear infinite}@keyframes auth-spin{to{transform:rotate(360deg)}}
+.customer-auth-form>.account-type-options{margin-bottom:2px}.customer-auth-form>.account-type-options button{min-height:48px}.customer-auth-form>.auth-error{margin:0}
+@media(max-width:760px){.customer-auth-intro{padding:16px 16px 12px}.customer-auth-form{padding:20px 16px}.customer-auth-actions{align-items:stretch;flex-direction:column-reverse}.auth-primary-button{width:100%}.password-reset-link{text-align:left}.customer-auth-tabs button{height:48px}}

@@ -4,7 +4,14 @@ import { Fragment, useEffect, useMemo, useState, type Dispatch, type ReactNode, 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { toast as sonnerToast } from "sonner";
 import { z } from "zod";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Toaster } from "@/components/ui/sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAutomaticReservationStatus,
   getPendingVisitReadinessActions,
@@ -72,7 +79,6 @@ export default function Home() {
   const [reservations, setReservations] = useState(initialReservations);
   const [filter, setFilter] = useState("すべて");
   const [selected, setSelected] = useState<Reservation | null>(null);
-  const [toast, setToast] = useState("");
   const [formStep, setFormStep] = useState(1);
   const [view, setView] = useState<View>("dashboard");
   const [reservationFilter, setReservationFilter] = useState<ReservationFilter>("すべて");
@@ -182,7 +188,10 @@ export default function Home() {
       .slice()
       .sort((a, b) => reservationStartTime(a).localeCompare(reservationStartTime(b)));
   }, [reservations]);
-  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2500); };
+  const notify = (message: string, variant?: "success" | "error" | "info") => {
+    const resolvedVariant = variant ?? (/失敗|できません|正しくありません|確認してください|入力してください|未完了|まだ完了/.test(message) ? "error" : "success");
+    sonnerToast[resolvedVariant](message);
+  };
   const adminRequestJson = async <T,>(url: string, init?: RequestInit) => requestJson<T>(url, { ...init, authToken: await getAdminToken() });
   const applyAutomaticStatus = async (reservation: Reservation) => {
     const nextStatus = getAutomaticReservationStatus(reservation);
@@ -484,7 +493,7 @@ export default function Home() {
     setView("reservations");
   };
 
-  if (role === "customer") return <CustomerPortal initialMode={customerEntryMode} form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={openAdmin} notify={notify} toast={toast} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
+  if (role === "customer") return <CustomerPortal initialMode={customerEntryMode} form={form} setForm={setForm} step={formStep} setStep={setFormStep} onAdmin={openAdmin} notify={notify} onSubmitReservation={createReservation} onSubmitCancellation={requestCancellation} onSubmitConfirmedReservationChange={requestConfirmedReservationChange} onSubmitChangeRequest={requestReservationChange} menuCatalog={menuCatalog} />;
   if (authLoading) return <AdminAuthShell title="ログイン状態を確認しています" text="管理画面を表示する準備をしています。" />;
   if (!adminSession) return <AdminLogin onLogin={loginAdmin} onCustomer={() => openCustomerPortal()} error={authError} />;
 
@@ -521,7 +530,7 @@ export default function Home() {
     </div>
     {isNewReservationOpen && <NewReservationDrawer form={adminForm} setForm={setAdminForm} onClose={() => setIsNewReservationOpen(false)} onSubmit={submitAdminReservation} menuCatalog={menuCatalog} />}
     {selected && <ReservationDrawer reservation={selected} onClose={() => setSelected(null)} updateStatus={updateStatus} updateConfirmationContact={updateConfirmationContact} assignStores={assignStores} updateReservation={updateReservation} menuCatalog={menuCatalog} stores={stores} />}
-    {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
+    <Toaster />
   </div>;
 }
 
@@ -705,36 +714,36 @@ function CustomerAccountAccessPanel({ authError, accountEmail, accountPassword, 
       contactPersonName: accountType === "travel_agency" ? current.contactPersonName : "",
     }));
   };
-  return <div className="customer-auth-card">
+  return <Tabs value={bookingMode} onValueChange={value => onBookingModeChange(value as "login" | "register")} className="customer-auth-card">
     <p className="customer-auth-intro">ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。</p>
-    <div className="customer-auth-tabs" role="tablist" aria-label="認証方法">
-      <button type="button" role="tab" aria-selected={bookingMode === "login"} className={bookingMode === "login" ? "selected" : ""} onClick={() => onBookingModeChange("login")}>ログイン</button>
-      <button type="button" role="tab" aria-selected={bookingMode === "register"} className={bookingMode === "register" ? "selected" : ""} onClick={() => onBookingModeChange("register")}>アカウント登録</button>
-    </div>
-    {bookingMode === "login" && <form className="customer-auth-form" onSubmit={loginForm.handleSubmit(values => { onAccountEmailChange(values.email); onAccountPasswordChange(values.password); onLogin(values.email, values.password); })} noValidate>
-      <AuthField label="メールアドレス" error={loginForm.formState.errors.email?.message} icon={<Mail aria-hidden="true"/>}><input type="email" autoComplete="email" {...loginForm.register("email")} /></AuthField>
-      <AuthField label="パスワード" error={loginForm.formState.errors.password?.message} icon={<LockKeyhole aria-hidden="true"/>}><div className="password-field"><input type={showPassword ? "text" : "password"} autoComplete="current-password" {...loginForm.register("password")} /><button type="button" title={showPassword ? "パスワードを隠す" : "パスワードを表示"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff/> : <Eye/>}</button></div></AuthField>
-      {authError ? <div className="auth-error" role="alert">{authError}</div> : null}
-      <div className="customer-auth-actions"><button type="button" className="password-reset-link" onClick={loginForm.handleSubmit(values => onResetPassword(values.email))}>パスワードをお忘れですか？</button><button type="submit" className="auth-primary-button" disabled={busy}>{busy && <LoaderCircle className="spin"/>}{busy ? "確認中" : "ログイン"}</button></div>
-    </form>}
-    {bookingMode === "register" && <form className="customer-auth-form registration" onSubmit={registerForm.handleSubmit(values => { onAccountEmailChange(values.email); onAccountPasswordChange(values.password); onSubmitAccount(values.email, values.password); })} noValidate>
-      <fieldset className="account-type-options"><legend>利用者区分<span className="required-mark">必須</span></legend><button type="button" className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般のお客様</strong></span></button><button type="button" className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社の担当者様</strong></span></button></fieldset>
-      <AuthField label="メールアドレス" required error={registerForm.formState.errors.email?.message}><input type="email" autoComplete="email" {...registerForm.register("email")} /></AuthField>
-      <AuthField label="パスワード" required error={registerForm.formState.errors.password?.message}><div className="password-field"><input type={showPassword ? "text" : "password"} autoComplete="new-password" {...registerForm.register("password")} /><button type="button" title={showPassword ? "パスワードを隠す" : "パスワードを表示"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff/> : <Eye/>}</button></div></AuthField>
+    <TabsList className="customer-auth-tabs" aria-label="認証方法">
+      <TabsTrigger value="login">ログイン</TabsTrigger>
+      <TabsTrigger value="register">アカウント登録</TabsTrigger>
+    </TabsList>
+    <TabsContent value="login"><form className="customer-auth-form" onSubmit={loginForm.handleSubmit(values => { onAccountEmailChange(values.email); onAccountPasswordChange(values.password); onLogin(values.email, values.password); })} noValidate>
+      <AuthField label="メールアドレス" error={loginForm.formState.errors.email?.message} icon={<Mail aria-hidden="true"/>}><Input type="email" autoComplete="email" {...loginForm.register("email")} /></AuthField>
+      <AuthField label="パスワード" error={loginForm.formState.errors.password?.message} icon={<LockKeyhole aria-hidden="true"/>}><div className="password-field"><Input type={showPassword ? "text" : "password"} autoComplete="current-password" {...loginForm.register("password")} /><Button type="button" variant="ghost" size="icon" title={showPassword ? "パスワードを隠す" : "パスワードを表示"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff/> : <Eye/>}</Button></div></AuthField>
+      {authError ? <Alert className="auth-error">{authError}</Alert> : null}
+      <div className="customer-auth-actions"><Button type="button" variant="link" className="password-reset-link" onClick={loginForm.handleSubmit(values => onResetPassword(values.email))}>パスワードをお忘れですか？</Button><Button type="submit" className="auth-primary-button" disabled={busy}>{busy && <LoaderCircle className="spin"/>}{busy ? "確認中" : "ログイン"}</Button></div>
+    </form></TabsContent>
+    <TabsContent value="register"><form className="customer-auth-form registration" onSubmit={registerForm.handleSubmit(values => { onAccountEmailChange(values.email); onAccountPasswordChange(values.password); onSubmitAccount(values.email, values.password); })} noValidate>
+      <fieldset className="account-type-options"><legend>利用者区分<span className="required-mark">必須</span></legend><Button type="button" variant="outline" aria-pressed={!travelAgency} className={!travelAgency ? "selected" : ""} onClick={() => selectAccountType("individual")}><span className="radio-mark" aria-hidden="true"/><span><strong>一般のお客様</strong></span></Button><Button type="button" variant="outline" aria-pressed={travelAgency} className={travelAgency ? "selected" : ""} onClick={() => selectAccountType("travel_agency")}><span className="radio-mark" aria-hidden="true"/><span><strong>旅行会社の担当者様</strong></span></Button></fieldset>
+      <AuthField label="メールアドレス" required error={registerForm.formState.errors.email?.message}><Input type="email" autoComplete="email" {...registerForm.register("email")} /></AuthField>
+      <AuthField label="パスワード" required error={registerForm.formState.errors.password?.message}><div className="password-field"><Input type={showPassword ? "text" : "password"} autoComplete="new-password" {...registerForm.register("password")} /><Button type="button" variant="ghost" size="icon" title={showPassword ? "パスワードを隠す" : "パスワードを表示"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff/> : <Eye/>}</Button></div></AuthField>
       {travelAgency ? <>
-        <AuthField label="会社・支店名" required error={registerForm.formState.errors.companyBranchName?.message}><input {...registerForm.register("companyBranchName", { onChange: event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value })) })} /></AuthField>
-        <AuthField label="担当者名" required error={registerForm.formState.errors.contactPersonName?.message}><input {...registerForm.register("contactPersonName", { onChange: event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value })) })} /></AuthField>
-      </> : <AuthField label="お名前" required error={registerForm.formState.errors.name?.message}><input autoComplete="name" {...registerForm.register("name", { onChange: event => onRegistrationFormChange(current => ({ ...current, name: event.target.value })) })} /></AuthField>}
-      <AuthField label="電話番号" required error={registerForm.formState.errors.phone?.message}><input type="tel" autoComplete="tel" {...registerForm.register("phone", { onChange: event => onRegistrationFormChange(current => ({ ...current, phone: event.target.value })) })} /></AuthField>
-      <AuthField label="住所" error={registerForm.formState.errors.address?.message}><input autoComplete="street-address" {...registerForm.register("address", { onChange: event => onRegistrationFormChange(current => ({ ...current, address: event.target.value })) })} /></AuthField>
-      {authError ? <div className="auth-error" role="alert">{authError}</div> : null}
-      <button type="submit" className="auth-primary-button" disabled={busy}>{busy && <LoaderCircle className="spin"/>}{busy ? "登録中" : "アカウントを登録"}</button>
-    </form>}
-  </div>;
+        <AuthField label="会社・支店名" required error={registerForm.formState.errors.companyBranchName?.message}><Input {...registerForm.register("companyBranchName", { onChange: event => onRegistrationFormChange(current => ({ ...current, name: event.target.value, companyBranchName: event.target.value })) })} /></AuthField>
+        <AuthField label="担当者名" required error={registerForm.formState.errors.contactPersonName?.message}><Input {...registerForm.register("contactPersonName", { onChange: event => onRegistrationFormChange(current => ({ ...current, contactPersonName: event.target.value, bookingContactName: event.target.value })) })} /></AuthField>
+      </> : <AuthField label="お名前" required error={registerForm.formState.errors.name?.message}><Input autoComplete="name" {...registerForm.register("name", { onChange: event => onRegistrationFormChange(current => ({ ...current, name: event.target.value })) })} /></AuthField>}
+      <AuthField label="電話番号" required error={registerForm.formState.errors.phone?.message}><Input type="tel" inputMode="tel" autoComplete="tel" {...registerForm.register("phone", { onChange: event => onRegistrationFormChange(current => ({ ...current, phone: event.target.value })) })} /></AuthField>
+      <AuthField label="住所" error={registerForm.formState.errors.address?.message}><Input autoComplete="street-address" {...registerForm.register("address", { onChange: event => onRegistrationFormChange(current => ({ ...current, address: event.target.value })) })} /></AuthField>
+      {authError ? <Alert className="auth-error">{authError}</Alert> : null}
+      <Button type="submit" className="auth-primary-button" disabled={busy}>{busy && <LoaderCircle className="spin"/>}{busy ? "登録中" : "アカウントを登録"}</Button>
+    </form></TabsContent>
+  </Tabs>;
 }
 
 function AuthField({ label, required, error, icon, children }: { label: string; required?: boolean; error?: string; icon?: ReactNode; children: ReactNode }) {
-  return <label className={`auth-field ${error ? "has-error" : ""}`}><span>{label}{required ? <em>必須</em> : null}</span><div className="auth-input-wrap">{icon}{children}</div>{error ? <small role="alert">{error}</small> : null}</label>;
+  return <Label className={`auth-field ${error ? "has-error" : ""}`}><span>{label}{required ? <em>必須</em> : null}</span><div className="auth-input-wrap">{icon}{children}</div>{error ? <small role="alert">{error}</small> : null}</Label>;
 }
 
 function CustomerReservationDashboard({ customerEmail, isLoggedIn, authError, accountEmail, accountPassword, accountSubmitting, customerAuthLoading, bookingMode, registrationForm, reservations, changeRequests, isLoading, reservationError, canRequestConfirmedChange, canRequestChange, canRequestCancellation, onBack, onBookingModeChange, onRegistrationFormChange, onAccountEmailChange, onAccountPasswordChange, onLogin, onSubmitAccount, onResetPassword, onLogout, onConfirmedChange, onChange, onCancellation }: { customerEmail: string; isLoggedIn: boolean; authError: string; accountEmail: string; accountPassword: string; accountSubmitting: boolean; customerAuthLoading: boolean; bookingMode: "login" | "register"; registrationForm: BookingForm; reservations: Reservation[]; changeRequests: ReservationChangeRequest[]; isLoading: boolean; reservationError: string; canRequestConfirmedChange: (reservation: Reservation) => boolean; canRequestChange: (reservation: Reservation) => boolean; canRequestCancellation: (reservation: Reservation) => boolean; onBack: () => void; onBookingModeChange: (mode: "login" | "register") => void; onRegistrationFormChange: Dispatch<SetStateAction<BookingForm>>; onAccountEmailChange: (value: string) => void; onAccountPasswordChange: (value: string) => void; onLogin: (email?: string, password?: string) => void; onSubmitAccount: (email?: string, password?: string) => void; onResetPassword: (email: string) => void; onLogout: () => void; onConfirmedChange: (reservation: Reservation) => void; onChange: (reservation: Reservation) => void; onCancellation: (reservation: Reservation) => void }) {
@@ -1034,7 +1043,7 @@ type CustomerPortalMode = "home" | "account" | "reservation" | "confirmedChange"
 type CustomerContactRequestForm = { reservationId: string; email: string; phone: string };
 type CustomerReservationChangeRequestForm = CustomerContactRequestForm & { requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason: string };
 
-function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, notify, toast, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { initialMode: CustomerPortalMode; form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string)=>void; toast:string; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
+function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, notify, onSubmitReservation, onSubmitCancellation, onSubmitConfirmedReservationChange, onSubmitChangeRequest, menuCatalog }: { initialMode: CustomerPortalMode; form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; step:number; setStep:(n:number)=>void; onAdmin:()=>void; notify:(s:string, variant?: "success" | "error" | "info")=>void; onSubmitReservation:(form: BookingForm, options?: ReservationSubmitOptions)=>Promise<Reservation>; onSubmitCancellation:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitConfirmedReservationChange:(input: { reservationId: string; email?: string; phone?: string }, options?: { authToken?: string })=>Promise<Reservation>; onSubmitChangeRequest:(input: { reservationId: string; email?: string; phone?: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string }, options?: { authToken?: string })=>Promise<ReservationChangeRequest>; menuCatalog: Menu[] }) {
   const { customerUser, customerAuthLoading, customerAuthError, loginCustomer, registerCustomer, resendVerificationEmail, refreshEmailVerification, resetCustomerPassword, signOutCustomer } = useCustomerSession();
   const [portalMode, setPortalMode] = useState<CustomerPortalMode>(initialMode);
   const [bookingMode, setBookingMode] = useState<"login" | "register">("login");
@@ -1417,7 +1426,7 @@ function CustomerPortal({ initialMode, form, setForm, step, setStep, onAdmin, no
       {isCustomerRequestMode(portalMode) && customerUser && <CustomerRequestForms mode={portalMode} confirmedChangeForm={confirmedChangeForm} changeRequestForm={changeRequestForm} cancellationForm={cancellationForm} confirmedChangeSubmitted={confirmedChangeSubmitted} changeRequestSubmitted={changeRequestSubmitted} cancellationSubmitted={cancellationSubmitted} isSubmittingConfirmedChange={isSubmittingConfirmedChange} isSubmittingChangeRequest={isSubmittingChangeRequest} isSubmittingCancellation={isSubmittingCancellation} canSubmitConfirmedChange={canSubmitConfirmedChange} canSubmitChangeRequest={canSubmitChangeRequest} canSubmitCancellation={canSubmitCancellation} menuCatalog={menuCatalog} onBack={backToPortalHome} onConfirmedChangeFormChange={setConfirmedChangeForm} onChangeRequestFormChange={setChangeRequestForm} onCancellationFormChange={setCancellationForm} onSubmitConfirmedChange={submitConfirmedChange} onSubmitChangeRequest={submitChangeRequest} onSubmitCancellation={submitCancellation} />}
       </>}
     </section>
-    {toast && <div className="toast"><Icon name="check"/>{toast}</div>}
+    <Toaster />
   </main>;
 }
 

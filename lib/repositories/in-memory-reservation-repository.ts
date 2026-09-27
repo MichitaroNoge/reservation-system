@@ -1,10 +1,8 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
-type Database = {
+export type InMemoryReservationDatabase = {
   reservations: Reservation[];
   reservationChangeRequests?: ReservationChangeRequest[];
   menus: Menu[];
@@ -14,32 +12,6 @@ type Database = {
 };
 
 const defaultStartTime = "10:00";
-
-async function readDatabase(databasePath: string): Promise<Database> {
-  try {
-    const raw = await readFile(databasePath, "utf8");
-    const legacy = JSON.parse(raw) as Database & { customers?: unknown[] };
-    const database: Database = {
-      reservations: legacy.reservations,
-      reservationChangeRequests: legacy.reservationChangeRequests ?? [],
-      menus: legacy.menus,
-      stores: legacy.stores,
-      accounts: legacy.accounts ?? [],
-      approvalEmailDeliveries: legacy.approvalEmailDeliveries ?? [],
-    };
-    database.reservations = database.reservations.map((reservation) => normalizeReservation(reservation, database.menus));
-    return database;
-  } catch {
-    const initial: Database = { reservations: seedReservations, reservationChangeRequests: [], menus: seedMenus, stores: seedStores, accounts: [], approvalEmailDeliveries: [] };
-    await writeDatabase(databasePath, initial);
-    return initial;
-  }
-}
-
-async function writeDatabase(databasePath: string, database: Database) {
-  await mkdir(path.dirname(databasePath), { recursive: true });
-  await writeFile(databasePath, JSON.stringify(database, null, 2), "utf8");
-}
 
 function nextReservationId(reservations: Reservation[]) {
   const max = reservations.reduce((current, reservation) => {
@@ -95,12 +67,23 @@ function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: str
 function normalizeMenu(menu: Menu): Menu { return { ...menu, displayOrder: menu.displayOrder ?? 0, active: menu.active ?? true }; }
 function normalizeStore(store: Store): Store { return { ...store, displayOrder: store.displayOrder ?? 0 }; }
 
-export class FileReservationRepository implements ReservationRepository {
-  private readonly databasePath: string;
+export class InMemoryReservationRepository implements ReservationRepository {
+  private database: InMemoryReservationDatabase;
 
-  constructor(databasePath = path.join(process.cwd(), "data", "reservation-db.json")) { this.databasePath = databasePath; }
-  private readDatabase() { return readDatabase(this.databasePath); }
-  private writeDatabase(database: Database) { return writeDatabase(this.databasePath, database); }
+  constructor(initial?: Partial<InMemoryReservationDatabase>) {
+    this.database = structuredClone({
+      reservations: initial?.reservations ?? seedReservations,
+      reservationChangeRequests: initial?.reservationChangeRequests ?? [],
+      menus: initial?.menus ?? seedMenus,
+      stores: initial?.stores ?? seedStores,
+      accounts: initial?.accounts ?? [],
+      approvalEmailDeliveries: initial?.approvalEmailDeliveries ?? [],
+    });
+    this.database.reservations = this.database.reservations.map((reservation) => normalizeReservation(reservation, this.database.menus));
+  }
+
+  private async readDatabase() { return this.database; }
+  private async writeDatabase(database: InMemoryReservationDatabase) { this.database = database; }
 
   async listReservations() { return (await this.readDatabase()).reservations; }
 
@@ -341,7 +324,7 @@ export class FileReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     database.accounts ??= [];
     if (database.accounts.some((account) => account.firebaseUid === input.firebaseUid)) throw new Error(`Account already exists for Firebase UID: ${input.firebaseUid}`);
-    const account: Account = { ...input, id: `file-account-${Date.now()}`, active: true };
+    const account: Account = { ...input, id: `memory-account-${Date.now()}`, active: true };
     database.accounts.push(account);
     await this.writeDatabase(database);
     return account;
@@ -434,7 +417,7 @@ export class FileReservationRepository implements ReservationRepository {
 
   async deleteMenu(name: string) {
     const database = await this.readDatabase();
-    database.menus = database.menus.map((menu) => menu.name === name ? normalizeMenu({ ...menu, id: menu.id ?? `file-menu-${encodeURIComponent(menu.name)}`, active: false }) : menu);
+    database.menus = database.menus.map((menu) => menu.name === name ? normalizeMenu({ ...menu, id: menu.id ?? `memory-menu-${encodeURIComponent(menu.name)}`, active: false }) : menu);
     await this.writeDatabase(database);
   }
 

@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
 import { canTransitionReservationStatus, reservationStatusCodes } from "../lib/domain";
-import { FileReservationRepository } from "../lib/repositories/file-reservation-repository";
+import { InMemoryReservationRepository } from "../lib/repositories/in-memory-reservation-repository";
 import type { Menu, Reservation, Store } from "../lib/domain";
 
 const menus: Menu[] = [
@@ -72,8 +69,7 @@ const baseReservations: Reservation[] = [
 ];
 
 test("important reservation workflows", async (t) => {
-  const { repository, cleanup } = await createRepository();
-  t.after(cleanup);
+  const { repository } = createRepository();
 
   await t.test("creates a reservation with generated id, default time, status, menu total, and no implicit Account", async () => {
     const reservation = await repository.createReservation({
@@ -370,13 +366,8 @@ test("important reservation workflows", async (t) => {
   });
 });
 
-async function createRepository() {
-  const directory = await mkdtemp(path.join(tmpdir(), "reservation-system-test-"));
-  const databasePath = path.join(directory, "reservation-db.json");
-  await writeFile(databasePath, JSON.stringify({ reservations: baseReservations, menus, stores, accounts: [] }, null, 2), "utf8");
+function createRepository() {
   return {
-    repository: new FileReservationRepository(databasePath),
-    readDatabase: async () => JSON.parse(await readFile(databasePath, "utf8")) as { reservations: Reservation[]; menus: Menu[]; stores: Store[] },
-    cleanup: () => rm(directory, { recursive: true, force: true }),
+    repository: new InMemoryReservationRepository({ reservations: baseReservations, menus, stores, accounts: [] }),
   };
 }

@@ -1,4 +1,3 @@
-import { FileReservationRepository } from "./file-reservation-repository";
 import { FirebaseSqlConnectReservationRepository } from "./firebase-sql-connect-repository";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -10,7 +9,5 @@ export function getReservationRepository() {
 }
 
 function createReservationRepository(): ReservationRepository {
-  const repositoryType = process.env.RESERVATION_REPOSITORY ?? "dataconnect";
-  if (repositoryType === "dataconnect") return new FirebaseSqlConnectReservationRepository();
-  return new FileReservationRepository();
+  return new FirebaseSqlConnectReservationRepository();
 }

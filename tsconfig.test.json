@@ -14,7 +14,7 @@
   "include": [
     "lib/domain.ts",
     "lib/seed-data.ts",
-    "lib/repositories/file-reservation-repository.ts",
+    "lib/repositories/in-memory-reservation-repository.ts",
     "lib/repositories/reservation-repository.ts",
     "tests/**/*.ts"
   ]

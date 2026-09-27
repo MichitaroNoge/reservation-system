@@ -9,7 +9,7 @@ const checkedFiles = [
   "app/reservations/hooks/use-customer-session.ts",
   "lib/domain.ts",
   "lib/seed-data.ts",
-  "lib/repositories/file-reservation-repository.ts",
+  "lib/repositories/in-memory-reservation-repository.ts",
 ];
 
 const mojibakePattern = /繝|縺|譛|莠|蠎|鬘|蜑|隍|蛻|逋|菫|諠|遒|謌|譖|蠕|雎|讒|匳|邂|髯|ﾂ|�/;

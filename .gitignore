@@ -8,4 +8,3 @@ dataconnect-debug.log
 pglite-debug.log
 dataconnect/.dataconnect/
 .tmp/
-data/reservation-db.json

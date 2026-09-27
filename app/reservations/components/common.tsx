@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export function Icon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
@@ -15,13 +18,15 @@ export function Icon({ name }: { name: string }) {
 }
 
 export function Stat({ icon, label, value, note, color, onClick }: { icon: string; label: string; value: string; note: string; color: string; onClick?: () => void }) {
-  return <button className={`stat ${onClick ? "clickable" : "static"}`} onClick={onClick} disabled={!onClick}><span className={`stat-icon ${color}`}><Icon name={icon}/></span><div><p>{label}</p><strong>{value}<small>件</small></strong>{note && <span className={color === "amber" || color === "violet" ? "attention" : "positive"}>{note}</span>}</div></button>;
+  const tone = color === "amber" ? "bg-warning/10 text-warning" : color === "violet" ? "bg-violet-50 text-violet-700" : color === "green" ? "bg-success/10 text-success" : "bg-primary/10 text-primary";
+  return <Card><button className="flex min-h-28 w-full items-start gap-4 p-5 text-left transition-colors hover:bg-muted/40 disabled:cursor-default" onClick={onClick} disabled={!onClick}><span className={`grid size-10 shrink-0 place-items-center rounded-md ${tone}`}><Icon name={icon}/></span><div><p className="text-sm text-muted-foreground">{label}</p><strong className="mt-1 block text-2xl">{value}<small className="ml-1 text-xs font-medium text-muted-foreground">件</small></strong>{note && <span className="mt-1 block text-xs text-muted-foreground">{note}</span>}</div></button></Card>;
 }
 
 export function InfoMetric({ icon, label, value, color }: { icon?: string; label: string; value: string; color: string }) {
-  return <div className={`info-metric ${icon ? "" : "no-icon"}`}>{icon && <span className={`stat-icon ${color}`}><Icon name={icon}/></span>}<div><p>{label}</p><strong>{value}<small>件</small></strong></div></div>;
+  return <div className="flex items-center gap-3 py-4">{icon && <span className="grid size-10 place-items-center rounded-md bg-primary/10 text-primary"><Icon name={icon}/></span>}<div><p className="text-xs text-muted-foreground">{label}</p><strong className="text-2xl">{value}<small className="ml-1 text-xs font-medium text-muted-foreground">件</small></strong></div></div>;
 }
 
 export function Task({ color, title, count, text, onClick }: { color: string; title: string; count?: number; text: string; onClick?: () => void }) {
-  return <button className={`task ${count ? "has-count" : "no-count"}`} onClick={onClick}><i className={color}/><div><strong>{title}{count !== undefined && <span className="task-count">{count}件</span>}</strong><small>{text}</small></div><Icon name="arrow"/></button>;
+  const variant = color === "red" ? "destructive" : color === "amber" ? "warning" : color === "green" ? "success" : "default";
+  return <Button variant="outline" className="h-auto min-h-16 w-full justify-start whitespace-normal p-4 text-left" onClick={onClick}><span className={`h-8 w-1 shrink-0 rounded-full ${color === "red" ? "bg-destructive" : color === "amber" ? "bg-warning" : color === "green" ? "bg-success" : "bg-primary"}`}/><span className="min-w-0 flex-1"><strong className="flex items-center gap-2 text-sm">{title}{count !== undefined && <Badge variant={variant}>{count}件</Badge>}</strong><small className="mt-1 block font-normal text-muted-foreground">{text}</small></span><Icon name="arrow"/></Button>;
 }

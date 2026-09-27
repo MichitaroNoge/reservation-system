@@ -1,17 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { FileReservationRepository } from "../lib/repositories/file-reservation-repository";
+import { InMemoryReservationRepository } from "../lib/repositories/in-memory-reservation-repository";
 
-async function withRepository(run: (repository: FileReservationRepository) => Promise<void>) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "reservation-account-test-"));
-  try {
-    await run(new FileReservationRepository(path.join(directory, "db.json")));
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
+async function withRepository(run: (repository: InMemoryReservationRepository) => Promise<void>) {
+  await run(new InMemoryReservationRepository());
 }
 
 const baseReservation = {

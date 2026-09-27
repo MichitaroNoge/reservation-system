@@ -1,5 +1,6 @@
 import type { User } from "firebase/auth";
-import type { AccountType, PaymentCondition, ReservationBookingType, ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
+import type { AccountType, EmailTemplate, PaymentCondition, ReservationBookingType, ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
+export type { EmailTemplate };
 
 export type Status = ReservationStatus;
 export type StoreAssignment = { store: string; people: number };
@@ -66,7 +67,7 @@ export type StoreForm = Store;
 export type AdminSession = { user: User; email: string | null };
 export type ApiRequestInit = RequestInit & { authToken?: string };
 export type ReservationSubmitOptions = { authToken?: string; forceAdmin?: boolean; customerAccountMode?: "account" };
-export type View = "dashboard" | "reservations" | "reservationApprovals" | "cancellationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "masters" | "customers" | "stores" | "menus" | "billing";
+export type View = "dashboard" | "reservations" | "reservationApprovals" | "cancellationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "billing";
 export type ReservationFilter = "すべて" | "承認待ち" | "仮予約確定" | "仮予約確定（期限切れ）" | "本予約確定" | "本予約確定（メニュー未確定）" | "本予約確定（店舗未割当）" | "本予約確定（未確認連絡）" | "本予約確定（来店待ち）";
 export type ReservationSortKey = "status" | "id" | "customer" | "date" | "menu" | "store" | "contact";
 export type SortDirection = "asc" | "desc";

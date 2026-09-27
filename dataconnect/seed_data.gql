@@ -13,3 +13,14 @@ mutation SeedStoresAndMenus @auth(level: NO_ACCESS) {
     { name: "来店後に注文", description: "来店後にメニューを注文します", standardPrice: 0, durationMinutes: 0, displayOrder: 999, active: true }
   ])
 }
+
+mutation SeedEmailTemplates @auth(level: NO_ACCESS) {
+  emailTemplate_insertMany(data: [
+    { templateKey: "reservation_received", name: "予約受付メール", subject: "予約申請を受け付けました {{reservationId}}", body: "{{customerName}} 様\n\n予約申請を受け付けました。\nこのメールは受付完了のお知らせです。予約はまだ確定していません。\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}\n\n内容を確認後、予約可否をご連絡します。", isActive: true }
+    { templateKey: "reservation_reminder", name: "予約確認メール", subject: "ご予約内容の確認 {{reservationId}}", body: "{{customerName}} 様\n\nご予約日が近づいてまいりましたので、以下の内容でご予約を確認いたします。\n\n予約番号: {{reservationId}}\n来店日: {{reservationDate}}\n来店時間: {{reservationTime}}\n店舗: {{storeName}}\n予約人数: {{numberOfGuests}}名\n\n変更やキャンセルが必要な場合は、本メールへご返信ください。", isActive: true }
+    { templateKey: "reservation_approved", name: "予約申請承認メール", subject: "予約申請が承認されました {{reservationId}}", body: "{{customerName}} 様\n\n予約申請が承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
+    { templateKey: "confirmed_change_approved", name: "本予約変更承認メール", subject: "本予約への変更申請が承認されました {{reservationId}}", body: "{{customerName}} 様\n\n本予約への変更申請が承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
+    { templateKey: "reservation_change_approved", name: "予約内容変更承認メール", subject: "予約内容の変更申請が承認されました {{reservationId}}", body: "{{customerName}} 様\n\n予約内容の変更申請が承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
+    { templateKey: "cancellation_approved", name: "予約キャンセル承認メール", subject: "予約キャンセルが承認されました {{reservationId}}", body: "{{customerName}} 様\n\n予約キャンセルが承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
+  ])
+}

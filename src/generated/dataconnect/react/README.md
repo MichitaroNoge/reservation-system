@@ -21,6 +21,10 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*GetReservation*](#getreservation)
   - [*GetReservationByCode*](#getreservationbycode)
   - [*ListReservationChangeRequests*](#listreservationchangerequests)
+  - [*ListApprovalEmailDeliveries*](#listapprovalemaildeliveries)
+  - [*ListEmailTemplates*](#listemailtemplates)
+  - [*GetEmailTemplateByKey*](#getemailtemplatebykey)
+  - [*GetEmailDeliveryByKey*](#getemaildeliverybykey)
   - [*ListAccounts*](#listaccounts)
   - [*ListInactiveAccounts*](#listinactiveaccounts)
   - [*GetAccountById*](#getaccountbyid)
@@ -46,6 +50,12 @@ You can also follow the instructions from the [Data Connect documentation](https
   - [*UpdateConfirmationContact*](#updateconfirmationcontact)
   - [*ClearConfirmationContact*](#clearconfirmationcontact)
   - [*UpdateReceiptEmailDelivery*](#updatereceiptemaildelivery)
+  - [*CreateApprovalEmailDelivery*](#createapprovalemaildelivery)
+  - [*UpdateApprovalEmailDelivery*](#updateapprovalemaildelivery)
+  - [*CreateEmailTemplate*](#createemailtemplate)
+  - [*UpdateEmailTemplate*](#updateemailtemplate)
+  - [*CreateEmailDelivery*](#createemaildelivery)
+  - [*UpdateEmailDelivery*](#updateemaildelivery)
   - [*AssignStore*](#assignstore)
   - [*DeleteStoreAssignment*](#deletestoreassignment)
   - [*CreateReservationChangeRequest*](#createreservationchangerequest)
@@ -709,6 +719,353 @@ export default function ListReservationChangeRequestsComponent() {
   // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
   if (query.isSuccess) {
     console.log(query.data.reservationChangeRequests);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListApprovalEmailDeliveries
+You can execute the `ListApprovalEmailDeliveries` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListApprovalEmailDeliveries(dc: DataConnect, options?: useDataConnectQueryOptions<ListApprovalEmailDeliveriesData>): UseDataConnectQueryResult<ListApprovalEmailDeliveriesData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListApprovalEmailDeliveries(options?: useDataConnectQueryOptions<ListApprovalEmailDeliveriesData>): UseDataConnectQueryResult<ListApprovalEmailDeliveriesData, undefined>;
+```
+
+### Variables
+The `ListApprovalEmailDeliveries` Query has no variables.
+### Return Type
+Recall that calling the `ListApprovalEmailDeliveries` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListApprovalEmailDeliveries` Query is of type `ListApprovalEmailDeliveriesData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListApprovalEmailDeliveriesData {
+  approvalEmailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    emailType: string;
+    referenceId?: string | null;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastAttemptAt?: TimestampString | null;
+    retryCount: number;
+    lastError?: string | null;
+    reservation: {
+      reservationCode: string;
+    };
+  } & ApprovalEmailDelivery_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListApprovalEmailDeliveries`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@reservation-system/dataconnect';
+import { useListApprovalEmailDeliveries } from '@reservation-system/dataconnect/react'
+
+export default function ListApprovalEmailDeliveriesComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListApprovalEmailDeliveries();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListApprovalEmailDeliveries(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListApprovalEmailDeliveries(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListApprovalEmailDeliveries(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.approvalEmailDeliveries);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## ListEmailTemplates
+You can execute the `ListEmailTemplates` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useListEmailTemplates(dc: DataConnect, options?: useDataConnectQueryOptions<ListEmailTemplatesData>): UseDataConnectQueryResult<ListEmailTemplatesData, undefined>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useListEmailTemplates(options?: useDataConnectQueryOptions<ListEmailTemplatesData>): UseDataConnectQueryResult<ListEmailTemplatesData, undefined>;
+```
+
+### Variables
+The `ListEmailTemplates` Query has no variables.
+### Return Type
+Recall that calling the `ListEmailTemplates` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `ListEmailTemplates` Query is of type `ListEmailTemplatesData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface ListEmailTemplatesData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `ListEmailTemplates`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig } from '@reservation-system/dataconnect';
+import { useListEmailTemplates } from '@reservation-system/dataconnect/react'
+
+export default function ListEmailTemplatesComponent() {
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useListEmailTemplates();
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useListEmailTemplates(dataConnect);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useListEmailTemplates(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useListEmailTemplates(dataConnect, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.emailTemplates);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetEmailTemplateByKey
+You can execute the `GetEmailTemplateByKey` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetEmailTemplateByKey(dc: DataConnect, vars: GetEmailTemplateByKeyVariables, options?: useDataConnectQueryOptions<GetEmailTemplateByKeyData>): UseDataConnectQueryResult<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetEmailTemplateByKey(vars: GetEmailTemplateByKeyVariables, options?: useDataConnectQueryOptions<GetEmailTemplateByKeyData>): UseDataConnectQueryResult<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+```
+
+### Variables
+The `GetEmailTemplateByKey` Query requires an argument of type `GetEmailTemplateByKeyVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetEmailTemplateByKeyVariables {
+  templateKey: string;
+}
+```
+### Return Type
+Recall that calling the `GetEmailTemplateByKey` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetEmailTemplateByKey` Query is of type `GetEmailTemplateByKeyData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetEmailTemplateByKeyData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetEmailTemplateByKey`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetEmailTemplateByKeyVariables } from '@reservation-system/dataconnect';
+import { useGetEmailTemplateByKey } from '@reservation-system/dataconnect/react'
+
+export default function GetEmailTemplateByKeyComponent() {
+  // The `useGetEmailTemplateByKey` Query hook requires an argument of type `GetEmailTemplateByKeyVariables`:
+  const getEmailTemplateByKeyVars: GetEmailTemplateByKeyVariables = {
+    templateKey: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetEmailTemplateByKey(getEmailTemplateByKeyVars);
+  // Variables can be defined inline as well.
+  const query = useGetEmailTemplateByKey({ templateKey: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetEmailTemplateByKey(dataConnect, getEmailTemplateByKeyVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetEmailTemplateByKey(getEmailTemplateByKeyVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetEmailTemplateByKey(dataConnect, getEmailTemplateByKeyVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.emailTemplates);
+  }
+  return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## GetEmailDeliveryByKey
+You can execute the `GetEmailDeliveryByKey` Query using the following Query hook function, which is defined in [dataconnect/react/index.d.ts](./index.d.ts):
+
+```javascript
+useGetEmailDeliveryByKey(dc: DataConnect, vars: GetEmailDeliveryByKeyVariables, options?: useDataConnectQueryOptions<GetEmailDeliveryByKeyData>): UseDataConnectQueryResult<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
+```
+You can also pass in a `DataConnect` instance to the Query hook function.
+```javascript
+useGetEmailDeliveryByKey(vars: GetEmailDeliveryByKeyVariables, options?: useDataConnectQueryOptions<GetEmailDeliveryByKeyData>): UseDataConnectQueryResult<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
+```
+
+### Variables
+The `GetEmailDeliveryByKey` Query requires an argument of type `GetEmailDeliveryByKeyVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface GetEmailDeliveryByKeyVariables {
+  deliveryKey: string;
+}
+```
+### Return Type
+Recall that calling the `GetEmailDeliveryByKey` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
+
+To check the status of a Query, use the `UseQueryResult.status` field. You can also check for pending / success / error status using the `UseQueryResult.isPending`, `UseQueryResult.isSuccess`, and `UseQueryResult.isError` fields.
+
+To access the data returned by a Query, use the `UseQueryResult.data` field. The data for the `GetEmailDeliveryByKey` Query is of type `GetEmailDeliveryByKeyData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface GetEmailDeliveryByKeyData {
+  emailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    templateKey: string;
+    recipient: string;
+    subject: string;
+    body: string;
+    status: string;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastError?: string | null;
+    reservation?: {
+      reservationCode: string;
+    };
+  } & EmailDelivery_Key)[];
+}
+```
+
+To learn more about the `UseQueryResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useQuery).
+
+### Using `GetEmailDeliveryByKey`'s Query hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, GetEmailDeliveryByKeyVariables } from '@reservation-system/dataconnect';
+import { useGetEmailDeliveryByKey } from '@reservation-system/dataconnect/react'
+
+export default function GetEmailDeliveryByKeyComponent() {
+  // The `useGetEmailDeliveryByKey` Query hook requires an argument of type `GetEmailDeliveryByKeyVariables`:
+  const getEmailDeliveryByKeyVars: GetEmailDeliveryByKeyVariables = {
+    deliveryKey: ..., 
+  };
+
+  // You don't have to do anything to "execute" the Query.
+  // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
+  const query = useGetEmailDeliveryByKey(getEmailDeliveryByKeyVars);
+  // Variables can be defined inline as well.
+  const query = useGetEmailDeliveryByKey({ deliveryKey: ..., });
+
+  // You can also pass in a `DataConnect` instance to the Query hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const query = useGetEmailDeliveryByKey(dataConnect, getEmailDeliveryByKeyVars);
+
+  // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetEmailDeliveryByKey(getEmailDeliveryByKeyVars, options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = { staleTime: 5 * 1000 };
+  const query = useGetEmailDeliveryByKey(dataConnect, getEmailDeliveryByKeyVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Query.
+  if (query.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (query.isError) {
+    return <div>Error: {query.error.message}</div>;
+  }
+
+  // If the Query is successful, you can access the data returned using the `UseQueryResult.data` field.
+  if (query.isSuccess) {
+    console.log(query.data.emailDeliveries);
   }
   return <div>Query execution {query.isSuccess ? 'successful' : 'failed'}!</div>;
 }
@@ -3021,6 +3378,622 @@ export default function UpdateReceiptEmailDeliveryComponent() {
   // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
   if (mutation.isSuccess) {
     console.log(mutation.data.reservation_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## CreateApprovalEmailDelivery
+You can execute the `CreateApprovalEmailDelivery` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateApprovalEmailDelivery(options?: useDataConnectMutationOptions<CreateApprovalEmailDeliveryData, FirebaseError, CreateApprovalEmailDeliveryVariables>): UseDataConnectMutationResult<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateApprovalEmailDelivery(dc: DataConnect, options?: useDataConnectMutationOptions<CreateApprovalEmailDeliveryData, FirebaseError, CreateApprovalEmailDeliveryVariables>): UseDataConnectMutationResult<CreateApprovalEmailDeliveryData, CreateApprovalEmailDeliveryVariables>;
+```
+
+### Variables
+The `CreateApprovalEmailDelivery` Mutation requires an argument of type `CreateApprovalEmailDeliveryVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateApprovalEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId: UUIDString;
+  emailType: string;
+  referenceId?: string | null;
+  requestedAt: TimestampString;
+}
+```
+### Return Type
+Recall that calling the `CreateApprovalEmailDelivery` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateApprovalEmailDelivery` Mutation is of type `CreateApprovalEmailDeliveryData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateApprovalEmailDeliveryData {
+  approvalEmailDelivery_insert: ApprovalEmailDelivery_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateApprovalEmailDelivery`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateApprovalEmailDeliveryVariables } from '@reservation-system/dataconnect';
+import { useCreateApprovalEmailDelivery } from '@reservation-system/dataconnect/react'
+
+export default function CreateApprovalEmailDeliveryComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateApprovalEmailDelivery();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateApprovalEmailDelivery(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateApprovalEmailDelivery(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateApprovalEmailDelivery(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateApprovalEmailDelivery` Mutation requires an argument of type `CreateApprovalEmailDeliveryVariables`:
+  const createApprovalEmailDeliveryVars: CreateApprovalEmailDeliveryVariables = {
+    deliveryKey: ..., 
+    reservationId: ..., 
+    emailType: ..., 
+    referenceId: ..., // optional
+    requestedAt: ..., 
+  };
+  mutation.mutate(createApprovalEmailDeliveryVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ deliveryKey: ..., reservationId: ..., emailType: ..., referenceId: ..., requestedAt: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createApprovalEmailDeliveryVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.approvalEmailDelivery_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateApprovalEmailDelivery
+You can execute the `UpdateApprovalEmailDelivery` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateApprovalEmailDelivery(options?: useDataConnectMutationOptions<UpdateApprovalEmailDeliveryData, FirebaseError, UpdateApprovalEmailDeliveryVariables>): UseDataConnectMutationResult<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateApprovalEmailDelivery(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateApprovalEmailDeliveryData, FirebaseError, UpdateApprovalEmailDeliveryVariables>): UseDataConnectMutationResult<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
+```
+
+### Variables
+The `UpdateApprovalEmailDelivery` Mutation requires an argument of type `UpdateApprovalEmailDeliveryVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateApprovalEmailDeliveryVariables {
+  id: UUIDString;
+  sentAt?: TimestampString | null;
+  lastAttemptAt: TimestampString;
+  retryCount: number;
+  lastError?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpdateApprovalEmailDelivery` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateApprovalEmailDelivery` Mutation is of type `UpdateApprovalEmailDeliveryData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateApprovalEmailDeliveryData {
+  approvalEmailDelivery_update?: ApprovalEmailDelivery_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateApprovalEmailDelivery`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateApprovalEmailDeliveryVariables } from '@reservation-system/dataconnect';
+import { useUpdateApprovalEmailDelivery } from '@reservation-system/dataconnect/react'
+
+export default function UpdateApprovalEmailDeliveryComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateApprovalEmailDelivery();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateApprovalEmailDelivery(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateApprovalEmailDelivery(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateApprovalEmailDelivery(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateApprovalEmailDelivery` Mutation requires an argument of type `UpdateApprovalEmailDeliveryVariables`:
+  const updateApprovalEmailDeliveryVars: UpdateApprovalEmailDeliveryVariables = {
+    id: ..., 
+    sentAt: ..., // optional
+    lastAttemptAt: ..., 
+    retryCount: ..., 
+    lastError: ..., // optional
+  };
+  mutation.mutate(updateApprovalEmailDeliveryVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., sentAt: ..., lastAttemptAt: ..., retryCount: ..., lastError: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateApprovalEmailDeliveryVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.approvalEmailDelivery_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## CreateEmailTemplate
+You can execute the `CreateEmailTemplate` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateEmailTemplate(options?: useDataConnectMutationOptions<CreateEmailTemplateData, FirebaseError, CreateEmailTemplateVariables>): UseDataConnectMutationResult<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateEmailTemplate(dc: DataConnect, options?: useDataConnectMutationOptions<CreateEmailTemplateData, FirebaseError, CreateEmailTemplateVariables>): UseDataConnectMutationResult<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+```
+
+### Variables
+The `CreateEmailTemplate` Mutation requires an argument of type `CreateEmailTemplateVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateEmailTemplateVariables {
+  templateKey: string;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+```
+### Return Type
+Recall that calling the `CreateEmailTemplate` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateEmailTemplate` Mutation is of type `CreateEmailTemplateData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateEmailTemplateData {
+  emailTemplate_insert: EmailTemplate_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateEmailTemplate`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateEmailTemplateVariables } from '@reservation-system/dataconnect';
+import { useCreateEmailTemplate } from '@reservation-system/dataconnect/react'
+
+export default function CreateEmailTemplateComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateEmailTemplate();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateEmailTemplate(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateEmailTemplate(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateEmailTemplate(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateEmailTemplate` Mutation requires an argument of type `CreateEmailTemplateVariables`:
+  const createEmailTemplateVars: CreateEmailTemplateVariables = {
+    templateKey: ..., 
+    name: ..., 
+    subject: ..., 
+    body: ..., 
+    isActive: ..., 
+  };
+  mutation.mutate(createEmailTemplateVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ templateKey: ..., name: ..., subject: ..., body: ..., isActive: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createEmailTemplateVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.emailTemplate_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateEmailTemplate
+You can execute the `UpdateEmailTemplate` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateEmailTemplate(options?: useDataConnectMutationOptions<UpdateEmailTemplateData, FirebaseError, UpdateEmailTemplateVariables>): UseDataConnectMutationResult<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateEmailTemplate(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateEmailTemplateData, FirebaseError, UpdateEmailTemplateVariables>): UseDataConnectMutationResult<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+```
+
+### Variables
+The `UpdateEmailTemplate` Mutation requires an argument of type `UpdateEmailTemplateVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateEmailTemplateVariables {
+  id: UUIDString;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+```
+### Return Type
+Recall that calling the `UpdateEmailTemplate` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateEmailTemplate` Mutation is of type `UpdateEmailTemplateData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateEmailTemplateData {
+  emailTemplate_update?: EmailTemplate_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateEmailTemplate`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateEmailTemplateVariables } from '@reservation-system/dataconnect';
+import { useUpdateEmailTemplate } from '@reservation-system/dataconnect/react'
+
+export default function UpdateEmailTemplateComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateEmailTemplate();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateEmailTemplate(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateEmailTemplate(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateEmailTemplate(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateEmailTemplate` Mutation requires an argument of type `UpdateEmailTemplateVariables`:
+  const updateEmailTemplateVars: UpdateEmailTemplateVariables = {
+    id: ..., 
+    name: ..., 
+    subject: ..., 
+    body: ..., 
+    isActive: ..., 
+  };
+  mutation.mutate(updateEmailTemplateVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., name: ..., subject: ..., body: ..., isActive: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateEmailTemplateVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.emailTemplate_update);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## CreateEmailDelivery
+You can execute the `CreateEmailDelivery` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useCreateEmailDelivery(options?: useDataConnectMutationOptions<CreateEmailDeliveryData, FirebaseError, CreateEmailDeliveryVariables>): UseDataConnectMutationResult<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useCreateEmailDelivery(dc: DataConnect, options?: useDataConnectMutationOptions<CreateEmailDeliveryData, FirebaseError, CreateEmailDeliveryVariables>): UseDataConnectMutationResult<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+```
+
+### Variables
+The `CreateEmailDelivery` Mutation requires an argument of type `CreateEmailDeliveryVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface CreateEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId?: UUIDString | null;
+  templateKey: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: string;
+  requestedAt: TimestampString;
+}
+```
+### Return Type
+Recall that calling the `CreateEmailDelivery` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `CreateEmailDelivery` Mutation is of type `CreateEmailDeliveryData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface CreateEmailDeliveryData {
+  emailDelivery_insert: EmailDelivery_Key;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `CreateEmailDelivery`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, CreateEmailDeliveryVariables } from '@reservation-system/dataconnect';
+import { useCreateEmailDelivery } from '@reservation-system/dataconnect/react'
+
+export default function CreateEmailDeliveryComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useCreateEmailDelivery();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useCreateEmailDelivery(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateEmailDelivery(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useCreateEmailDelivery(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useCreateEmailDelivery` Mutation requires an argument of type `CreateEmailDeliveryVariables`:
+  const createEmailDeliveryVars: CreateEmailDeliveryVariables = {
+    deliveryKey: ..., 
+    reservationId: ..., // optional
+    templateKey: ..., 
+    recipient: ..., 
+    subject: ..., 
+    body: ..., 
+    status: ..., 
+    requestedAt: ..., 
+  };
+  mutation.mutate(createEmailDeliveryVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ deliveryKey: ..., reservationId: ..., templateKey: ..., recipient: ..., subject: ..., body: ..., status: ..., requestedAt: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(createEmailDeliveryVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.emailDelivery_insert);
+  }
+  return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
+}
+```
+
+## UpdateEmailDelivery
+You can execute the `UpdateEmailDelivery` Mutation using the `UseMutationResult` object returned by the following Mutation hook function (which is defined in [dataconnect/react/index.d.ts](./index.d.ts)):
+```javascript
+useUpdateEmailDelivery(options?: useDataConnectMutationOptions<UpdateEmailDeliveryData, FirebaseError, UpdateEmailDeliveryVariables>): UseDataConnectMutationResult<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+```
+You can also pass in a `DataConnect` instance to the Mutation hook function.
+```javascript
+useUpdateEmailDelivery(dc: DataConnect, options?: useDataConnectMutationOptions<UpdateEmailDeliveryData, FirebaseError, UpdateEmailDeliveryVariables>): UseDataConnectMutationResult<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+```
+
+### Variables
+The `UpdateEmailDelivery` Mutation requires an argument of type `UpdateEmailDeliveryVariables`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+
+```javascript
+export interface UpdateEmailDeliveryVariables {
+  id: UUIDString;
+  status: string;
+  sentAt?: TimestampString | null;
+  lastError?: string | null;
+}
+```
+### Return Type
+Recall that calling the `UpdateEmailDelivery` Mutation hook function returns a `UseMutationResult` object. This object holds the state of your Mutation, including whether the Mutation is loading, has completed, or has succeeded/failed, among other things.
+
+To check the status of a Mutation, use the `UseMutationResult.status` field. You can also check for pending / success / error status using the `UseMutationResult.isPending`, `UseMutationResult.isSuccess`, and `UseMutationResult.isError` fields.
+
+To execute the Mutation, call `UseMutationResult.mutate()`. This function executes the Mutation, but does not return the data from the Mutation.
+
+To access the data returned by a Mutation, use the `UseMutationResult.data` field. The data for the `UpdateEmailDelivery` Mutation is of type `UpdateEmailDeliveryData`, which is defined in [dataconnect/index.d.ts](../index.d.ts). It has the following fields:
+```javascript
+export interface UpdateEmailDeliveryData {
+  emailDelivery_update?: EmailDelivery_Key | null;
+}
+```
+
+To learn more about the `UseMutationResult` object, see the [TanStack React Query documentation](https://tanstack.com/query/v5/docs/framework/react/reference/useMutation).
+
+### Using `UpdateEmailDelivery`'s Mutation hook function
+
+```javascript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, UpdateEmailDeliveryVariables } from '@reservation-system/dataconnect';
+import { useUpdateEmailDelivery } from '@reservation-system/dataconnect/react'
+
+export default function UpdateEmailDeliveryComponent() {
+  // Call the Mutation hook function to get a `UseMutationResult` object which holds the state of your Mutation.
+  const mutation = useUpdateEmailDelivery();
+
+  // You can also pass in a `DataConnect` instance to the Mutation hook function.
+  const dataConnect = getDataConnect(connectorConfig);
+  const mutation = useUpdateEmailDelivery(dataConnect);
+
+  // You can also pass in a `useDataConnectMutationOptions` object to the Mutation hook function.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateEmailDelivery(options);
+
+  // You can also pass both a `DataConnect` instance and a `useDataConnectMutationOptions` object.
+  const dataConnect = getDataConnect(connectorConfig);
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  const mutation = useUpdateEmailDelivery(dataConnect, options);
+
+  // After calling the Mutation hook function, you must call `UseMutationResult.mutate()` to execute the Mutation.
+  // The `useUpdateEmailDelivery` Mutation requires an argument of type `UpdateEmailDeliveryVariables`:
+  const updateEmailDeliveryVars: UpdateEmailDeliveryVariables = {
+    id: ..., 
+    status: ..., 
+    sentAt: ..., // optional
+    lastError: ..., // optional
+  };
+  mutation.mutate(updateEmailDeliveryVars);
+  // Variables can be defined inline as well.
+  mutation.mutate({ id: ..., status: ..., sentAt: ..., lastError: ..., });
+
+  // You can also pass in a `useDataConnectMutationOptions` object to `UseMutationResult.mutate()`.
+  const options = {
+    onSuccess: () => { console.log('Mutation succeeded!'); }
+  };
+  mutation.mutate(updateEmailDeliveryVars, options);
+
+  // Then, you can render your component dynamically based on the status of the Mutation.
+  if (mutation.isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isError) {
+    return <div>Error: {mutation.error.message}</div>;
+  }
+
+  // If the Mutation is successful, you can access the data returned using the `UseMutationResult.data` field.
+  if (mutation.isSuccess) {
+    console.log(mutation.data.emailDelivery_update);
   }
   return <div>Mutation execution {mutation.isSuccess ? 'successful' : 'failed'}!</div>;
 }

@@ -9,7 +9,7 @@
 - Data Connectスキーマを `Account` + 予約者スナップショットへ変更
 - Query / MutationをAccountモデルへ変更
 - RepositoryインターフェースをAccount APIへ変更
-- FileRepositoryで管理者・非会員予約のAccount自動作成を廃止
+- テスト用インメモリRepositoryで管理者・非会員予約のAccount自動作成を廃止
 - Data Connect RepositoryをAccount + Reservation snapshot前提へ変更
 - ログイン予約だけFirebase UIDでAccountに紐付け
 - Firebase UIDに対応するAccountが無い場合は初回本人予約時にAccountを作成

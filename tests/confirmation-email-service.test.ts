@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type Reservation } from "../lib/domain";
+import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type EmailDelivery, type EmailTemplate, type Reservation } from "../lib/domain";
+import { defaultEmailTemplates } from "../lib/email/email-template-catalog";
 import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
 import { receiptEmailIdempotencyKey, sendPendingReceiptEmails, sendReceiptEmailForReservation } from "../lib/services/receipt-email-service";
@@ -76,6 +77,62 @@ test("manual confirmation contact sends an email before marking contacted", asyn
   assert.equal(emailClient.sent.length, 1);
   assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL" }));
   assert.equal(updated.confirmationContactedAt, now.toISOString());
+  const delivery = await repository.getEmailDelivery(confirmationEmailIdempotencyKey({ id: "RSV-MANUAL" }));
+  assert.equal(delivery?.status, "sent");
+  assert.equal(delivery?.subject, emailClient.sent[0].subject);
+  assert.match(delivery?.body ?? "", /RSV-MANUAL/);
+});
+
+test("confirmation email service uses the template stored for its templateKey", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-CUSTOM-TEMPLATE", date: "2026-08-30" }),
+  ]);
+  const current = await repository.getEmailTemplate("reservation_reminder");
+  assert.ok(current);
+  await repository.upsertEmailTemplate({
+    ...current,
+    subject: "ご来店確認 {{reservationId}}",
+    body: "{{customerName}} 様\n店舗: {{storeName}}",
+  });
+  const emailClient = new RecordingEmailClient();
+
+  await sendConfirmationEmailForReservation(repository, "RSV-CUSTOM-TEMPLATE", {
+    now,
+    emailClient,
+  });
+
+  assert.equal(emailClient.sent[0].subject, "ご来店確認 RSV-CUSTOM-TEMPLATE");
+  assert.match(emailClient.sent[0].text, /佐藤 健太 様/);
+});
+
+test("email retry uses the original subject and body snapshot after template changes", async () => {
+  const repository = new MemoryReservationRepository([
+    reservation({ id: "RSV-SNAPSHOT", date: "2026-08-30" }),
+  ]);
+  const failedClient = new RecordingEmailClient(new Error("Resend unavailable"));
+
+  await assert.rejects(
+    () => sendConfirmationEmailForReservation(repository, "RSV-SNAPSHOT", { now, emailClient: failedClient }),
+    /Resend unavailable/,
+  );
+  const deliveryKey = confirmationEmailIdempotencyKey({ id: "RSV-SNAPSHOT" });
+  const original = await repository.getEmailDelivery(deliveryKey);
+  assert.equal(original?.status, "failed");
+
+  const template = await repository.getEmailTemplate("reservation_reminder");
+  assert.ok(template);
+  await repository.upsertEmailTemplate({
+    ...template,
+    subject: "変更後の件名 {{reservationId}}",
+    body: "変更後の本文 {{customerName}}",
+  });
+
+  const retryClient = new RecordingEmailClient();
+  await sendConfirmationEmailForReservation(repository, "RSV-SNAPSHOT", { now, emailClient: retryClient });
+
+  assert.equal(retryClient.sent[0].subject, original?.subject);
+  assert.equal(retryClient.sent[0].text.includes(original?.body ?? ""), true);
+  assert.equal((await repository.getEmailDelivery(deliveryKey))?.status, "sent");
 });
 
 test("manual confirmation contact can use a scoped idempotency key for resend after clearing", async () => {
@@ -212,6 +269,8 @@ class RecordingEmailClient implements EmailClient {
 
 class MemoryReservationRepository implements ReservationRepository {
   private approvalEmailDeliveries: ApprovalEmailDelivery[] = [];
+  private emailTemplates: EmailTemplate[] = defaultEmailTemplates();
+  private emailDeliveries: EmailDelivery[] = [];
   constructor(private reservations: Reservation[]) {}
 
   get(id: string) {
@@ -254,6 +313,21 @@ class MemoryReservationRepository implements ReservationRepository {
     if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
     Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
     return delivery;
+  }
+
+  async listEmailTemplates() { return this.emailTemplates; }
+  async getEmailTemplate(templateKey: string) { return this.emailTemplates.find((item) => item.templateKey === templateKey) ?? null; }
+  async upsertEmailTemplate(input: EmailTemplate) {
+    const index = this.emailTemplates.findIndex((item) => item.templateKey === input.templateKey);
+    if (index >= 0) this.emailTemplates[index] = input; else this.emailTemplates.push(input);
+    return input;
+  }
+  async getEmailDelivery(deliveryKey: string) { return this.emailDeliveries.find((item) => item.deliveryKey === deliveryKey) ?? null; }
+  async createEmailDelivery(input: EmailDelivery) { this.emailDeliveries.push(input); return input; }
+  async updateEmailDelivery(deliveryKey: string, input: Pick<EmailDelivery, "status" | "sentAt" | "lastError">) {
+    const delivery = this.emailDeliveries.find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery) throw new Error(`Email delivery not found: ${deliveryKey}`);
+    Object.assign(delivery, input); return delivery;
   }
 
   listReservationsForReservationAccount = unsupported;

@@ -1,5 +1,7 @@
 import type { ApprovalEmailType } from "../domain";
-import { buildApprovalEmailContent } from "../email/approval-email-template";
+import { buildEmailContent } from "../email/email-layout";
+import { approvalTypeTemplateKey, reservationTemplateVariables } from "../email/email-template-catalog";
+import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
 import { ResendEmailClient, type EmailClient } from "../email/resend-email-client";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 
@@ -38,13 +40,22 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
   const attemptedAt = (options.now ?? new Date()).toISOString();
   const retryCount = delivery.retryCount + 1;
   if (!reservation.email) return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: null, lastAttemptAt: attemptedAt, retryCount: options.maxRetries ?? defaultMaxRetries, lastError: "Reservation email is required" });
+  const templateKey = approvalTypeTemplateKey(delivery.type);
+  const auditKey = `reservation-approval/${delivery.deliveryKey}`;
   try {
     const emailClient = options.emailClient ?? new ResendEmailClient();
-    const content = buildApprovalEmailContent(reservation, delivery.type);
-    await emailClient.send({ to: reservation.email, ...content, idempotencyKey: `reservation-approval/${delivery.deliveryKey}` });
+    let audit = await repository.getEmailDelivery(auditKey);
+    if (!audit) {
+      const rendered = await renderRepositoryEmail(repository, templateKey, reservationTemplateVariables(reservation));
+      audit = await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: reservation.id, templateKey, recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: delivery.requestedAt, sentAt: null, lastError: null });
+    }
+    await emailClient.send({ to: audit.recipient, ...buildEmailContent(audit.subject, audit.body), idempotencyKey: auditKey });
+    await repository.updateEmailDelivery(auditKey, { status: "sent", sentAt: attemptedAt, lastError: null });
     return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: attemptedAt, lastAttemptAt: attemptedAt, retryCount, lastError: null });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown email error";
+    const audit = await repository.getEmailDelivery(auditKey);
+    if (audit) await repository.updateEmailDelivery(auditKey, { status: "failed", sentAt: null, lastError: message });
     await repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: null, lastAttemptAt: attemptedAt, retryCount, lastError: message });
     throw error;
   }

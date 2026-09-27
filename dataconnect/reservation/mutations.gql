@@ -178,6 +178,18 @@ mutation CreateApprovalEmailDelivery($deliveryKey: String!, $reservationId: UUID
 mutation UpdateApprovalEmailDelivery($id: UUID!, $sentAt: Timestamp, $lastAttemptAt: Timestamp!, $retryCount: Int!, $lastError: String) @auth(level: NO_ACCESS) {
   approvalEmailDelivery_update(key: {id: $id}, data: { sentAt: $sentAt lastAttemptAt: $lastAttemptAt retryCount: $retryCount lastError: $lastError })
 }
+mutation CreateEmailTemplate($templateKey: String!, $name: String!, $subject: String!, $body: String!, $isActive: Boolean!) @auth(level: NO_ACCESS) {
+  emailTemplate_insert(data: {templateKey: $templateKey name: $name subject: $subject body: $body isActive: $isActive})
+}
+mutation UpdateEmailTemplate($id: UUID!, $name: String!, $subject: String!, $body: String!, $isActive: Boolean!) @auth(level: NO_ACCESS) {
+  emailTemplate_update(key: {id: $id}, data: {name: $name subject: $subject body: $body isActive: $isActive updatedAt_expr: "request.time"})
+}
+mutation CreateEmailDelivery($deliveryKey: String!, $reservationId: UUID, $templateKey: String!, $recipient: String!, $subject: String!, $body: String!, $status: String!, $requestedAt: Timestamp!) @auth(level: NO_ACCESS) {
+  emailDelivery_insert(data: {deliveryKey: $deliveryKey reservationId: $reservationId templateKey: $templateKey recipient: $recipient subject: $subject body: $body status: $status requestedAt: $requestedAt})
+}
+mutation UpdateEmailDelivery($id: UUID!, $status: String!, $sentAt: Timestamp, $lastError: String) @auth(level: NO_ACCESS) {
+  emailDelivery_update(key: {id: $id}, data: {status: $status sentAt: $sentAt lastError: $lastError})
+}
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!) @auth(level: NO_ACCESS) {
   storeAssignment_insert(data: { reservationId: $reservationId storeId: $storeId people: $people assignedAt_expr: "request.time" })
 }

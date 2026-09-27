@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
 
 const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
@@ -69,6 +69,17 @@ export function useCustomerSession() {
     return firebaseAuth.currentUser;
   };
 
+  const resetCustomerPassword = async (email: string) => {
+    setCustomerAuthError("");
+    try {
+      await sendPasswordResetEmail(firebaseAuth, email);
+    } catch (error) {
+      const message = customerAuthMessage(error, "パスワード再設定メールを送信できませんでした。");
+      setCustomerAuthError(message);
+      throw customerAuthUiError(message, error);
+    }
+  };
+
   return {
     customerUser,
     customerAuthLoading,
@@ -77,6 +88,7 @@ export function useCustomerSession() {
     registerCustomer,
     resendVerificationEmail,
     refreshEmailVerification,
+    resetCustomerPassword,
     signOutCustomer: () => signOut(firebaseAuth),
   };
 }

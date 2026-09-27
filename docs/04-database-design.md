@@ -14,7 +14,7 @@
 - メールアドレス等が一致しても、過去の代理予約を後からAccountへ自動・手動連携しない
 - Accountプロフィール変更時も過去予約の予約者情報は書き換えない
 
-`data/reservation-db.json` はローカル開発用フォールバックであり、Git管理対象外です。DB設計としては `dataconnect/schema/schema.gql` を正とします。
+アプリケーションの永続化先は Firebase Data Connect / Cloud SQL に固定しています。テストではファイルを作成しないインメモリリポジトリを利用し、DB設計は `dataconnect/schema/schema.gql` を正とします。
 
 ## テーブル一覧
 

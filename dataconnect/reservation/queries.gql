@@ -55,6 +55,25 @@ query ListApprovalEmailDeliveries @auth(level: NO_ACCESS) {
   }
 }
 
+query ListEmailTemplates @auth(level: NO_ACCESS) {
+  emailTemplates(orderBy: {name: ASC}) {
+    id templateKey name subject body isActive createdAt updatedAt
+  }
+}
+
+query GetEmailTemplateByKey($templateKey: String!) @auth(level: NO_ACCESS) {
+  emailTemplates(where: {templateKey: {eq: $templateKey}}, limit: 1) {
+    id templateKey name subject body isActive createdAt updatedAt
+  }
+}
+
+query GetEmailDeliveryByKey($deliveryKey: String!) @auth(level: NO_ACCESS) {
+  emailDeliveries(where: {deliveryKey: {eq: $deliveryKey}}, limit: 1) {
+    id deliveryKey templateKey recipient subject body status requestedAt sentAt lastError
+    reservation { reservationCode }
+  }
+}
+
 query ListAccounts @auth(level: NO_ACCESS) {
   accounts(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
     id firebaseUid name phone email address accountType companyBranchName contactPersonName active createdAt updatedAt

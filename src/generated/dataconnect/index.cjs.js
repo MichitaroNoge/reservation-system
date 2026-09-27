@@ -245,6 +245,62 @@ exports.updateApprovalEmailDelivery = function updateApprovalEmailDelivery(dcOrV
 }
 ;
 
+const createEmailTemplateRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateEmailTemplate', inputVars);
+}
+createEmailTemplateRef.operationName = 'CreateEmailTemplate';
+exports.createEmailTemplateRef = createEmailTemplateRef;
+
+exports.createEmailTemplate = function createEmailTemplate(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createEmailTemplateRef(dcInstance, inputVars));
+}
+;
+
+const updateEmailTemplateRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateEmailTemplate', inputVars);
+}
+updateEmailTemplateRef.operationName = 'UpdateEmailTemplate';
+exports.updateEmailTemplateRef = updateEmailTemplateRef;
+
+exports.updateEmailTemplate = function updateEmailTemplate(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateEmailTemplateRef(dcInstance, inputVars));
+}
+;
+
+const createEmailDeliveryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateEmailDelivery', inputVars);
+}
+createEmailDeliveryRef.operationName = 'CreateEmailDelivery';
+exports.createEmailDeliveryRef = createEmailDeliveryRef;
+
+exports.createEmailDelivery = function createEmailDelivery(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createEmailDeliveryRef(dcInstance, inputVars));
+}
+;
+
+const updateEmailDeliveryRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateEmailDelivery', inputVars);
+}
+updateEmailDeliveryRef.operationName = 'UpdateEmailDelivery';
+exports.updateEmailDeliveryRef = updateEmailDeliveryRef;
+
+exports.updateEmailDelivery = function updateEmailDelivery(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateEmailDeliveryRef(dcInstance, inputVars));
+}
+;
+
 const assignStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -496,9 +552,54 @@ listApprovalEmailDeliveriesRef.operationName = 'ListApprovalEmailDeliveries';
 exports.listApprovalEmailDeliveriesRef = listApprovalEmailDeliveriesRef;
 
 exports.listApprovalEmailDeliveries = function listApprovalEmailDeliveries(dcOrOptions, options) {
-
+  
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
   return executeQuery(listApprovalEmailDeliveriesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listEmailTemplatesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListEmailTemplates');
+}
+listEmailTemplatesRef.operationName = 'ListEmailTemplates';
+exports.listEmailTemplatesRef = listEmailTemplatesRef;
+
+exports.listEmailTemplates = function listEmailTemplates(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listEmailTemplatesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getEmailTemplateByKeyRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetEmailTemplateByKey', inputVars);
+}
+getEmailTemplateByKeyRef.operationName = 'GetEmailTemplateByKey';
+exports.getEmailTemplateByKeyRef = getEmailTemplateByKeyRef;
+
+exports.getEmailTemplateByKey = function getEmailTemplateByKey(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getEmailTemplateByKeyRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const getEmailDeliveryByKeyRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetEmailDeliveryByKey', inputVars);
+}
+getEmailDeliveryByKeyRef.operationName = 'GetEmailDeliveryByKey';
+exports.getEmailDeliveryByKeyRef = getEmailDeliveryByKeyRef;
+
+exports.getEmailDeliveryByKey = function getEmailDeliveryByKey(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getEmailDeliveryByKeyRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 ;
 

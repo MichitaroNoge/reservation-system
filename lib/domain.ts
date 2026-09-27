@@ -24,6 +24,29 @@ export type ApprovalEmailDelivery = {
   retryCount: number;
   lastError?: string | null;
 };
+export type EmailTemplate = {
+  id?: string;
+  templateKey: string;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+export type EmailDelivery = {
+  id?: string;
+  deliveryKey: string;
+  reservationId?: string | null;
+  templateKey: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: "pending" | "sent" | "failed";
+  requestedAt: string;
+  sentAt?: string | null;
+  lastError?: string | null;
+};
 export type AccountType = "individual" | "travel_agency";
 export type CustomerAccountType = AccountType;
 export type ReservationBookingType = "individual" | "travel_agency_group";

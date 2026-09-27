@@ -1,4 +1,5 @@
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { defaultEmailTemplates } from "../email/email-template-catalog";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
 
@@ -9,6 +10,8 @@ export type InMemoryReservationDatabase = {
   stores: Store[];
   accounts?: Account[];
   approvalEmailDeliveries?: ApprovalEmailDelivery[];
+  emailTemplates?: EmailTemplate[];
+  emailDeliveries?: EmailDelivery[];
 };
 
 const defaultStartTime = "10:00";
@@ -230,6 +233,51 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const delivery = (database.approvalEmailDeliveries ?? []).find((item) => item.deliveryKey === deliveryKey);
     if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
     Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    await this.writeDatabase(database);
+    return delivery;
+  }
+
+  async listEmailTemplates() {
+    const database = await this.readDatabase();
+    return database.emailTemplates?.length ? database.emailTemplates : defaultEmailTemplates();
+  }
+
+  async getEmailTemplate(templateKey: string) {
+    return (await this.listEmailTemplates()).find((item) => item.templateKey === templateKey) ?? null;
+  }
+
+  async upsertEmailTemplate(input: EmailTemplate) {
+    const database = await this.readDatabase();
+    database.emailTemplates ??= defaultEmailTemplates();
+    const index = database.emailTemplates.findIndex((item) => item.templateKey === input.templateKey);
+    const now = new Date().toISOString();
+    const saved = { ...input, id: input.id ?? `ET-${index >= 0 ? index + 1 : database.emailTemplates.length + 1}`, createdAt: input.createdAt ?? now, updatedAt: now };
+    if (index >= 0) database.emailTemplates[index] = saved;
+    else database.emailTemplates.push(saved);
+    await this.writeDatabase(database);
+    return saved;
+  }
+
+  async getEmailDelivery(deliveryKey: string) {
+    return (await this.readDatabase()).emailDeliveries?.find((item) => item.deliveryKey === deliveryKey) ?? null;
+  }
+
+  async createEmailDelivery(input: EmailDelivery) {
+    const database = await this.readDatabase();
+    database.emailDeliveries ??= [];
+    const existing = database.emailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
+    if (existing) return existing;
+    const delivery = { ...input, id: `ED-${database.emailDeliveries.length + 1}` };
+    database.emailDeliveries.push(delivery);
+    await this.writeDatabase(database);
+    return delivery;
+  }
+
+  async updateEmailDelivery(deliveryKey: string, input: Pick<EmailDelivery, "status" | "sentAt" | "lastError">) {
+    const database = await this.readDatabase();
+    const delivery = database.emailDeliveries?.find((item) => item.deliveryKey === deliveryKey);
+    if (!delivery) throw new Error(`Email delivery not found: ${deliveryKey}`);
+    Object.assign(delivery, input);
     await this.writeDatabase(database);
     return delivery;
   }

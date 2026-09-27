@@ -113,6 +113,33 @@ export interface CreateApprovalEmailDeliveryVariables {
   requestedAt: TimestampString;
 }
 
+export interface CreateEmailDeliveryData {
+  emailDelivery_insert: EmailDelivery_Key;
+}
+
+export interface CreateEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId?: UUIDString | null;
+  templateKey: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: string;
+  requestedAt: TimestampString;
+}
+
+export interface CreateEmailTemplateData {
+  emailTemplate_insert: EmailTemplate_Key;
+}
+
+export interface CreateEmailTemplateVariables {
+  templateKey: string;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+
 export interface CreateMenuData {
   menu_insert: Menu_Key;
 }
@@ -231,6 +258,16 @@ export interface DeleteStoreAssignmentVariables {
   id: UUIDString;
 }
 
+export interface EmailDelivery_Key {
+  id: UUIDString;
+  __typename?: 'EmailDelivery_Key';
+}
+
+export interface EmailTemplate_Key {
+  id: UUIDString;
+  __typename?: 'EmailTemplate_Key';
+}
+
 export interface GetAccountByFirebaseUidData {
   accounts: ({
     id: UUIDString;
@@ -267,6 +304,45 @@ export interface GetAccountByIdData {
 
 export interface GetAccountByIdVariables {
   id: UUIDString;
+}
+
+export interface GetEmailDeliveryByKeyData {
+  emailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    templateKey: string;
+    recipient: string;
+    subject: string;
+    body: string;
+    status: string;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastError?: string | null;
+    reservation?: {
+      reservationCode: string;
+    };
+  } & EmailDelivery_Key)[];
+}
+
+export interface GetEmailDeliveryByKeyVariables {
+  deliveryKey: string;
+}
+
+export interface GetEmailTemplateByKeyData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+
+export interface GetEmailTemplateByKeyVariables {
+  templateKey: string;
 }
 
 export interface GetMenuByNameData {
@@ -550,6 +626,19 @@ export interface ListBillingRecordsData {
   } & Billing_Key)[];
 }
 
+export interface ListEmailTemplatesData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+
 export interface ListInactiveAccountsData {
   accounts: ({
     id: UUIDString;
@@ -828,6 +917,29 @@ export interface UpdateConfirmationContactVariables {
   confirmationContactedAt?: TimestampString | null;
 }
 
+export interface UpdateEmailDeliveryData {
+  emailDelivery_update?: EmailDelivery_Key | null;
+}
+
+export interface UpdateEmailDeliveryVariables {
+  id: UUIDString;
+  status: string;
+  sentAt?: TimestampString | null;
+  lastError?: string | null;
+}
+
+export interface UpdateEmailTemplateData {
+  emailTemplate_update?: EmailTemplate_Key | null;
+}
+
+export interface UpdateEmailTemplateVariables {
+  id: UUIDString;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+
 export interface UpdateMenuData {
   menu_update?: Menu_Key | null;
 }
@@ -1091,6 +1203,54 @@ export const updateApprovalEmailDeliveryRef: UpdateApprovalEmailDeliveryRef;
 export function updateApprovalEmailDelivery(vars: UpdateApprovalEmailDeliveryVariables): MutationPromise<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
 export function updateApprovalEmailDelivery(dc: DataConnect, vars: UpdateApprovalEmailDeliveryVariables): MutationPromise<UpdateApprovalEmailDeliveryData, UpdateApprovalEmailDeliveryVariables>;
 
+interface CreateEmailTemplateRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateEmailTemplateVariables): MutationRef<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateEmailTemplateVariables): MutationRef<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+  operationName: string;
+}
+export const createEmailTemplateRef: CreateEmailTemplateRef;
+
+export function createEmailTemplate(vars: CreateEmailTemplateVariables): MutationPromise<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+export function createEmailTemplate(dc: DataConnect, vars: CreateEmailTemplateVariables): MutationPromise<CreateEmailTemplateData, CreateEmailTemplateVariables>;
+
+interface UpdateEmailTemplateRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateEmailTemplateVariables): MutationRef<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateEmailTemplateVariables): MutationRef<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+  operationName: string;
+}
+export const updateEmailTemplateRef: UpdateEmailTemplateRef;
+
+export function updateEmailTemplate(vars: UpdateEmailTemplateVariables): MutationPromise<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+export function updateEmailTemplate(dc: DataConnect, vars: UpdateEmailTemplateVariables): MutationPromise<UpdateEmailTemplateData, UpdateEmailTemplateVariables>;
+
+interface CreateEmailDeliveryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateEmailDeliveryVariables): MutationRef<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateEmailDeliveryVariables): MutationRef<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+  operationName: string;
+}
+export const createEmailDeliveryRef: CreateEmailDeliveryRef;
+
+export function createEmailDelivery(vars: CreateEmailDeliveryVariables): MutationPromise<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+export function createEmailDelivery(dc: DataConnect, vars: CreateEmailDeliveryVariables): MutationPromise<CreateEmailDeliveryData, CreateEmailDeliveryVariables>;
+
+interface UpdateEmailDeliveryRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateEmailDeliveryVariables): MutationRef<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateEmailDeliveryVariables): MutationRef<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+  operationName: string;
+}
+export const updateEmailDeliveryRef: UpdateEmailDeliveryRef;
+
+export function updateEmailDelivery(vars: UpdateEmailDeliveryVariables): MutationPromise<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+export function updateEmailDelivery(dc: DataConnect, vars: UpdateEmailDeliveryVariables): MutationPromise<UpdateEmailDeliveryData, UpdateEmailDeliveryVariables>;
+
 interface AssignStoreRef {
   /* Allow users to create refs without passing in DataConnect */
   (vars: AssignStoreVariables): MutationRef<AssignStoreData, AssignStoreVariables>;
@@ -1306,6 +1466,42 @@ export const listApprovalEmailDeliveriesRef: ListApprovalEmailDeliveriesRef;
 
 export function listApprovalEmailDeliveries(options?: ExecuteQueryOptions): QueryPromise<ListApprovalEmailDeliveriesData, undefined>;
 export function listApprovalEmailDeliveries(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListApprovalEmailDeliveriesData, undefined>;
+
+interface ListEmailTemplatesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListEmailTemplatesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListEmailTemplatesData, undefined>;
+  operationName: string;
+}
+export const listEmailTemplatesRef: ListEmailTemplatesRef;
+
+export function listEmailTemplates(options?: ExecuteQueryOptions): QueryPromise<ListEmailTemplatesData, undefined>;
+export function listEmailTemplates(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListEmailTemplatesData, undefined>;
+
+interface GetEmailTemplateByKeyRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetEmailTemplateByKeyVariables): QueryRef<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetEmailTemplateByKeyVariables): QueryRef<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+  operationName: string;
+}
+export const getEmailTemplateByKeyRef: GetEmailTemplateByKeyRef;
+
+export function getEmailTemplateByKey(vars: GetEmailTemplateByKeyVariables, options?: ExecuteQueryOptions): QueryPromise<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+export function getEmailTemplateByKey(dc: DataConnect, vars: GetEmailTemplateByKeyVariables, options?: ExecuteQueryOptions): QueryPromise<GetEmailTemplateByKeyData, GetEmailTemplateByKeyVariables>;
+
+interface GetEmailDeliveryByKeyRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetEmailDeliveryByKeyVariables): QueryRef<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetEmailDeliveryByKeyVariables): QueryRef<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
+  operationName: string;
+}
+export const getEmailDeliveryByKeyRef: GetEmailDeliveryByKeyRef;
+
+export function getEmailDeliveryByKey(vars: GetEmailDeliveryByKeyVariables, options?: ExecuteQueryOptions): QueryPromise<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
+export function getEmailDeliveryByKey(dc: DataConnect, vars: GetEmailDeliveryByKeyVariables, options?: ExecuteQueryOptions): QueryPromise<GetEmailDeliveryByKeyData, GetEmailDeliveryByKeyVariables>;
 
 interface ListAccountsRef {
   /* Allow users to create refs without passing in DataConnect */

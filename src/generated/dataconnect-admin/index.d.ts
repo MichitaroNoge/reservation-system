@@ -106,6 +106,33 @@ export interface CreateApprovalEmailDeliveryVariables {
   requestedAt: TimestampString;
 }
 
+export interface CreateEmailDeliveryData {
+  emailDelivery_insert: EmailDelivery_Key;
+}
+
+export interface CreateEmailDeliveryVariables {
+  deliveryKey: string;
+  reservationId?: UUIDString | null;
+  templateKey: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  status: string;
+  requestedAt: TimestampString;
+}
+
+export interface CreateEmailTemplateData {
+  emailTemplate_insert: EmailTemplate_Key;
+}
+
+export interface CreateEmailTemplateVariables {
+  templateKey: string;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+
 export interface CreateMenuData {
   menu_insert: Menu_Key;
 }
@@ -224,6 +251,16 @@ export interface DeleteStoreAssignmentVariables {
   id: UUIDString;
 }
 
+export interface EmailDelivery_Key {
+  id: UUIDString;
+  __typename?: 'EmailDelivery_Key';
+}
+
+export interface EmailTemplate_Key {
+  id: UUIDString;
+  __typename?: 'EmailTemplate_Key';
+}
+
 export interface GetAccountByFirebaseUidData {
   accounts: ({
     id: UUIDString;
@@ -260,6 +297,45 @@ export interface GetAccountByIdData {
 
 export interface GetAccountByIdVariables {
   id: UUIDString;
+}
+
+export interface GetEmailDeliveryByKeyData {
+  emailDeliveries: ({
+    id: UUIDString;
+    deliveryKey: string;
+    templateKey: string;
+    recipient: string;
+    subject: string;
+    body: string;
+    status: string;
+    requestedAt: TimestampString;
+    sentAt?: TimestampString | null;
+    lastError?: string | null;
+    reservation?: {
+      reservationCode: string;
+    };
+  } & EmailDelivery_Key)[];
+}
+
+export interface GetEmailDeliveryByKeyVariables {
+  deliveryKey: string;
+}
+
+export interface GetEmailTemplateByKeyData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+
+export interface GetEmailTemplateByKeyVariables {
+  templateKey: string;
 }
 
 export interface GetMenuByNameData {
@@ -543,6 +619,19 @@ export interface ListBillingRecordsData {
   } & Billing_Key)[];
 }
 
+export interface ListEmailTemplatesData {
+  emailTemplates: ({
+    id: UUIDString;
+    templateKey: string;
+    name: string;
+    subject: string;
+    body: string;
+    isActive: boolean;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+  } & EmailTemplate_Key)[];
+}
+
 export interface ListInactiveAccountsData {
   accounts: ({
     id: UUIDString;
@@ -821,6 +910,29 @@ export interface UpdateConfirmationContactVariables {
   confirmationContactedAt?: TimestampString | null;
 }
 
+export interface UpdateEmailDeliveryData {
+  emailDelivery_update?: EmailDelivery_Key | null;
+}
+
+export interface UpdateEmailDeliveryVariables {
+  id: UUIDString;
+  status: string;
+  sentAt?: TimestampString | null;
+  lastError?: string | null;
+}
+
+export interface UpdateEmailTemplateData {
+  emailTemplate_update?: EmailTemplate_Key | null;
+}
+
+export interface UpdateEmailTemplateVariables {
+  id: UUIDString;
+  name: string;
+  subject: string;
+  body: string;
+  isActive: boolean;
+}
+
 export interface UpdateMenuData {
   menu_update?: Menu_Key | null;
 }
@@ -986,6 +1098,26 @@ export function updateApprovalEmailDelivery(dc: DataConnect, vars: UpdateApprova
 /** Generated Node Admin SDK operation action function for the 'UpdateApprovalEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateApprovalEmailDelivery(vars: UpdateApprovalEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateApprovalEmailDeliveryData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateEmailTemplate' Mutation. Allow users to execute without passing in DataConnect. */
+export function createEmailTemplate(dc: DataConnect, vars: CreateEmailTemplateVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailTemplateData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateEmailTemplate' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createEmailTemplate(vars: CreateEmailTemplateVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailTemplateData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailTemplate' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateEmailTemplate(dc: DataConnect, vars: UpdateEmailTemplateVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailTemplateData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailTemplate' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateEmailTemplate(vars: UpdateEmailTemplateVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailTemplateData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CreateEmailDelivery' Mutation. Allow users to execute without passing in DataConnect. */
+export function createEmailDelivery(dc: DataConnect, vars: CreateEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailDeliveryData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createEmailDelivery(vars: CreateEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailDeliveryData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailDelivery' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateEmailDelivery(dc: DataConnect, vars: UpdateEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailDeliveryData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateEmailDelivery(vars: UpdateEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailDeliveryData>>;
+
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function assignStore(dc: DataConnect, vars: AssignStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AssignStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -1075,6 +1207,21 @@ export function listReservationChangeRequests(options?: OperationOptions): Promi
 export function listApprovalEmailDeliveries(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListApprovalEmailDeliveriesData>>;
 /** Generated Node Admin SDK operation action function for the 'ListApprovalEmailDeliveries' Query. Allow users to pass in custom DataConnect instances. */
 export function listApprovalEmailDeliveries(options?: OperationOptions): Promise<ExecuteOperationResponse<ListApprovalEmailDeliveriesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListEmailTemplates' Query. Allow users to execute without passing in DataConnect. */
+export function listEmailTemplates(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListEmailTemplatesData>>;
+/** Generated Node Admin SDK operation action function for the 'ListEmailTemplates' Query. Allow users to pass in custom DataConnect instances. */
+export function listEmailTemplates(options?: OperationOptions): Promise<ExecuteOperationResponse<ListEmailTemplatesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetEmailTemplateByKey' Query. Allow users to execute without passing in DataConnect. */
+export function getEmailTemplateByKey(dc: DataConnect, vars: GetEmailTemplateByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailTemplateByKeyData>>;
+/** Generated Node Admin SDK operation action function for the 'GetEmailTemplateByKey' Query. Allow users to pass in custom DataConnect instances. */
+export function getEmailTemplateByKey(vars: GetEmailTemplateByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailTemplateByKeyData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetEmailDeliveryByKey' Query. Allow users to execute without passing in DataConnect. */
+export function getEmailDeliveryByKey(dc: DataConnect, vars: GetEmailDeliveryByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailDeliveryByKeyData>>;
+/** Generated Node Admin SDK operation action function for the 'GetEmailDeliveryByKey' Query. Allow users to pass in custom DataConnect instances. */
+export function getEmailDeliveryByKey(vars: GetEmailDeliveryByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailDeliveryByKeyData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListAccounts' Query. Allow users to execute without passing in DataConnect. */
 export function listAccounts(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAccountsData>>;

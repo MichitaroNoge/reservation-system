@@ -15,6 +15,8 @@ import {
   type ApprovalEmailType,
   type CreateReservationChangeRequestInput,
   type CreateReservationInput,
+  type EmailDelivery,
+  type EmailTemplate,
   type Menu,
   type Reservation,
   type ReservationChangeRequest,
@@ -225,6 +227,45 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return { ...delivery, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null };
   }
 
+  async listEmailTemplates(): Promise<EmailTemplate[]> {
+    const { data } = await op("listEmailTemplates")(this.connection());
+    return (data.emailTemplates ?? []).map(toEmailTemplate);
+  }
+
+  async getEmailTemplate(templateKey: string): Promise<EmailTemplate | null> {
+    const { data } = await op("getEmailTemplateByKey")(this.connection(), { templateKey });
+    const raw = data.emailTemplates?.[0];
+    return raw ? toEmailTemplate(raw) : null;
+  }
+
+  async upsertEmailTemplate(input: EmailTemplate): Promise<EmailTemplate> {
+    const existing = await this.getEmailTemplate(input.templateKey);
+    if (existing?.id) await op("updateEmailTemplate")(this.connection(), { id: existing.id, name: input.name, subject: input.subject, body: input.body, isActive: input.isActive });
+    else await op("createEmailTemplate")(this.connection(), { templateKey: input.templateKey, name: input.name, subject: input.subject, body: input.body, isActive: input.isActive });
+    return (await this.getEmailTemplate(input.templateKey))!;
+  }
+
+  async getEmailDelivery(deliveryKey: string): Promise<EmailDelivery | null> {
+    const { data } = await op("getEmailDeliveryByKey")(this.connection(), { deliveryKey });
+    const raw = data.emailDeliveries?.[0];
+    return raw ? toEmailDelivery(raw) : null;
+  }
+
+  async createEmailDelivery(input: EmailDelivery): Promise<EmailDelivery> {
+    const existing = await this.getEmailDelivery(input.deliveryKey);
+    if (existing) return existing;
+    const reservation = input.reservationId ? await this.getReservationWithInternalId(input.reservationId) : null;
+    await op("createEmailDelivery")(this.connection(), { ...input, reservationId: reservation?.dataConnectId ?? null, sentAt: undefined, lastError: undefined });
+    return (await this.getEmailDelivery(input.deliveryKey))!;
+  }
+
+  async updateEmailDelivery(deliveryKey: string, input: Pick<EmailDelivery, "status" | "sentAt" | "lastError">): Promise<EmailDelivery> {
+    const delivery = await this.getEmailDelivery(deliveryKey);
+    if (!delivery?.id) throw new Error(`Email delivery not found: ${deliveryKey}`);
+    await op("updateEmailDelivery")(this.connection(), { id: delivery.id, status: input.status, sentAt: input.sentAt ?? null, lastError: input.lastError ?? null });
+    return { ...delivery, ...input };
+  }
+
   async assignStores(id: string, assignments: StoreAssignment[]) {
     const reservation = await this.getReservationWithInternalId(id);
     const valid = assignments.filter((item) => item.store && item.people > 0).map((item) => ({ store: item.store, people: Number(item.people) }));
@@ -425,6 +466,14 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     }, 1000);
     return `RSV-${max + 1}`;
   }
+}
+
+function toEmailTemplate(raw: any): EmailTemplate {
+  return { id: raw.id, templateKey: raw.templateKey, name: raw.name, subject: raw.subject, body: raw.body, isActive: Boolean(raw.isActive), createdAt: String(raw.createdAt), updatedAt: String(raw.updatedAt) };
+}
+
+function toEmailDelivery(raw: any): EmailDelivery {
+  return { id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation?.reservationCode ?? null, templateKey: raw.templateKey, recipient: raw.recipient, subject: raw.subject, body: raw.body, status: raw.status, requestedAt: String(raw.requestedAt), sentAt: raw.sentAt ? String(raw.sentAt) : null, lastError: raw.lastError ?? null };
 }
 
 function accountVariables(input: SaveAccountInput & { firebaseUid?: string }) {

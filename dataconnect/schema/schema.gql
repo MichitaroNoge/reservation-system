@@ -135,6 +135,31 @@ type ApprovalEmailDelivery @table {
   lastError: String
 }
 
+type EmailTemplate @table {
+  id: UUID! @default(expr: "uuidV4()")
+  templateKey: String! @unique @col(dataType: "varchar(80)")
+  name: String! @col(dataType: "varchar(100)")
+  subject: String! @col(dataType: "varchar(500)")
+  body: String!
+  isActive: Boolean! @default(value: true)
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
+type EmailDelivery @table {
+  id: UUID! @default(expr: "uuidV4()")
+  deliveryKey: String! @unique @col(dataType: "varchar(240)")
+  reservation: Reservation
+  templateKey: String! @col(dataType: "varchar(80)")
+  recipient: String! @col(dataType: "varchar(255)")
+  subject: String! @col(dataType: "varchar(500)")
+  body: String!
+  status: String! @col(dataType: "varchar(20)")
+  requestedAt: Timestamp! @default(expr: "request.time")
+  sentAt: Timestamp
+  lastError: String
+}
+
 type ReservationDetail @table {
   id: UUID! @default(expr: "uuidV4()")
   reservation: Reservation!

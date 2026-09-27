@@ -1,6 +1,8 @@
 import { isConfirmedReservation, type Reservation } from "../domain";
 import type { ReservationRepository } from "../repositories/reservation-repository";
-import { buildConfirmationEmailContent } from "../email/confirmation-email-template";
+import { buildEmailContent } from "../email/email-layout";
+import { reservationTemplateVariables } from "../email/email-template-catalog";
+import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
 import { ResendEmailClient, type EmailClient } from "../email/resend-email-client";
 
 export type ConfirmationEmailRunResult = {
@@ -72,15 +74,21 @@ export async function sendConfirmationEmailForReservation(
   if (reservation.confirmationContactedAt) return reservation;
   if (!reservation.email) throw new Error(`Reservation email is required: ${reservation.id}`);
 
-  const content = buildConfirmationEmailContent(reservation);
-  await emailClient.send({
-    to: reservation.email,
-    subject: content.subject,
-    text: content.text,
-    html: content.html,
-    idempotencyKey: confirmationEmailIdempotencyKey(reservation, options.idempotencyKeyScope),
-  });
-  return repository.updateConfirmationContact(reservation.id, now.toISOString());
+  const deliveryKey = confirmationEmailIdempotencyKey(reservation, options.idempotencyKeyScope);
+  let delivery = await repository.getEmailDelivery(deliveryKey);
+  if (!delivery) {
+    const rendered = await renderRepositoryEmail(repository, "reservation_reminder", reservationTemplateVariables(reservation));
+    delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_reminder", recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: now.toISOString(), sentAt: null, lastError: null });
+  }
+  const content = buildEmailContent(delivery.subject, delivery.body);
+  try {
+    await emailClient.send({ to: delivery.recipient, ...content, idempotencyKey: deliveryKey });
+    await repository.updateEmailDelivery(deliveryKey, { status: "sent", sentAt: now.toISOString(), lastError: null });
+    return repository.updateConfirmationContact(reservation.id, now.toISOString());
+  } catch (error) {
+    await repository.updateEmailDelivery(deliveryKey, { status: "failed", sentAt: null, lastError: error instanceof Error ? error.message : "Unknown email error" });
+    throw error;
+  }
 }
 
 export function isConfirmationEmailDue(reservation: Reservation, now: Date, daysBefore = confirmationEmailDaysBefore()) {

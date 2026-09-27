@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Customer, CustomerForm } from "../types";
 
 type CustomerManagementProps = {
@@ -74,63 +80,49 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
   };
 
   return (
-    <section className="panel management-panel customer-management">
-      <div className="customer-management-bar">
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="form-kicker">ACCOUNT MASTER</p>
-          <h2>アカウント管理</h2>
-          <small>ここにはログイン可能な利用者だけを表示します。管理者が代理入力した予約者は登録されません。</small>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Account master</p>
+          <h2 className="mt-1 text-lg font-semibold">アカウント管理</h2>
+          <small className="mt-1 block text-xs text-muted-foreground">ここにはログイン可能な利用者だけを表示します。管理者が代理入力した予約者は登録されません。</small>
         </div>
-        <div className="customer-management-actions">
-          <strong>{customers.length}件</strong>
+        <div className="flex items-center gap-3">
+          <Badge variant="secondary">{customers.length}件</Badge>
           {inactiveCustomers.length ? (
-            <button type="button" className={showInactive ? "active" : ""} onClick={() => setShowInactive((current) => !current)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowInactive((current) => !current)}>
               {showInactive ? "無効アカウントを隠す" : `無効アカウントを表示 (${inactiveCustomers.length})`}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="large-table customer-table">
-          <thead>
-            <tr>
-              <th>アカウント名</th>
-              <th>メールアドレス</th>
-              <th>電話番号</th>
-              <th>住所</th>
-              <th>種別</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
+      <div>
+        <Table>
+          <TableHeader><TableRow><TableHead>アカウント名</TableHead><TableHead>メールアドレス</TableHead><TableHead>電話番号</TableHead><TableHead>住所</TableHead><TableHead>種別</TableHead><TableHead /></TableRow></TableHeader>
+          <TableBody>
             {customers.map((customer) => editingName === customer.name ? (
-              <tr key={(customer.id ?? customer.name) + "-edit"} className="editing-row">
-                <td><input aria-label="アカウント名" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></td>
-                <td><input aria-label="メールアドレス" type="email" value={form.contact} onChange={(event) => setForm({ ...form, contact: event.target.value })} /></td>
-                <td><input aria-label="電話番号" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></td>
-                <td><input aria-label="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} /></td>
-                <td>{form.accountType === "travel_agency" ? "旅行会社" : "一般"}</td>
-                <td><div className="row-actions"><button type="button" onClick={cancel}>キャンセル</button><button type="button" className="save" disabled={!form.id || !form.name || !form.contact || savingName === editingName} onClick={save}>{savingName === editingName ? "保存中" : "保存"}</button></div></td>
-              </tr>
+              <TableRow key={(customer.id ?? customer.name) + "-edit"} className="bg-muted/30">
+                <TableCell><Input aria-label="アカウント名" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></TableCell>
+                <TableCell><Input aria-label="メールアドレス" type="email" value={form.contact} onChange={(event) => setForm({ ...form, contact: event.target.value })} /></TableCell>
+                <TableCell><Input aria-label="電話番号" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></TableCell>
+                <TableCell><Input aria-label="住所" value={form.address ?? ""} onChange={(event) => setForm({ ...form, address: event.target.value })} /></TableCell>
+                <TableCell>{form.accountType === "travel_agency" ? "旅行会社" : "一般"}</TableCell>
+                <TableCell><div className="flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" onClick={cancel}>キャンセル</Button><Button type="button" size="sm" disabled={!form.id || !form.name || !form.contact || savingName === editingName} onClick={save}>{savingName === editingName ? "保存中" : "保存"}</Button></div></TableCell>
+              </TableRow>
             ) : (
-              <tr key={customer.id ?? customer.name + "-" + customer.contact}>
-                <td><strong>{customer.name}</strong></td>
-                <td>{customer.contact}</td>
-                <td>{customer.phone || "-"}</td>
-                <td>{customer.address || "-"}</td>
-                <td>{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</td>
-                <td><div className="row-actions"><button type="button" onClick={() => startEdit(customer)}>編集</button><button type="button" className="danger" onClick={() => remove(customer)}>無効化</button></div></td>
-              </tr>
+              <TableRow key={customer.id ?? customer.name + "-" + customer.contact}>
+                <TableCell><strong>{customer.name}</strong></TableCell><TableCell>{customer.contact}</TableCell><TableCell>{customer.phone || "-"}</TableCell><TableCell>{customer.address || "-"}</TableCell><TableCell><Badge variant="secondary">{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</Badge></TableCell><TableCell><div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => startEdit(customer)}>編集</Button><Button type="button" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => remove(customer)}>無効化</Button></div></TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        {!customers.length ? <div className="empty-table">有効なログインアカウントはありません。</div> : null}
+          </TableBody>
+        </Table>
+        {!customers.length ? <EmptyState title="有効なログインアカウントはありません" /> : null}
       </div>
 
       {showInactive && inactiveCustomers.length ? (
-        <div className="inactive-customer-section">
-          <div className="subsection-head"><div><h3>無効アカウント</h3></div><span>{inactiveCustomers.length}件</span></div>
+        <div className="border-t bg-muted/20 p-5">
+          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">無効アカウント</h3><Badge variant="secondary">{inactiveCustomers.length}件</Badge></div>
           <div className="table-wrap">
             <table className="large-table customer-table inactive-table">
               <thead><tr><th>アカウント名</th><th>メールアドレス</th><th>電話番号</th><th>住所</th><th>種別</th><th /></tr></thead>
@@ -146,6 +138,6 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
           </div>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

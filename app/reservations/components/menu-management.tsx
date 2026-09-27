@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import { Icon } from "./common";
 import type { Menu, MenuForm } from "../types";
 
@@ -103,26 +108,26 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
     return (
       <>
         <td>
-          <input className="order-input" aria-label="表示順" type="number" min={0} value={form.displayOrder} onChange={(event) => setForm({ ...form, displayOrder: Number(event.target.value) })} />
+          <Input className="w-20" aria-label="表示順" type="number" min={0} value={form.displayOrder} onChange={(event) => setForm({ ...form, displayOrder: Number(event.target.value) })} />
         </td>
         <td>
-          <input aria-label="メニュー名" placeholder="メニュー名" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <Input aria-label="メニュー名" placeholder="メニュー名" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
         </td>
         <td>
-          <input aria-label="説明" placeholder="説明" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+          <Input aria-label="説明" placeholder="説明" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
         </td>
         <td>
-          <input aria-label="金額" type="number" min={0} value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} />
+          <Input aria-label="金額" type="number" min={0} value={form.price || ""} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} />
         </td>
         <td>
-          <input aria-label="利用時間" type="number" min={0} value={durationMinutes(form.duration)} onChange={(event) => setForm({ ...form, duration: durationFromMinutes(Number(event.target.value)) })} />
+          <Input aria-label="利用時間" type="number" min={0} value={durationMinutes(form.duration)} onChange={(event) => setForm({ ...form, duration: durationFromMinutes(Number(event.target.value)) })} />
         </td>
         <td>
-          <div className="row-actions">
-            <button type="button" disabled={isSaving} onClick={cancel}>キャンセル</button>
-            <button type="button" className="save" disabled={!form.name || form.price < 0 || isSaving} onClick={() => submit(mode)}>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" disabled={isSaving} onClick={cancel}>キャンセル</Button>
+            <Button type="button" size="sm" disabled={!form.name || form.price < 0 || isSaving} onClick={() => submit(mode)}>
               {isSaving ? (mode === "create" ? "登録中" : "保存中") : (mode === "create" ? "登録" : "保存")}
-            </button>
+            </Button>
           </div>
         </td>
       </>
@@ -130,21 +135,21 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
   };
 
   return (
-    <section className="panel management-panel menu-management">
-      <div className="menu-management-bar">
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <strong>{menus.length}件</strong>
+          <Badge variant="secondary">{menus.length}件</Badge>
         </div>
-        <div className="menu-management-actions">
+        <div className="flex gap-2">
           {inactiveMenus.length ? (
-            <button type="button" className={showInactive ? "active" : ""} onClick={() => setShowInactive((current) => !current)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowInactive((current) => !current)}>
               {showInactive ? "削除済みを隠す" : `削除済みを表示 (${inactiveMenus.length})`}
-            </button>
+            </Button>
           ) : null}
-          <button type="button" className="primary" onClick={startCreate} disabled={isCreating}>
+          <Button type="button" size="sm" onClick={startCreate} disabled={isCreating}>
             <Icon name="plus" />
             新規登録
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -183,7 +188,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
             )}
           </tbody>
         </table>
-        {!menus.length && !isCreating ? <div className="empty-table">登録済みメニューはありません。</div> : null}
+        {!menus.length && !isCreating ? <EmptyState title="登録済みメニューはありません" /> : null}
       </div>
 
       {showInactive && inactiveMenus.length ? (
@@ -228,6 +233,6 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
           </div>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

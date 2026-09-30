@@ -40,7 +40,9 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
   if (!reservation) throw new Error(`Reservation not found: ${delivery.reservationId}`);
   const attemptedAt = (options.now ?? new Date()).toISOString();
   const retryCount = delivery.retryCount + 1;
-  if (!reservation.email) return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: null, lastAttemptAt: attemptedAt, retryCount: options.maxRetries ?? defaultMaxRetries, lastError: "Reservation email is required" });
+  const accountEmail = reservation.accountId ? (await repository.listAccounts()).find((account) => account.id === reservation.accountId)?.contact : undefined;
+  const recipient = accountEmail ?? reservation.email;
+  if (!recipient) return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: null, lastAttemptAt: attemptedAt, retryCount: options.maxRetries ?? defaultMaxRetries, lastError: "Reservation email is required" });
   const templateKey = approvalTypeTemplateKey(delivery.type);
   const auditKey = `reservation-approval/${delivery.deliveryKey}`;
   try {
@@ -48,7 +50,7 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
     let audit = await repository.getEmailDelivery(auditKey);
     if (!audit) {
       const rendered = await renderRepositoryEmail(repository, templateKey, reservationTemplateVariables(reservation));
-      audit = await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: reservation.id, templateKey, recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: delivery.requestedAt, sentAt: null, lastError: null });
+      audit = await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: reservation.id, templateKey, recipient, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: delivery.requestedAt, sentAt: null, lastError: null });
     }
     await emailClient.send({ to: audit.recipient, ...buildEmailContent(audit.subject, audit.body), idempotencyKey: auditKey });
     await repository.updateEmailDelivery(auditKey, { status: "sent", sentAt: attemptedAt, lastError: null });

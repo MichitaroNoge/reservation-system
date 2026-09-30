@@ -73,13 +73,15 @@ export async function sendConfirmationEmailForReservation(
   const reservation = (await repository.listReservations()).find((item) => item.id === reservationId);
   if (!reservation) throw new Error(`Reservation not found: ${reservationId}`);
   if (reservation.confirmationContactedAt) return reservation;
-  if (!reservation.email) throw new Error(`Reservation email is required: ${reservation.id}`);
+  const accountEmail = reservation.accountId ? (await repository.listAccounts()).find((account) => account.id === reservation.accountId)?.contact : undefined;
+  const recipient = accountEmail ?? reservation.email;
+  if (!recipient) throw new Error(`Reservation email is required: ${reservation.id}`);
 
   const deliveryKey = confirmationEmailIdempotencyKey(reservation, options.idempotencyKeyScope);
   let delivery = await repository.getEmailDelivery(deliveryKey);
   if (!delivery) {
     const rendered = await renderRepositoryEmail(repository, "reservation_reminder", reservationTemplateVariables(reservation));
-    delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_reminder", recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: now.toISOString(), sentAt: null, lastError: null });
+    delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_reminder", recipient, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: now.toISOString(), sentAt: null, lastError: null });
   }
   const content = buildEmailContent(delivery.subject, delivery.body);
   try {

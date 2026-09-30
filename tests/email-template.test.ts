@@ -21,6 +21,13 @@ test("email template rejects missing variable values", () => {
   assert.throws(() => renderTemplate("reservation_received", "{{reservationId}}", "{{customerName}}", { reservationId: "RSV-1" }), /値がありません/);
 });
 
+test("account email change notification renders the old and new addresses", () => {
+  const result = renderTemplate("account_email_changed", "メールアドレスが変更されました", "{{oldEmail}} から {{newEmail}} へ変更しました。", {
+    oldEmail: "old@example.com", newEmail: "new@example.com",
+  });
+  assert.equal(result.body, "old@example.com から new@example.com へ変更しました。");
+});
+
 test("email template management APIs require administrator authentication", async () => {
   const routes = [
     ["app", "api", "email-templates", "route.ts"],

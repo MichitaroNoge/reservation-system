@@ -235,16 +235,45 @@ export function EmailTemplateManagement({
               }
             />
           </div>
-          <label className="flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.isActive}
-              onChange={(event) =>
-                setDraft({ ...draft, isActive: event.target.checked })
-              }
-            />
-            このテンプレートを有効にする
-          </label>
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="email-template-delivery">メール送信</Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  このテンプレートを使用するメールの送信状態です。
+                </p>
+              </div>
+              <button
+                id="email-template-delivery"
+                type="button"
+                role="switch"
+                aria-checked={draft.isActive}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  draft.isActive
+                    ? "border-primary bg-primary"
+                    : "border-input bg-muted-foreground/30"
+                }`}
+                onClick={() =>
+                  setDraft({ ...draft, isActive: !draft.isActive })
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${
+                    draft.isActive ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            <strong className="text-sm">
+              {draft.isActive ? "メールを送信する" : "メールを送信しない"}
+            </strong>
+            {!draft.isActive && (
+              <Alert className="border-warning/50 bg-warning/10 text-foreground">
+                この種類のメールは送信されません。送信処理では未送信として扱われます。
+              </Alert>
+            )}
+          </div>
           {error && <Alert className="border-destructive/40 text-destructive">{error}</Alert>}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={showPreview}>

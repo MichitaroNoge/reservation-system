@@ -1,6 +1,6 @@
 import type { User } from "firebase/auth";
-import type { AccountType, EmailTemplate, PaymentCondition, ReservationBookingType, ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
-export type { EmailTemplate };
+import type { AccountType, EmailSettings, EmailTemplate, PaymentCondition, ReservationBookingType, ReservationChangeRequest as DomainReservationChangeRequest, ReservationRequestType, ReservationStatus } from "@/lib/domain";
+export type { EmailSettings, EmailTemplate };
 
 export type Status = ReservationStatus;
 export type StoreAssignment = { store: string; people: number };

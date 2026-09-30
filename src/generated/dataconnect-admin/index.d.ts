@@ -121,6 +121,17 @@ export interface CreateEmailDeliveryVariables {
   requestedAt: TimestampString;
 }
 
+export interface CreateEmailSettingsData {
+  emailSenderSetting_insert: EmailSenderSetting_Key;
+}
+
+export interface CreateEmailSettingsVariables {
+  senderName: string;
+  fromEmail: string;
+  replyToEnabled: boolean;
+  replyToEmail?: string | null;
+}
+
 export interface CreateEmailTemplateData {
   emailTemplate_insert: EmailTemplate_Key;
 }
@@ -256,6 +267,11 @@ export interface EmailDelivery_Key {
   __typename?: 'EmailDelivery_Key';
 }
 
+export interface EmailSenderSetting_Key {
+  id: UUIDString;
+  __typename?: 'EmailSenderSetting_Key';
+}
+
 export interface EmailTemplate_Key {
   id: UUIDString;
   __typename?: 'EmailTemplate_Key';
@@ -319,6 +335,18 @@ export interface GetEmailDeliveryByKeyData {
 
 export interface GetEmailDeliveryByKeyVariables {
   deliveryKey: string;
+}
+
+export interface GetEmailSettingsData {
+  emailSenderSettings: ({
+    id: UUIDString;
+    settingKey: string;
+    senderName: string;
+    fromEmail: string;
+    replyToEnabled: boolean;
+    replyToEmail?: string | null;
+    updatedAt: TimestampString;
+  } & EmailSenderSetting_Key)[];
 }
 
 export interface GetEmailTemplateByKeyData {
@@ -921,6 +949,18 @@ export interface UpdateEmailDeliveryVariables {
   lastError?: string | null;
 }
 
+export interface UpdateEmailSettingsData {
+  emailSenderSetting_update?: EmailSenderSetting_Key | null;
+}
+
+export interface UpdateEmailSettingsVariables {
+  id: UUIDString;
+  senderName: string;
+  fromEmail: string;
+  replyToEnabled: boolean;
+  replyToEmail?: string | null;
+}
+
 export interface UpdateEmailTemplateData {
   emailTemplate_update?: EmailTemplate_Key | null;
 }
@@ -1118,6 +1158,16 @@ export function updateEmailDelivery(dc: DataConnect, vars: UpdateEmailDeliveryVa
 /** Generated Node Admin SDK operation action function for the 'UpdateEmailDelivery' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateEmailDelivery(vars: UpdateEmailDeliveryVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailDeliveryData>>;
 
+/** Generated Node Admin SDK operation action function for the 'CreateEmailSettings' Mutation. Allow users to execute without passing in DataConnect. */
+export function createEmailSettings(dc: DataConnect, vars: CreateEmailSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailSettingsData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateEmailSettings' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createEmailSettings(vars: CreateEmailSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateEmailSettingsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailSettings' Mutation. Allow users to execute without passing in DataConnect. */
+export function updateEmailSettings(dc: DataConnect, vars: UpdateEmailSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailSettingsData>>;
+/** Generated Node Admin SDK operation action function for the 'UpdateEmailSettings' Mutation. Allow users to pass in custom DataConnect instances. */
+export function updateEmailSettings(vars: UpdateEmailSettingsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateEmailSettingsData>>;
+
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to execute without passing in DataConnect. */
 export function assignStore(dc: DataConnect, vars: AssignStoreVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<AssignStoreData>>;
 /** Generated Node Admin SDK operation action function for the 'AssignStore' Mutation. Allow users to pass in custom DataConnect instances. */
@@ -1222,6 +1272,11 @@ export function getEmailTemplateByKey(vars: GetEmailTemplateByKeyVariables, opti
 export function getEmailDeliveryByKey(dc: DataConnect, vars: GetEmailDeliveryByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailDeliveryByKeyData>>;
 /** Generated Node Admin SDK operation action function for the 'GetEmailDeliveryByKey' Query. Allow users to pass in custom DataConnect instances. */
 export function getEmailDeliveryByKey(vars: GetEmailDeliveryByKeyVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailDeliveryByKeyData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetEmailSettings' Query. Allow users to execute without passing in DataConnect. */
+export function getEmailSettings(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailSettingsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetEmailSettings' Query. Allow users to pass in custom DataConnect instances. */
+export function getEmailSettings(options?: OperationOptions): Promise<ExecuteOperationResponse<GetEmailSettingsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListAccounts' Query. Allow users to execute without passing in DataConnect. */
 export function listAccounts(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAccountsData>>;

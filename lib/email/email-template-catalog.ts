@@ -7,6 +7,7 @@ export const emailTemplateKeys = [
   "confirmed_change_approved",
   "reservation_change_approved",
   "cancellation_approved",
+  "account_email_changed",
 ] as const;
 
 export type EmailTemplateKey = typeof emailTemplateKeys[number];
@@ -24,7 +25,7 @@ const commonVariables = {
 
 export const emailTemplateDefinitions: Record<EmailTemplateKey, {
   name: string;
-  variables: typeof commonVariables;
+  variables: Record<string, string>;
   subject: string;
   body: string;
 }> = {
@@ -42,6 +43,12 @@ export const emailTemplateDefinitions: Record<EmailTemplateKey, {
   confirmed_change_approved: approvalDefinition("本予約変更承認メール", "本予約への変更申請が承認されました"),
   reservation_change_approved: approvalDefinition("予約内容変更承認メール", "予約内容の変更申請が承認されました"),
   cancellation_approved: approvalDefinition("予約キャンセル承認メール", "予約キャンセルが承認されました"),
+  account_email_changed: {
+    name: "メールアドレス変更完了通知",
+    variables: { customerName: "顧客名", oldEmail: "変更前メールアドレス", newEmail: "変更後メールアドレス", changedAt: "変更日時" },
+    subject: "メールアドレスが変更されました",
+    body: "{{customerName}} 様\n\nアカウントのメールアドレスが変更されました。\n\n変更前: {{oldEmail}}\n変更後: {{newEmail}}\n変更日時: {{changedAt}}\n\nこの変更に心当たりがない場合は、店舗までお問い合わせください。",
+  },
 };
 
 function approvalDefinition(name: string, heading: string) {

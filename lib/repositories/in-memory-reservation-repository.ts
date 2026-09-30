@@ -1,4 +1,4 @@
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailSettings, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { defaultEmailTemplates } from "../email/email-template-catalog";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
@@ -12,6 +12,7 @@ export type InMemoryReservationDatabase = {
   approvalEmailDeliveries?: ApprovalEmailDelivery[];
   emailTemplates?: EmailTemplate[];
   emailDeliveries?: EmailDelivery[];
+  emailSettings?: EmailSettings;
 };
 
 const defaultStartTime = "10:00";
@@ -280,6 +281,17 @@ export class InMemoryReservationRepository implements ReservationRepository {
     Object.assign(delivery, input);
     await this.writeDatabase(database);
     return delivery;
+  }
+
+  async getEmailSettings() {
+    return (await this.readDatabase()).emailSettings ?? null;
+  }
+
+  async upsertEmailSettings(input: EmailSettings) {
+    const database = await this.readDatabase();
+    database.emailSettings = { ...input, id: database.emailSettings?.id ?? "ES-default", updatedAt: new Date().toISOString() };
+    await this.writeDatabase(database);
+    return database.emailSettings;
   }
 
   async assignStores(id: string, assignments: StoreAssignment[]) {

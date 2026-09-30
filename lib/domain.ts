@@ -47,6 +47,15 @@ export type EmailDelivery = {
   sentAt?: string | null;
   lastError?: string | null;
 };
+export type EmailSettings = {
+  id?: string;
+  settingKey: "default";
+  senderName: string;
+  fromEmail: string;
+  replyToEnabled: boolean;
+  replyToEmail?: string | null;
+  updatedAt?: string;
+};
 export type AccountType = "individual" | "travel_agency";
 export type CustomerAccountType = AccountType;
 export type ReservationBookingType = "individual" | "travel_agency_group";

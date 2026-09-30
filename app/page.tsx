@@ -2215,6 +2215,8 @@ function CustomerPortalHome({
   onResetPassword,
   onLogout,
   onDeleteAccount,
+  emailChangeMessage,
+  onRequestEmailChange,
   onOpenAccount,
   onOpenReservation,
 }: {
@@ -2236,9 +2238,23 @@ function CustomerPortalHome({
   onResetPassword: (email: string) => void;
   onLogout: () => void;
   onDeleteAccount: () => void;
+  emailChangeMessage: string;
+  onRequestEmailChange: (email: string) => Promise<void>;
   onOpenAccount: () => void;
   onOpenReservation: () => void;
 }) {
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [emailChangeSubmitting, setEmailChangeSubmitting] = useState(false);
+  const [emailChangeError, setEmailChangeError] = useState("");
+  const submitEmailChange = async () => {
+    if (!newEmail || newEmail !== confirmEmail) { setEmailChangeError("新しいメールアドレスが一致しません。"); return; }
+    setEmailChangeSubmitting(true); setEmailChangeError("");
+    try { await onRequestEmailChange(newEmail); setShowEmailChange(false); setNewEmail(""); setConfirmEmail(""); }
+    catch (error) { setEmailChangeError(customerAuthErrorCode(error) === "auth/requires-recent-login" ? "安全のため再ログインしてからお試しください。" : error instanceof Error ? error.message : "確認メールを送信できませんでした。"); }
+    finally { setEmailChangeSubmitting(false); }
+  };
   return (
     <div className="form-body narrow portal-entry">
       <p className="form-kicker">REQUEST</p>
@@ -2251,6 +2267,7 @@ function CustomerPortalHome({
             <button type="button" onClick={onLogout}>
               ログアウト
             </button>
+            <button type="button" onClick={() => setShowEmailChange((value) => !value)}>メールアドレス変更</button>
             <button
               type="button"
               className="account-delete-button"
@@ -2279,6 +2296,14 @@ function CustomerPortalHome({
           />
         )}
       </section>
+      {isLoggedIn && (showEmailChange || emailChangeMessage) && (
+        <Card className="p-5">
+          <h3 className="font-semibold">メールアドレス変更</h3>
+          <p className="mt-2 text-sm text-muted-foreground">現在のメールアドレス: {customerEmail}</p>
+          {showEmailChange && <div className="mt-4 grid gap-4"><div><Label htmlFor="new-account-email">新しいメールアドレス</Label><Input id="new-account-email" type="email" value={newEmail} onChange={(event) => setNewEmail(event.target.value)} /></div><div><Label htmlFor="confirm-account-email">新しいメールアドレス（確認）</Label><Input id="confirm-account-email" type="email" value={confirmEmail} onChange={(event) => setConfirmEmail(event.target.value)} /></div>{emailChangeError && <Alert className="border-destructive/40 text-destructive">{emailChangeError}</Alert>}<Button type="button" onClick={submitEmailChange} disabled={emailChangeSubmitting}>{emailChangeSubmitting ? "送信中" : "確認メールを送信"}</Button></div>}
+          {emailChangeMessage && <Alert className="mt-4 border-success/40">{emailChangeMessage}</Alert>}
+        </Card>
+      )}
       {isLoggedIn ? (
         <div className="portal-entry-grid">
           <button type="button" onClick={onOpenReservation}>
@@ -5469,6 +5494,7 @@ function CustomerPortal({
     resendVerificationEmail,
     refreshEmailVerification,
     resetCustomerPassword,
+    requestCustomerEmailChange,
     signOutCustomer,
   } = useCustomerSession();
   const [portalMode, setPortalMode] = useState<CustomerPortalMode>(initialMode);
@@ -5477,6 +5503,7 @@ function CustomerPortal({
   const [accountPassword, setAccountPassword] = useState("");
   const [accountSubmitting, setAccountSubmitting] = useState(false);
   const [verificationSubmitting, setVerificationSubmitting] = useState(false);
+  const [emailChangeMessage, setEmailChangeMessage] = useState("");
   const [cancellationForm, setCancellationForm] = useState({
     reservationId: "",
     email: "",
@@ -5600,6 +5627,28 @@ function CustomerPortal({
       notify("ログイン済みのお客様情報を取得できませんでした"),
     );
   }, [customerUser, setForm]);
+
+  useEffect(() => {
+    if (!customerUser || new URLSearchParams(window.location.search).get("emailChange") !== "complete") return;
+    void (async () => {
+      try {
+        await customerUser.reload();
+        const token = await customerUser.getIdToken(true);
+        const result = await requestJson<{ changed: boolean; account: Customer }>("/api/accounts/me/email", { method: "PATCH", authToken: token });
+        setAccountEmail(result.account.contact);
+        setForm((current) => ({ ...current, email: result.account.contact }));
+        setEmailChangeMessage(result.changed ? "メールアドレスを変更しました。" : "メールアドレスは変更済みです。");
+        window.history.replaceState(null, "", "/?customerMode=home");
+      } catch (error) {
+        setEmailChangeMessage(error instanceof Error ? error.message : "メールアドレス変更を完了できませんでした。");
+      }
+    })();
+  }, [customerUser]);
+
+  const beginEmailChange = async (newEmail: string) => {
+    await requestCustomerEmailChange(newEmail);
+    setEmailChangeMessage("新しいメールアドレスに確認メールを送信しました。メール内のリンクから変更を完了してください。");
+  };
 
   useEffect(() => {
     if (portalMode !== "account" || !customerUser?.emailVerified) return;
@@ -6064,6 +6113,8 @@ function CustomerPortal({
                   signOutCustomer();
                 }}
                 onDeleteAccount={deleteCustomerAccount}
+                emailChangeMessage={emailChangeMessage}
+                onRequestEmailChange={beginEmailChange}
                 onOpenAccount={() => {
                   setPortalMode("account");
                   setAccountReservationError("");

@@ -2,7 +2,8 @@ import type { ApprovalEmailType } from "../domain";
 import { buildEmailContent } from "../email/email-layout";
 import { approvalTypeTemplateKey, reservationTemplateVariables } from "../email/email-template-catalog";
 import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
-import { ResendEmailClient, type EmailClient } from "../email/resend-email-client";
+import type { EmailClient } from "../email/resend-email-client";
+import { repositoryEmailClient } from "../email/email-sender-settings";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 
 type Options = { now?: Date; emailClient?: EmailClient; maxRetries?: number };
@@ -43,7 +44,7 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
   const templateKey = approvalTypeTemplateKey(delivery.type);
   const auditKey = `reservation-approval/${delivery.deliveryKey}`;
   try {
-    const emailClient = options.emailClient ?? new ResendEmailClient();
+    const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
     let audit = await repository.getEmailDelivery(auditKey);
     if (!audit) {
       const rendered = await renderRepositoryEmail(repository, templateKey, reservationTemplateVariables(reservation));

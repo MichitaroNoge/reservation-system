@@ -168,6 +168,20 @@ function updateEmailDelivery(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.updateEmailDelivery = updateEmailDelivery;
 
+function createEmailSettings(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateEmailSettings', inputVars, inputOpts);
+}
+exports.createEmailSettings = createEmailSettings;
+
+function updateEmailSettings(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('UpdateEmailSettings', inputVars, inputOpts);
+}
+exports.updateEmailSettings = updateEmailSettings;
+
 function assignStore(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -314,6 +328,13 @@ function getEmailDeliveryByKey(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('GetEmailDeliveryByKey', inputVars, inputOpts);
 }
 exports.getEmailDeliveryByKey = getEmailDeliveryByKey;
+
+function getEmailSettings(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetEmailSettings', undefined, inputOpts);
+}
+exports.getEmailSettings = getEmailSettings;
 
 function listAccounts(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);

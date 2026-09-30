@@ -3,7 +3,8 @@ import type { ReservationRepository } from "../repositories/reservation-reposito
 import { buildEmailContent } from "../email/email-layout";
 import { reservationTemplateVariables } from "../email/email-template-catalog";
 import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
-import { ResendEmailClient, type EmailClient } from "../email/resend-email-client";
+import type { EmailClient } from "../email/resend-email-client";
+import { repositoryEmailClient } from "../email/email-sender-settings";
 
 export type ConfirmationEmailRunResult = {
   checked: number;
@@ -29,7 +30,7 @@ export async function sendDueConfirmationEmails(
 ): Promise<ConfirmationEmailRunResult> {
   const now = options.now ?? new Date();
   const daysBefore = options.daysBefore ?? confirmationEmailDaysBefore();
-  const emailClient = options.emailClient ?? new ResendEmailClient();
+  const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
   const reservations = await repository.listReservations();
   const dueReservations = reservations.filter((reservation) => isConfirmationEmailDue(reservation, now, daysBefore));
   const result: ConfirmationEmailRunResult = {
@@ -68,7 +69,7 @@ export async function sendConfirmationEmailForReservation(
   options: Omit<ConfirmationEmailServiceOptions, "daysBefore"> = {},
 ) {
   const now = options.now ?? new Date();
-  const emailClient = options.emailClient ?? new ResendEmailClient();
+  const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
   const reservation = (await repository.listReservations()).find((item) => item.id === reservationId);
   if (!reservation) throw new Error(`Reservation not found: ${reservationId}`);
   if (reservation.confirmationContactedAt) return reservation;

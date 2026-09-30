@@ -190,6 +190,12 @@ mutation CreateEmailDelivery($deliveryKey: String!, $reservationId: UUID, $templ
 mutation UpdateEmailDelivery($id: UUID!, $status: String!, $sentAt: Timestamp, $lastError: String) @auth(level: NO_ACCESS) {
   emailDelivery_update(key: {id: $id}, data: {status: $status sentAt: $sentAt lastError: $lastError})
 }
+mutation CreateEmailSettings($senderName: String!, $fromEmail: String!, $replyToEnabled: Boolean!, $replyToEmail: String) @auth(level: NO_ACCESS) {
+  emailSenderSetting_insert(data: {settingKey: "default" senderName: $senderName fromEmail: $fromEmail replyToEnabled: $replyToEnabled replyToEmail: $replyToEmail})
+}
+mutation UpdateEmailSettings($id: UUID!, $senderName: String!, $fromEmail: String!, $replyToEnabled: Boolean!, $replyToEmail: String) @auth(level: NO_ACCESS) {
+  emailSenderSetting_update(key: {id: $id}, data: {senderName: $senderName fromEmail: $fromEmail replyToEnabled: $replyToEnabled replyToEmail: $replyToEmail updatedAt_expr: "request.time"})
+}
 mutation AssignStore($reservationId: UUID!, $storeId: UUID!, $people: Int!) @auth(level: NO_ACCESS) {
   storeAssignment_insert(data: { reservationId: $reservationId storeId: $storeId people: $people assignedAt_expr: "request.time" })
 }

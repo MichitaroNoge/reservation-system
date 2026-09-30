@@ -16,6 +16,7 @@ import {
   type CreateReservationChangeRequestInput,
   type CreateReservationInput,
   type EmailDelivery,
+  type EmailSettings,
   type EmailTemplate,
   type Menu,
   type Reservation,
@@ -264,6 +265,20 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     if (!delivery?.id) throw new Error(`Email delivery not found: ${deliveryKey}`);
     await op("updateEmailDelivery")(this.connection(), { id: delivery.id, status: input.status, sentAt: input.sentAt ?? null, lastError: input.lastError ?? null });
     return { ...delivery, ...input };
+  }
+
+  async getEmailSettings(): Promise<EmailSettings | null> {
+    const { data } = await op("getEmailSettings")(this.connection());
+    const raw = data.emailSenderSettings?.[0];
+    return raw ? { ...raw, settingKey: "default" } : null;
+  }
+
+  async upsertEmailSettings(input: EmailSettings): Promise<EmailSettings> {
+    const existing = await this.getEmailSettings();
+    const values = { senderName: input.senderName, fromEmail: input.fromEmail, replyToEnabled: input.replyToEnabled, replyToEmail: input.replyToEmail ?? null };
+    if (existing?.id) await op("updateEmailSettings")(this.connection(), { id: existing.id, ...values });
+    else await op("createEmailSettings")(this.connection(), values);
+    return (await this.getEmailSettings())!;
   }
 
   async assignStores(id: string, assignments: StoreAssignment[]) {

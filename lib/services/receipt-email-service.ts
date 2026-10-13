@@ -2,7 +2,8 @@ import type { Reservation } from "../domain";
 import { buildEmailContent } from "../email/email-layout";
 import { reservationTemplateVariables } from "../email/email-template-catalog";
 import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
-import { ResendEmailClient, type EmailClient } from "../email/resend-email-client";
+import type { EmailClient } from "../email/resend-email-client";
+import { repositoryEmailClient } from "../email/email-sender-settings";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 
 export type ReceiptEmailRunResult = {
@@ -68,7 +69,7 @@ export async function sendReceiptEmailForReservation(repository: ReservationRepo
     delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_received", recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: attemptedAt, sentAt: null, lastError: null });
   }
   const content = buildEmailContent(delivery.subject, delivery.body);
-  const emailClient = options.emailClient ?? new ResendEmailClient();
+  const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
 
   try {
     await emailClient.send({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, verifyBeforeUpdateEmail, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
 
 const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
@@ -80,6 +80,15 @@ export function useCustomerSession() {
     }
   };
 
+  const requestCustomerEmailChange = async (newEmail: string) => {
+    const user = firebaseAuth.currentUser;
+    if (!user) throw new Error("ログイン状態を確認できませんでした。もう一度ログインしてください。");
+    await verifyBeforeUpdateEmail(user, newEmail, {
+      url: `${window.location.origin}/?customerMode=home&emailChange=complete`,
+      handleCodeInApp: false,
+    });
+  };
+
   return {
     customerUser,
     customerAuthLoading,
@@ -89,6 +98,7 @@ export function useCustomerSession() {
     resendVerificationEmail,
     refreshEmailVerification,
     resetCustomerPassword,
+    requestCustomerEmailChange,
     signOutCustomer: () => signOut(firebaseAuth),
   };
 }

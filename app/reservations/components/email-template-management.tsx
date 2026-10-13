@@ -22,7 +22,7 @@ import {
   emailTemplateDefinitions,
   isEmailTemplateKey,
 } from "@/lib/email/email-template-catalog";
-import type { EmailTemplate } from "../types";
+import type { EmailSettings, EmailTemplate } from "../types";
 import { requestJson } from "../api-client";
 
 export function EmailTemplateManagement({
@@ -33,6 +33,8 @@ export function EmailTemplateManagement({
   notify: (message: string, variant?: "success" | "error" | "info") => void;
 }) {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [settings, setSettings] = useState<EmailSettings | null>(null);
+  const [allowedFromEmails, setAllowedFromEmails] = useState<string[]>([]);
   const [selected, setSelected] = useState<EmailTemplate | null>(null);
   const [draft, setDraft] = useState<EmailTemplate | null>(null);
   const [preview, setPreview] = useState<{
@@ -47,11 +49,14 @@ export function EmailTemplateManagement({
   useEffect(() => {
     void (async () => {
       try {
-        const result = await requestJson<{ templates: EmailTemplate[] }>(
-          "/api/email-templates",
-          await auth(),
-        );
-        setTemplates(result.templates);
+        const options = await auth();
+        const [templateResult, settingsResult] = await Promise.all([
+          requestJson<{ templates: EmailTemplate[] }>("/api/email-templates", options),
+          requestJson<{ settings: EmailSettings; allowedFromEmails: string[] }>("/api/email-settings", options),
+        ]);
+        setTemplates(templateResult.templates);
+        setSettings(settingsResult.settings);
+        setAllowedFromEmails(settingsResult.allowedFromEmails);
       } catch (caught) {
         setError(
           caught instanceof Error
@@ -69,6 +74,22 @@ export function EmailTemplateManagement({
     setDraft({ ...template });
     setPreview(null);
     setError("");
+  };
+  const saveSettings = async () => {
+    if (!settings || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const result = await requestJson<{ settings: EmailSettings }>("/api/email-settings", {
+        ...(await auth()), method: "PUT", body: JSON.stringify(settings),
+      });
+      setSettings(result.settings);
+      notify("メール送信設定を保存しました。");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "送信設定の保存に失敗しました。");
+    } finally {
+      setSaving(false);
+    }
   };
   const save = async () => {
     if (!draft || saving) return;
@@ -127,6 +148,25 @@ export function EmailTemplateManagement({
     );
   if (!selected || !draft)
     return (
+      <div className="grid gap-5">
+      {settings && (
+        <Card className="p-5">
+          <div className="mb-5 flex items-center justify-between">
+            <div><h2 className="font-semibold">メール送信設定</h2><p className="mt-1 text-sm text-muted-foreground">送信者と返信先を設定します。APIキーは環境変数で管理されます。</p></div>
+            <Mail className="size-5 text-muted-foreground" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div><Label htmlFor="sender-name">送信者名</Label><Input id="sender-name" value={settings.senderName} onChange={(event) => setSettings({ ...settings, senderName: event.target.value })} /></div>
+            <div><Label htmlFor="from-email">送信元メールアドレス</Label><select id="from-email" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={settings.fromEmail} onChange={(event) => setSettings({ ...settings, fromEmail: event.target.value })}>{allowedFromEmails.map((email) => <option key={email} value={email}>{email}</option>)}</select></div>
+          </div>
+          <div className="mt-4 grid gap-3 rounded-md border p-4">
+            <label className="flex items-center gap-3 text-sm font-medium"><input type="checkbox" checked={settings.replyToEnabled} onChange={(event) => setSettings({ ...settings, replyToEnabled: event.target.checked })} />指定したアドレスで返信を受け付ける</label>
+            {settings.replyToEnabled && <div><Label htmlFor="reply-to-email">返信先メールアドレス</Label><Input id="reply-to-email" type="email" value={settings.replyToEmail ?? ""} onChange={(event) => setSettings({ ...settings, replyToEmail: event.target.value })} /></div>}
+            {!settings.replyToEnabled && <p className="text-sm text-muted-foreground">Reply-Toは設定されません。メール本文では店舗へのお問い合わせをご案内します。</p>}
+          </div>
+          <div className="mt-5 flex justify-end"><Button onClick={saveSettings} disabled={saving}><Save className="size-4" />{saving ? "保存中" : "送信設定を保存"}</Button></div>
+        </Card>
+      )}
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between border-b p-5">
           <div>
@@ -186,6 +226,7 @@ export function EmailTemplateManagement({
           />
         )}
       </Card>
+      </div>
     );
 
   const definition = isEmailTemplateKey(draft.templateKey)
@@ -235,16 +276,45 @@ export function EmailTemplateManagement({
               }
             />
           </div>
-          <label className="flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.isActive}
-              onChange={(event) =>
-                setDraft({ ...draft, isActive: event.target.checked })
-              }
-            />
-            このテンプレートを有効にする
-          </label>
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="email-template-delivery">メール送信</Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  このテンプレートを使用するメールの送信状態です。
+                </p>
+              </div>
+              <button
+                id="email-template-delivery"
+                type="button"
+                role="switch"
+                aria-checked={draft.isActive}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                  draft.isActive
+                    ? "border-primary bg-primary"
+                    : "border-input bg-muted-foreground/30"
+                }`}
+                onClick={() =>
+                  setDraft({ ...draft, isActive: !draft.isActive })
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${
+                    draft.isActive ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+            <strong className="text-sm">
+              {draft.isActive ? "メールを送信する" : "メールを送信しない"}
+            </strong>
+            {!draft.isActive && (
+              <Alert className="border-warning/50 bg-warning/10 text-foreground">
+                この種類のメールは送信されません。送信処理では未送信として扱われます。
+              </Alert>
+            )}
+          </div>
           {error && <Alert className="border-destructive/40 text-destructive">{error}</Alert>}
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={showPreview}>

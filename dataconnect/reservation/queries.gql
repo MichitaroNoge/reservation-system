@@ -74,6 +74,12 @@ query GetEmailDeliveryByKey($deliveryKey: String!) @auth(level: NO_ACCESS) {
   }
 }
 
+query GetEmailSettings @auth(level: NO_ACCESS) {
+  emailSenderSettings(where: {settingKey: {eq: "default"}}, limit: 1) {
+    id settingKey senderName fromEmail replyToEnabled replyToEmail updatedAt
+  }
+}
+
 query ListAccounts @auth(level: NO_ACCESS) {
   accounts(where: {active: {eq: true}}, orderBy: {createdAt: DESC}) {
     id firebaseUid name phone email address accountType companyBranchName contactPersonName active createdAt updatedAt

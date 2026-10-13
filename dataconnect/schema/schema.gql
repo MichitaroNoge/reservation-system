@@ -160,6 +160,16 @@ type EmailDelivery @table {
   lastError: String
 }
 
+type EmailSenderSetting @table {
+  id: UUID! @default(expr: "uuidV4()")
+  settingKey: String! @unique @col(dataType: "varchar(40)")
+  senderName: String! @col(dataType: "varchar(100)")
+  fromEmail: String! @col(dataType: "varchar(255)")
+  replyToEnabled: Boolean! @default(value: false)
+  replyToEmail: String @col(dataType: "varchar(255)")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}
+
 type ReservationDetail @table {
   id: UUID! @default(expr: "uuidV4()")
   reservation: Reservation!

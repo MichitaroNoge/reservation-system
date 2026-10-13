@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type EmailDelivery, type EmailTemplate, type Reservation } from "../lib/domain";
+import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type EmailDelivery, type EmailSettings, type EmailTemplate, type Reservation } from "../lib/domain";
 import { defaultEmailTemplates } from "../lib/email/email-template-catalog";
 import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
@@ -271,6 +271,7 @@ class MemoryReservationRepository implements ReservationRepository {
   private approvalEmailDeliveries: ApprovalEmailDelivery[] = [];
   private emailTemplates: EmailTemplate[] = defaultEmailTemplates();
   private emailDeliveries: EmailDelivery[] = [];
+  private emailSettings: EmailSettings | null = null;
   constructor(private reservations: Reservation[]) {}
 
   get(id: string) {
@@ -329,6 +330,8 @@ class MemoryReservationRepository implements ReservationRepository {
     if (!delivery) throw new Error(`Email delivery not found: ${deliveryKey}`);
     Object.assign(delivery, input); return delivery;
   }
+  async getEmailSettings() { return this.emailSettings; }
+  async upsertEmailSettings(input: EmailSettings) { this.emailSettings = input; return input; }
 
   listReservationsForReservationAccount = unsupported;
   createReservation = unsupported;

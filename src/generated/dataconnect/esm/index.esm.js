@@ -258,6 +258,30 @@ export function updateEmailDelivery(dcOrVars, vars) {
   return executeMutation(updateEmailDeliveryRef(dcInstance, inputVars));
 }
 
+export const createEmailSettingsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateEmailSettings', inputVars);
+}
+createEmailSettingsRef.operationName = 'CreateEmailSettings';
+
+export function createEmailSettings(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createEmailSettingsRef(dcInstance, inputVars));
+}
+
+export const updateEmailSettingsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdateEmailSettings', inputVars);
+}
+updateEmailSettingsRef.operationName = 'UpdateEmailSettings';
+
+export function updateEmailSettings(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updateEmailSettingsRef(dcInstance, inputVars));
+}
+
 export const assignStoreRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -516,6 +540,19 @@ export function getEmailDeliveryByKey(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getEmailDeliveryByKeyRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const getEmailSettingsRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetEmailSettings');
+}
+getEmailSettingsRef.operationName = 'GetEmailSettings';
+
+export function getEmailSettings(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getEmailSettingsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listAccountsRef = (dc) => {

@@ -106,5 +106,7 @@ test("updating Account profile does not rewrite reservation snapshot", async () 
     assert.equal(stored.customer, "変更前氏名");
     assert.equal(stored.email, "before@example.com");
     assert.equal(stored.phone, "090-2222-2222");
+    assert.deepEqual((await repository.listReservationsForReservationAccount("uid-3")).map((item) => item.id), [reservation.id]);
+    assert.equal((await repository.findAccountByFirebaseUid("uid-3"))?.contact, "after@example.com");
   });
 });

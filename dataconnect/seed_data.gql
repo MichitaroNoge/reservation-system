@@ -22,5 +22,6 @@ mutation SeedEmailTemplates @auth(level: NO_ACCESS) {
     { templateKey: "confirmed_change_approved", name: "本予約変更承認メール", subject: "本予約への変更申請が承認されました {{reservationId}}", body: "{{customerName}} 様\n\n本予約への変更申請が承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
     { templateKey: "reservation_change_approved", name: "予約内容変更承認メール", subject: "予約内容の変更申請が承認されました {{reservationId}}", body: "{{customerName}} 様\n\n予約内容の変更申請が承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
     { templateKey: "cancellation_approved", name: "予約キャンセル承認メール", subject: "予約キャンセルが承認されました {{reservationId}}", body: "{{customerName}} 様\n\n予約キャンセルが承認されました\n\n予約番号: {{reservationId}}\n利用日: {{reservationDate}}\n開始時間: {{reservationTime}}\n予約人数: {{numberOfGuests}}名\nメニュー: {{menuName}}", isActive: true }
+    { templateKey: "account_email_changed", name: "メールアドレス変更完了通知", subject: "メールアドレスが変更されました", body: "{{customerName}} 様\n\nアカウントのメールアドレスが変更されました。\n\n変更前: {{oldEmail}}\n変更後: {{newEmail}}\n変更日時: {{changedAt}}\n\nこの変更に心当たりがない場合は、店舗までお問い合わせください。", isActive: true }
   ])
 }

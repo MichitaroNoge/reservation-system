@@ -1,4 +1,6 @@
-import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailSettings, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
+import { assertReservationChangeAllowed } from "../domain";
+import { isCompletedBooking } from "../cancellation-policy";
+import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type AccountContactEmail, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailSettings, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { defaultEmailTemplates } from "../email/email-template-catalog";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
@@ -12,7 +14,9 @@ export type InMemoryReservationDatabase = {
   approvalEmailDeliveries?: ApprovalEmailDelivery[];
   emailTemplates?: EmailTemplate[];
   emailDeliveries?: EmailDelivery[];
+  systemSettings?: import("../domain").SystemSettings;
   emailSettings?: EmailSettings;
+  accountContactEmails?: AccountContactEmail[];
 };
 
 const defaultStartTime = "10:00";
@@ -89,6 +93,13 @@ export class InMemoryReservationRepository implements ReservationRepository {
   private async readDatabase() { return this.database; }
   private async writeDatabase(database: InMemoryReservationDatabase) { this.database = database; }
 
+  async recordCancellationPolicyConsent(id: string, input: Omit<import("../cancellation-policy-consent").CancellationPolicyConsent, "people"> & { firebaseUid: string }) {
+    const reservation = this.database.reservations.find(item => item.id === id);
+    if (!reservation) throw new Error("Reservation not found: " + id);
+    reservation.policyConsents = [...(reservation.policyConsents ?? []), { source: input.source, acceptedAt: input.acceptedAt, version: input.version, policyText: input.policyText, people: reservation.people }];
+    reservation.policyAgreement = { kind: "confirmed", acceptedAt: input.acceptedAt };
+    return reservation;
+  }
   async listReservations() { return (await this.readDatabase()).reservations; }
 
   async listReservationsForReservationAccount(firebaseUid: string) {
@@ -110,6 +121,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
       id: nextReservationId(database.reservations),
       accountId: account?.id ?? null,
       customer: input.name,
+      accountType: input.accountType, companyBranchName: input.companyBranchName, contactPersonName: input.contactPersonName,
       email: input.email,
       address: input.address,
       bookingType: input.bookingType ?? "individual",
@@ -128,6 +140,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
       startTime,
       endTime: input.endTime ?? calculateReservationEndTime(startTime, menuItems, database.menus),
       people: input.people,
+      initialConfirmedPeople: isCompletedBooking(normalizeReservationStatus(input.status)) ? input.people : null,
       menuItems,
       totalAmount: calculateTotalAmount(menuItems, database.menus),
       store: null,
@@ -187,6 +200,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
     const previousStatus = reservation.status;
     const nextStatus = normalizeReservationStatus(status);
+    if (!isCompletedBooking(previousStatus) && isCompletedBooking(nextStatus) && reservation.initialConfirmedPeople == null) reservation.initialConfirmedPeople = reservation.people;
     reservation.status = nextStatus;
     if (options && "requestType" in options) reservation.requestType = options.requestType ?? null;
     else if (previousStatus === reservationStatusCodes.temporaryConfirmed && nextStatus === reservationStatusCodes.confirmedRequested) reservation.requestType = "confirmed_from_temporary";
@@ -283,6 +297,8 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return delivery;
   }
 
+  async getSystemSettings() { const settings=(await this.readDatabase()).systemSettings; return {reservationLeadDays:settings?.reservationLeadDays ?? 3,acceptanceCapacity:settings?.acceptanceCapacity ?? null,blockedPeriods:settings?.blockedPeriods ?? []}; }
+  async saveSystemSettings(input: import("../domain").SystemSettings) { const database=await this.readDatabase(); database.systemSettings={...database.systemSettings,...input}; await this.writeDatabase(database); return database.systemSettings; }
   async getEmailSettings() {
     return (await this.readDatabase()).emailSettings ?? null;
   }
@@ -336,6 +352,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
+    assertReservationChangeAllowed(reservation.status);
     const resetConfirmationContact = shouldResetConfirmationContact(reservation, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     const shouldResetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     reservation.date = request.requestedDate;
@@ -384,7 +401,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     database.accounts ??= [];
     if (database.accounts.some((account) => account.firebaseUid === input.firebaseUid)) throw new Error(`Account already exists for Firebase UID: ${input.firebaseUid}`);
-    const account: Account = { ...input, id: `memory-account-${Date.now()}`, active: true };
+    const account: Account = { ...input, id: `memory-account-${input.firebaseUid}`, active: true };
     database.accounts.push(account);
     await this.writeDatabase(database);
     return account;
@@ -419,6 +436,23 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return account;
   }
 
+  async listAccountContactEmails(accountId: string) { return ((await this.readDatabase()).accountContactEmails ?? []).filter((item) => item.accountId === accountId); }
+  async findAccountContactEmailByToken(tokenHash: string) {
+    const database = await this.readDatabase();
+    const item = database.accountContactEmails?.find((entry) => entry.verificationTokenHash === tokenHash);
+    if (!item) return null;
+    const account = database.accounts?.find((entry) => entry.id === item.accountId);
+    return { ...item, firebaseUid: account?.firebaseUid, accountEmail: account?.contact, accountName: account?.name };
+  }
+  async createAccountContactEmail(input: { accountId: string; email: string; verificationTokenHash: string; verificationExpiresAt: string }) {
+    const database = await this.readDatabase(); database.accountContactEmails ??= [];
+    if (database.accountContactEmails.some((item) => item.email === input.email)) throw new Error("Contact email already exists");
+    const item: AccountContactEmail = { ...input, id: `ACE-${database.accountContactEmails.length + 1}`, verifiedAt: null, createdAt: new Date().toISOString() };
+    database.accountContactEmails.push(item); await this.writeDatabase(database); return item;
+  }
+  async verifyAccountContactEmail(id: string, verifiedAt: string) { const database = await this.readDatabase(); const item = database.accountContactEmails?.find((entry) => entry.id === id); if (!item) throw new Error("Contact email not found"); item.verifiedAt = verifiedAt; await this.writeDatabase(database); }
+  async deleteAccountContactEmail(id: string) { const database = await this.readDatabase(); database.accountContactEmails = (database.accountContactEmails ?? []).filter((item) => item.id !== id); await this.writeDatabase(database); }
+
   async listStores() { const database = await this.readDatabase(); return sortByDisplayOrderThenName(database.stores.map(normalizeStore)); }
   async listInactiveStores(): Promise<Store[]> { return []; }
 
@@ -435,7 +469,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const decodedName = decodeURIComponent(name);
     const index = database.stores.findIndex((store) => store.name === decodedName);
     if (index < 0) throw new Error(`Store not found: ${decodedName}`);
-    database.stores[index] = normalizeStore(input);
+    database.stores[index] = normalizeStore({ ...database.stores[index], ...input });
     if (decodedName !== input.name) {
       database.reservations = database.reservations.map((reservation) => {
         const storeAssignments = (reservation.storeAssignments ?? []).map((assignment) => assignment.store === decodedName ? { ...assignment, store: input.name } : assignment);

@@ -1,3 +1,4 @@
+import { assertReservationChangeAllowed } from "../domain";
 import { getDataConnect, type ConnectorConfig, type DataConnect } from "firebase-admin/data-connect";
 import * as generated from "@reservation-system/dataconnect-admin";
 import {
@@ -11,6 +12,7 @@ import {
   shouldResetConfirmationContactForAssignments,
   toDataConnectReservationStatus,
   type Account,
+  type AccountContactEmail,
   type ApprovalEmailDelivery,
   type ApprovalEmailType,
   type CreateReservationChangeRequestInput,
@@ -31,6 +33,7 @@ import {
 } from "../domain";
 import { getFirebaseAdminApp } from "../auth";
 import type { ReservationRepository } from "./reservation-repository";
+import { planReservationDetails } from "../reservation-details";
 
 // Data Connect SDK is generated from dataconnect/**/*.gql. During this refactor the checked-in
 // generated package may temporarily lag behind the schema, so access operations through a narrow
@@ -50,11 +53,12 @@ type RawMenu = Record<string, any>;
 type RawStore = Record<string, any>;
 type InternalReservation = Reservation & {
   dataConnectId: string;
-  dataConnectReservationDetails: { id: string }[];
+  dataConnectReservationDetails: { id: string; menuId: string; quantity: number; unitPrice: number }[];
   dataConnectStoreAssignments: { id: string }[];
 };
 
 function op(name: string) {
+  if (!/^(list|get|find)/i.test(name)) throw Object.assign(new Error("Data Connect経由の更新は停止しています。DB_PROVIDER=drizzleとCloud SQLの安全な接続を設定してください。"), { statusCode: 503 });
   const fn = sdk[name];
   if (typeof fn !== "function") {
     throw new Error(`Data Connect SDK operation is not generated yet: ${name}. Run firebase dataconnect:sdk:generate.`);
@@ -63,6 +67,10 @@ function op(name: string) {
 }
 
 export class FirebaseSqlConnectReservationRepository implements ReservationRepository {
+  async withTransaction<T>(_key: string, _work: (repository: ReservationRepository) => Promise<T>): Promise<T> {
+    void _key; void _work;
+    throw Object.assign(new Error("この保存先では原子的な更新を保証できません。Drizzle / Cloud SQLの設定を確認してください。"), { statusCode: 503 });
+  }
   private dataConnect?: DataConnect;
 
   private connection() {
@@ -267,6 +275,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return { ...delivery, ...input };
   }
 
+  async getSystemSettings(): Promise<import("../domain").SystemSettings> { throw new Error("全体設定はローカルDBで利用してください。"); }
+  async saveSystemSettings(input: import("../domain").SystemSettings): Promise<import("../domain").SystemSettings> { void input; throw new Error("全体設定はローカルDBで利用してください。"); }
   async getEmailSettings(): Promise<EmailSettings | null> {
     const { data } = await op("getEmailSettings")(this.connection());
     const raw = data.emailSenderSettings?.[0];
@@ -322,6 +332,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     const request = await this.getReservationChangeRequest(id);
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = await this.getReservationWithInternalId(request.reservationId);
+    assertReservationChangeAllowed(reservation.status);
     const resetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? "10:00") !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     await this.updateReservation(reservation.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     if (resetAssignments) {
@@ -361,13 +372,13 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async createAccount(input: SaveAccountInput & { firebaseUid: string }) {
     if (await this.findRawAccountByFirebaseUid(input.firebaseUid)) throw new Error(`Account already exists for Firebase UID: ${input.firebaseUid}`);
-    const { data } = await op("createAccount")(this.connection(), accountVariables(input));
+    const { data } = await op("createAccount")(this.connection(), { firebaseUid: input.firebaseUid, ...accountProfileVariables(input) });
     const raw = await this.getRawAccountById(data.account_insert.id);
     return toAccount(raw);
   }
 
   async updateAccount(id: string, input: SaveAccountInput) {
-    await op("updateAccount")(this.connection(), { id, ...accountVariables(input) });
+    await op("updateAccount")(this.connection(), { id, ...accountProfileVariables(input) });
     return toAccount(await this.getRawAccountById(id));
   }
 
@@ -377,6 +388,28 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     await op("reactivateAccount")(this.connection(), { id });
     return toAccount(await this.getRawAccountById(id));
   }
+
+  async listAccountContactEmails(accountId: string): Promise<AccountContactEmail[]> {
+    const { data } = await op("listAccountContactEmails")(this.connection(), { accountId });
+    return (data.accountContactEmails ?? []).map(toAccountContactEmail);
+  }
+
+  async findAccountContactEmailByToken(tokenHash: string) {
+    const { data } = await op("getAccountContactEmailByToken")(this.connection(), { verificationTokenHash: tokenHash });
+    const raw = data.accountContactEmails?.[0];
+    return raw ? { ...toAccountContactEmail(raw), firebaseUid: raw.account.firebaseUid, accountEmail: raw.account.email, accountName: raw.account.name } : null;
+  }
+
+  async createAccountContactEmail(input: { accountId: string; email: string; verificationTokenHash: string; verificationExpiresAt: string }) {
+    await op("createAccountContactEmail")(this.connection(), input);
+    return (await this.listAccountContactEmails(input.accountId)).find((item) => item.email === input.email)!;
+  }
+
+  async verifyAccountContactEmail(id: string, verifiedAt: string) {
+    await op("verifyAccountContactEmail")(this.connection(), { id, verifiedAt });
+  }
+
+  async deleteAccountContactEmail(id: string) { await op("deleteAccountContactEmail")(this.connection(), { id }); }
 
   async listStores(): Promise<Store[]> { const { data } = await op("listStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
   async listInactiveStores(): Promise<Store[]> { const { data } = await op("listInactiveStores")(this.connection()); return sortByDisplayOrderThenName((data.stores ?? []).map(toStore)); }
@@ -433,18 +466,18 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return {
       ...toReservation(raw),
       dataConnectId: raw.id,
-      dataConnectReservationDetails: (raw.reservationDetails_on_reservation ?? []).map((item: any) => ({ id: item.id })),
+      dataConnectReservationDetails: (raw.reservationDetails_on_reservation ?? []).map((item: any) => ({ id: item.id, menuId: item.menu.id, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice) })),
       dataConnectStoreAssignments: (raw.storeAssignments_on_reservation ?? []).map((item: any) => ({ id: item.id })),
     };
   }
 
-  private async replaceReservationDetails(reservationId: string, existing: { id: string }[], menuItems: string[]) {
+  private async replaceReservationDetails(reservationId: string, existing: InternalReservation["dataConnectReservationDetails"], menuItems: string[]) {
+    const activeMenus = await this.listRawMenus();
+    const inactiveMenus = await this.listRawInactiveMenus();
+    const details = planReservationDetails(existing, [...activeMenus.map(menu => ({ id: menu.id, name: menu.name, price: menu.standardPrice, active: true })), ...inactiveMenus.map(menu => ({ id: menu.id, name: menu.name, price: menu.standardPrice, active: false }))], menuItems);
     for (const detail of existing) await op("deleteReservationDetail")(this.connection(), { id: detail.id });
-    const menus = await this.listRawMenus();
-    for (const menuName of menuItems) {
-      const menu = menus.find((item) => item.name === menuName);
-      if (!menu) continue;
-      await op("addReservationDetail")(this.connection(), { reservationId, menuId: menu.id, quantity: 1, unitPrice: menu.standardPrice });
+    for (const detail of details) {
+      await op("addReservationDetail")(this.connection(), { reservationId, ...detail });
     }
   }
 
@@ -491,9 +524,8 @@ function toEmailDelivery(raw: any): EmailDelivery {
   return { id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation?.reservationCode ?? null, templateKey: raw.templateKey, recipient: raw.recipient, subject: raw.subject, body: raw.body, status: raw.status, requestedAt: String(raw.requestedAt), sentAt: raw.sentAt ? String(raw.sentAt) : null, lastError: raw.lastError ?? null };
 }
 
-function accountVariables(input: SaveAccountInput & { firebaseUid?: string }) {
+function accountProfileVariables(input: SaveAccountInput) {
   return {
-    ...(input.firebaseUid ? { firebaseUid: input.firebaseUid } : {}),
     name: input.name,
     phone: input.phone ?? null,
     email: input.contact,
@@ -506,6 +538,9 @@ function accountVariables(input: SaveAccountInput & { firebaseUid?: string }) {
 
 function toAccount(raw: RawAccount): Account {
   return { id: raw.id, firebaseUid: raw.firebaseUid, name: raw.name, contact: raw.email, phone: raw.phone ?? undefined, address: raw.address ?? undefined, accountType: raw.accountType ?? undefined, companyBranchName: raw.companyBranchName ?? undefined, contactPersonName: raw.contactPersonName ?? undefined, active: raw.active };
+}
+function toAccountContactEmail(raw: any): AccountContactEmail {
+  return { id: raw.id, accountId: raw.account.id, email: raw.email, verifiedAt: raw.verifiedAt ?? null, verificationTokenHash: raw.verificationTokenHash, verificationExpiresAt: raw.verificationExpiresAt, createdAt: raw.createdAt };
 }
 
 function toReservation(raw: RawReservation): Reservation {

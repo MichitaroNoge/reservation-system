@@ -14,7 +14,17 @@
 - メールアドレス等が一致しても、過去の代理予約を後からAccountへ自動・手動連携しない
 - Accountプロフィール変更時も過去予約の予約者情報は書き換えない
 
-アプリケーションの永続化先は Firebase Data Connect / Cloud SQL に固定しています。テストではファイルを作成しないインメモリリポジトリを利用し、DB設計は `dataconnect/schema/schema.gql` を正とします。
+開発環境の永続化先はDocker ComposeのPostgreSQL＋Drizzleです。`DB_PROVIDER=drizzle`を明示したローカル環境で使用します。
+検証・本番は今回変更せず、`DB_PROVIDER`未設定時は従来のData Connectを使用します。
+共通のRepositoryインターフェースで画面・APIの仕様を維持します。Drizzleスキーマは`lib/db/schema.ts`、SQLマイグレーションは`drizzle/`です。
+17テーブルと4種類のEnumを既存GraphQL定義から翻訳し、旧Customerも保持しています。既存Cloud SQLの物理DDLとの一致はダンプ未取得のため未検証です。
+日付は`date`、利用時刻は従来の`varchar(5)`、Timestampは`timestamptz`とし、APIではUTCのISO文字列へ変換します。
+GraphQLの`request.time`は挿入時の`now()`、更新時の明示的な日時設定へ置き換えました。
+既存UNIQUE/FK/NOT NULL/文字列長を維持し、関連検索用インデックスとDrizzleのマイグレーション管理テーブルを追加しています。
+予約コードの採番、予約明細差し替え、店舗割り当て、変更承認はトランザクションで実行します。
+本人予約の取得はFirebase UID→Account→ReservationのWHERE条件で限定します。
+インメモリの業務テストに加え、PGliteのSQL統合テストと隔離したDocker PostgreSQL用のテスト手順を用意しています。
+セットアップと保護されたDB操作はルートREADMEを参照してください。
 
 ## テーブル一覧
 

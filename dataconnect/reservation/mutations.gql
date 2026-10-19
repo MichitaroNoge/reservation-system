@@ -25,6 +25,13 @@ mutation UpdateAccount($id: UUID!, $name: String!, $phone: String, $email: Strin
     updatedAt_expr: "request.time"
   })
 }
+mutation CreateAccountContactEmail($accountId: UUID!, $email: String!, $verificationTokenHash: String!, $verificationExpiresAt: Timestamp!) @auth(level: NO_ACCESS) {
+  accountContactEmail_insert(data: {accountId: $accountId email: $email verificationTokenHash: $verificationTokenHash verificationExpiresAt: $verificationExpiresAt})
+}
+mutation VerifyAccountContactEmail($id: UUID!, $verifiedAt: Timestamp!) @auth(level: NO_ACCESS) {
+  accountContactEmail_update(key: {id: $id}, data: {verifiedAt: $verifiedAt})
+}
+mutation DeleteAccountContactEmail($id: UUID!) @auth(level: NO_ACCESS) { accountContactEmail_delete(key: {id: $id}) }
 
 mutation DeactivateAccount($id: UUID!) @auth(level: NO_ACCESS) {
   account_update(key: {id: $id}, data: { active: false updatedAt_expr: "request.time" })

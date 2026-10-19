@@ -10,7 +10,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ name:
     await requireAdmin(request);
     const { name } = await context.params;
     const input = validateStoreInput(await readJsonObject(request));
-    const store = await getReservationRepository().updateStore(decodeURIComponent(name), input);
+    const store = await (await getReservationRepository()).updateStore(decodeURIComponent(name), input);
     return NextResponse.json({ store });
   } catch (error) {
     return apiErrorResponse(error);
@@ -21,7 +21,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ nam
   try {
     await requireAdmin(_request);
     const { name } = await context.params;
-    await getReservationRepository().deleteStore(decodeURIComponent(name));
+    await (await getReservationRepository()).deleteStore(decodeURIComponent(name));
     return NextResponse.json({ ok: true });
   } catch (error) {
     return apiErrorResponse(error);

@@ -1,0 +1,4 @@
+import { policyConsentDate, policyConsentLabel, type CancellationPolicyConsent } from "@/lib/cancellation-policy-consent";
+export function PolicyConsentHistory({ consents }: { consents: CancellationPolicyConsent[] }) {
+  return <section className="border-t border-border pt-4"><h3 className="text-sm font-semibold">キャンセルポリシーの同意記録</h3>{!consents.length ? <p className="mt-2 text-sm text-muted-foreground">同意記録はありません。</p> : <div className="mt-3 divide-y divide-border">{consents.map((consent,index) => <details key={index} className="py-3"><summary className="cursor-pointer text-sm">{policyConsentLabel(consent.source)}：同意済み<br /><span className="text-xs text-muted-foreground">{policyConsentDate(consent.acceptedAt)}（日本時間）</span></summary><div className="mt-3 space-y-3 text-sm"><p>申請時の人数：{consent.people}名 ／ 版：{consent.version}</p><p className="whitespace-pre-wrap leading-relaxed">{consent.policyText}</p></div></details>)}</div>}</section>;
+}

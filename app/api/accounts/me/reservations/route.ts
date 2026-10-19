@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   try {
     const user = await requireVerifiedFirebaseUser(request);
     if (!user) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const reservations = (await repository.listReservationsForReservationAccount(user.uid))
       .sort((a, b) => `${b.date}T${b.startTime ?? "10:00"}`.localeCompare(`${a.date}T${a.startTime ?? "10:00"}`, "ja-JP", { numeric: true }));
     const reservationIds = new Set(reservations.map((reservation) => reservation.id));

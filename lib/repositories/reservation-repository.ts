@@ -1,7 +1,17 @@
-import type { Account, ApprovalEmailDelivery, ApprovalEmailType, CreateReservationChangeRequestInput, CreateReservationInput, EmailDelivery, EmailSettings, EmailTemplate, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
+import type { Account, AccountContactEmail, ApprovalEmailDelivery, ApprovalEmailType, CreateReservationChangeRequestInput, CreateReservationInput, EmailDelivery, EmailSettings, EmailTemplate, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
+  getSystemSettings(): Promise<import("../domain").SystemSettings>;
+  saveSystemSettings(input: import("../domain").SystemSettings): Promise<import("../domain").SystemSettings>;
+  withTransaction?<T>(key: string, work: (repository: ReservationRepository) => Promise<T>): Promise<T>;
+  getAccountDeletion?(firebaseUid: string): Promise<{ completedAt: string | null } | null>;
+  recordAccountDeletion?(firebaseUid: string, completedAt?: string): Promise<void>;
+  clearAccountDeletion?(firebaseUid: string): Promise<void>;
+  getReservationSubmission?(firebaseUid: string, requestKey: string): Promise<{ requestHash: string; reservationCode: string } | null>;
+  recordReservationSubmission?(input: { firebaseUid: string; requestKey: string; requestHash: string; reservationCode: string }): Promise<void>;
+  recordCancellationPolicyConsent?(id: string, input: Omit<import("../cancellation-policy-consent").CancellationPolicyConsent, "people"> & { firebaseUid: string }): Promise<Reservation>;
   listReservations(): Promise<Reservation[]>;
+  scanReservationsForExport?(query: import("../reservation-search").ReservationSearch, consume: (rows: Reservation[]) => void, signal: AbortSignal, deadline: number): Promise<void>;
   listReservationsForReservationAccount(firebaseUid: string): Promise<Reservation[]>;
   createReservation(input: CreateReservationInput): Promise<Reservation>;
   updateReservation(id: string, input: UpdateReservationInput): Promise<Reservation>;
@@ -32,6 +42,11 @@ export type ReservationRepository = {
   updateAccount(id: string, input: SaveAccountInput): Promise<Account>;
   deactivateAccount(id: string): Promise<void>;
   reactivateAccount(id: string): Promise<Account>;
+  listAccountContactEmails(accountId: string): Promise<AccountContactEmail[]>;
+  findAccountContactEmailByToken(tokenHash: string): Promise<(AccountContactEmail & { firebaseUid?: string; accountEmail?: string; accountName?: string }) | null>;
+  createAccountContactEmail(input: { accountId: string; email: string; verificationTokenHash: string; verificationExpiresAt: string }): Promise<AccountContactEmail>;
+  verifyAccountContactEmail(id: string, verifiedAt: string): Promise<void>;
+  deleteAccountContactEmail(id: string): Promise<void>;
 
   listStores(): Promise<Store[]>;
   listInactiveStores(): Promise<Store[]>;

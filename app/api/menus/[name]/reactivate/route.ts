@@ -11,7 +11,7 @@ export async function PATCH(request: Request) {
     const body = await readJsonObject(request);
     const id = typeof body.id === "string" ? body.id.trim() : "";
     if (!id) return NextResponse.json({ error: "id is required." }, { status: 400 });
-    const menu = await getReservationRepository().reactivateMenu(id);
+    const menu = await (await getReservationRepository()).reactivateMenu(id);
     return NextResponse.json({ menu });
   } catch (error) {
     return apiErrorResponse(error);

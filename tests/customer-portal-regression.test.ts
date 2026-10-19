@@ -11,6 +11,8 @@ test("customer reservation portal keeps account booking choices", async () => {
   const authSource = await readFile(path.join(process.cwd(), "lib", "auth.ts"), "utf8");
   const reservationApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
   const accountApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "route.ts"), "utf8");
+  const contactEmailVerificationApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "contact-emails", "verify", "route.ts"), "utf8");
+  const firebaseRepositorySource = await readFile(path.join(process.cwd(), "lib", "repositories", "firebase-sql-connect-repository.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -51,6 +53,12 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(pageSource, /startConfirmedChangeFromReservation/, "confirmed reservation change must be available from account reservations");
   assert.match(pageSource, /startReservationChangeFromReservation/, "reservation change must be available from account reservations");
   assert.match(pageSource, /startCancellationFromReservation/, "cancellation must be available from account reservations");
+  const cancellationFormSource = pageSource.split("function CustomerCancellationForm")[1].split("function CustomerContactRequestFields")[0];
+  assert.doesNotMatch(cancellationFormSource, /<input|CustomerContactRequestFields|onFormChange/, "cancellation target must not be editable");
+  for (const label of ["予約ID", "利用日時", "予定人数", "メニュー", "キャンセル対象の予約を確認できません"]) {
+    assert.ok(cancellationFormSource.includes(label), `${label} should appear in cancellation review`);
+  }
+  assert.match(cancellationFormSource, /disabled=\{!canSubmit \|\| !reservation \|\| isSubmitting\}/, "missing reservations and repeated submissions must be blocked");
   assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
   assert.match(pageSource, /function CustomerReservationRequestStatus/, "customer reservation dashboard should show request statuses");
   assert.match(pageSource, /function CustomerPortalHome/, "customer portal home should expose shared login before procedures");
@@ -82,9 +90,14 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(authSource, /user\.email_verified !== true/, "customer APIs should reject unverified Firebase tokens");
   assert.match(reservationApiSource, /requireVerifiedFirebaseUser\(request\)/, "reservation creation should require a verified customer email");
   assert.match(accountApiSource, /listReservationsForReservationAccount\(user\.uid\)/, "account deletion should check reservation history by Firebase UID");
-  assert.match(accountApiSource, /reservations\.length > 0[\s\S]*status: 409/, "accounts with reservation history must not be deleted");
+  assert.match(accountApiSource, /accountHasIncompleteReservations\(reservations, changeRequests\)[\s\S]*status: 409/, "accounts with incomplete reservations must not be deleted");
   assert.match(accountApiSource, /deactivateAccount\(account\.id\)[\s\S]*deleteUser\(user\.uid\)/, "account deletion should remove both the account and Firebase user");
   assert.match(accountApiSource, /reactivateAccount\(account\.id\)/, "account deletion should roll back deactivation when Firebase deletion fails");
+  assert.match(contactEmailVerificationApiSource, /if \(!contact\.verifiedAt\) await repository\.verifyAccountContactEmail/, "an already verified additional email link should remain successful");
+  assert.match(pageSource, /追加の連絡先メールアドレスを確認しました/, "additional email verification should show a completion message");
+  assert.match(pageSource, /applyAccountToReservationForm\(current, customerAccount\)/, "opening the reservation form should reapply the account type default");
+  assert.match(firebaseRepositorySource, /createAccount[\s\S]*firebaseUid: input\.firebaseUid, \.\.\.accountProfileVariables\(input\)/, "account creation should include the Firebase UID");
+  assert.match(firebaseRepositorySource, /updateAccount[\s\S]*\{ id, \.\.\.accountProfileVariables\(input\) \}/, "account updates should only send declared profile mutation variables");
 });
 
 function escapeRegExp(value: string) {

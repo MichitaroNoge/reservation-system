@@ -1,13 +1,17 @@
 import { FirebaseSqlConnectReservationRepository } from "./firebase-sql-connect-repository";
 import type { ReservationRepository } from "./reservation-repository";
+import { repositoryProvider } from "../db/environment";
+import { getDatabase } from "../db/client";
+import { DrizzleReservationRepository } from "./drizzle-reservation-repository";
 
-let repository: ReservationRepository | undefined;
+let repository: Promise<ReservationRepository> | undefined;
 
 export function getReservationRepository() {
-  repository ??= createReservationRepository();
+  repository ??= createReservationRepository().catch(error => { repository = undefined; throw error; });
   return repository;
 }
 
-function createReservationRepository(): ReservationRepository {
+async function createReservationRepository(): Promise<ReservationRepository> {
+  if (repositoryProvider() === "drizzle") return new DrizzleReservationRepository(await getDatabase());
   return new FirebaseSqlConnectReservationRepository();
 }

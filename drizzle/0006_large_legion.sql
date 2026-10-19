@@ -1,0 +1,1 @@
+ALTER TABLE "system_settings" ADD COLUMN "blocked_periods" jsonb DEFAULT '[]'::jsonb NOT NULL;

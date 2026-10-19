@@ -1,0 +1,61 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { sql } from "drizzle-orm";
+import { createCalendarFixture } from "./calendar-fixture";
+import { earliestReservationDate } from "../../lib/reservation-lead-time";
+import { getDatabase } from "../../lib/db/client";
+
+test("fee notices and one-day party-size changes are enforced by real APIs and SQL", async () => {
+  const fixture = await createCalendarFixture();
+  try {
+    const { POST: cancel } = await import("../../app/api/reservations/cancellation-request/route");
+    const { POST: change } = await import("../../app/api/reservations/change-requests/route");
+    await fixture.repo.createAccount({ firebaseUid: "calendar-test-user", name: "本人", contact: "owner@example.test", phone: "09012345678" });
+    await fixture.repo.createAccount({ firebaseUid: "other-user", name: "別人", contact: "other@example.test", phone: "09012345678" });
+    const base = { name: "本人", email: "owner@example.test", phone: "09012345678", date: "2099-11-15", startTime: "12:00", people: 60, menuItems: ["検証メニュー"], status: "confirmed" as const, accountFirebaseUid: "calendar-test-user" };
+    const send = (body: object, token = "calendar-test-member") => new Request("http://localhost/api/reservations/request", { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+    const booking = await fixture.repo.createReservation({ ...base, status: "confirmed_requested" });
+    assert.equal(booking.initialConfirmedPeople, null);
+    const confirmed = await fixture.repo.updateReservationStatus(booking.id, "confirmed");
+    assert.equal(confirmed.initialConfirmedPeople, 60);
+    assert.equal((await cancel(send({ reservationId: booking.id }, ""))).status, 401);
+    assert.equal((await cancel(send({ reservationId: booking.id, cancellationFeeAcknowledged: "true" }))).status, 400);
+    assert.equal((await cancel(send({ reservationId: booking.id }))).status, 409);
+    assert.equal((await fixture.repo.listReservations()).find(r => r.id === booking.id)?.status, "confirmed");
+    const data = { reservationId: booking.id, requestedDate: base.date, requestedStartTime: base.startTime, requestedPeople: 30, requestedMenuItems: base.menuItems };
+    assert.equal((await change(send(data))).status, 409);
+    assert.equal((await fixture.repo.listReservationChangeRequests()).length, 0);
+    await fixture.repo.updateReservation(booking.id, { people: 40 });
+    const cumulative = await change(send(data));
+    assert.equal(cumulative.status, 409); assert.match((await cumulative.json()).error, /60名から30名/);
+    const accepted = await change(send({ ...data, cancellationFeeAcknowledged: true }));
+    assert.equal(accepted.status, 201);
+    const requestId = (await accepted.json()).request.id;
+    await fixture.repo.approveReservationChangeRequest(requestId);
+    const after = (await fixture.repo.listReservations()).find(r => r.id === booking.id)!;
+    assert.equal(after.people, 30); assert.equal(after.initialConfirmedPeople, 60);
+    assert.equal((await cancel(send({ reservationId: booking.id, cancellationFeeAcknowledged: true }))).status, 200);
+    const temp = await fixture.repo.createReservation({ ...base, status: "temporary_confirmed" });
+    assert.equal((await cancel(send({ reservationId: temp.id }))).status, 200);
+    const foreign = await fixture.repo.createReservation({ ...base, accountFirebaseUid: "other-user" });
+    assert.equal((await cancel(send({ reservationId: foreign.id, cancellationFeeAcknowledged: true }))).status, 403);
+    assert.equal((await change(send({ ...data, reservationId: foreign.id, cancellationFeeAcknowledged: true }))).status, 403);
+    const tomorrow = earliestReservationDate(1);
+    const near = await fixture.repo.createReservation({ ...base, date: tomorrow });
+    const nearData = { ...data, reservationId: near.id, requestedDate: tomorrow, requestedPeople: 40 };
+    assert.equal((await change(send(nearData))).status, 201);
+    assert.equal((await change(send({ ...nearData, requestedStartTime: "13:00" }))).status, 400);
+    assert.equal((await change(send({ ...nearData, requestedPeople: 30, cancellationFeeAcknowledged: true }))).status, 400);
+    const today = await fixture.repo.createReservation({ ...base, date: earliestReservationDate(0) });
+    assert.equal((await change(send({ ...nearData, reservationId: today.id, requestedDate: today.date }))).status, 400);
+    // Cancellation remains available even on the usage date; the fee is a notice, not a rejection.
+    assert.equal((await cancel(send({ reservationId: today.id, cancellationFeeAcknowledged: true }))).status, 200);
+    const db = await getDatabase();
+    const legacy = await fixture.repo.createReservation(base);
+    await db.execute(sql`update reservation set initial_confirmed_people = null where reservation_code = ${legacy.id}`);
+    const unknown = await change(send({ ...data, reservationId: legacy.id, requestedPeople: 55 }));
+    assert.equal(unknown.status, 409); assert.match((await unknown.json()).error, /初回の本予約人数を確認できない/);
+    const repeat = await fixture.repo.createReservation({ ...base, date: tomorrow });
+    assert.equal((await change(send({ ...nearData, reservationId: repeat.id, requestedPeople: 55 }))).status, 201);
+  } finally { await fixture.close(); }
+});

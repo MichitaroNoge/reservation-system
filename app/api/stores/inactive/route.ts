@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const stores = await getReservationRepository().listInactiveStores();
+    const stores = await (await getReservationRepository()).listInactiveStores();
     return NextResponse.json({ stores });
   } catch (error) {
     return apiErrorResponse(error);

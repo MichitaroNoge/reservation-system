@@ -42,6 +42,11 @@ export enum ReservationStatus {
 
 
 
+export interface AccountContactEmail_Key {
+  id: UUIDString;
+  __typename?: 'AccountContactEmail_Key';
+}
+
 export interface Account_Key {
   id: UUIDString;
   __typename?: 'Account_Key';
@@ -84,6 +89,17 @@ export interface ClearConfirmationContactData {
 
 export interface ClearConfirmationContactVariables {
   id: UUIDString;
+}
+
+export interface CreateAccountContactEmailData {
+  accountContactEmail_insert: AccountContactEmail_Key;
+}
+
+export interface CreateAccountContactEmailVariables {
+  accountId: UUIDString;
+  email: string;
+  verificationTokenHash: string;
+  verificationExpiresAt: TimestampString;
 }
 
 export interface CreateAccountData {
@@ -253,6 +269,14 @@ export interface DeactivateStoreVariables {
   id: UUIDString;
 }
 
+export interface DeleteAccountContactEmailData {
+  accountContactEmail_delete?: AccountContactEmail_Key | null;
+}
+
+export interface DeleteAccountContactEmailVariables {
+  id: UUIDString;
+}
+
 export interface DeleteReservationDetailData {
   reservationDetail_delete?: ReservationDetail_Key | null;
 }
@@ -320,6 +344,27 @@ export interface GetAccountByIdData {
 
 export interface GetAccountByIdVariables {
   id: UUIDString;
+}
+
+export interface GetAccountContactEmailByTokenData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+      firebaseUid: string;
+      email: string;
+      name: string;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+
+export interface GetAccountContactEmailByTokenVariables {
+  verificationTokenHash: string;
 }
 
 export interface GetEmailDeliveryByKeyData {
@@ -592,6 +637,24 @@ export interface GetStoreByNameVariables {
 export interface Invoice_Key {
   id: UUIDString;
   __typename?: 'Invoice_Key';
+}
+
+export interface ListAccountContactEmailsData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+
+export interface ListAccountContactEmailsVariables {
+  accountId: UUIDString;
 }
 
 export interface ListAccountsData {
@@ -1065,6 +1128,15 @@ export interface UpdateStoreVariables {
   active: boolean;
 }
 
+export interface VerifyAccountContactEmailData {
+  accountContactEmail_update?: AccountContactEmail_Key | null;
+}
+
+export interface VerifyAccountContactEmailVariables {
+  id: UUIDString;
+  verifiedAt: TimestampString;
+}
+
 export interface VisitDetail_Key {
   id: UUIDString;
   __typename?: 'VisitDetail_Key';
@@ -1098,6 +1170,42 @@ export const updateAccountRef: UpdateAccountRef;
 
 export function updateAccount(vars: UpdateAccountVariables): MutationPromise<UpdateAccountData, UpdateAccountVariables>;
 export function updateAccount(dc: DataConnect, vars: UpdateAccountVariables): MutationPromise<UpdateAccountData, UpdateAccountVariables>;
+
+interface CreateAccountContactEmailRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateAccountContactEmailVariables): MutationRef<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: CreateAccountContactEmailVariables): MutationRef<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+  operationName: string;
+}
+export const createAccountContactEmailRef: CreateAccountContactEmailRef;
+
+export function createAccountContactEmail(vars: CreateAccountContactEmailVariables): MutationPromise<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+export function createAccountContactEmail(dc: DataConnect, vars: CreateAccountContactEmailVariables): MutationPromise<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+
+interface VerifyAccountContactEmailRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: VerifyAccountContactEmailVariables): MutationRef<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: VerifyAccountContactEmailVariables): MutationRef<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+  operationName: string;
+}
+export const verifyAccountContactEmailRef: VerifyAccountContactEmailRef;
+
+export function verifyAccountContactEmail(vars: VerifyAccountContactEmailVariables): MutationPromise<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+export function verifyAccountContactEmail(dc: DataConnect, vars: VerifyAccountContactEmailVariables): MutationPromise<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+
+interface DeleteAccountContactEmailRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteAccountContactEmailVariables): MutationRef<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: DeleteAccountContactEmailVariables): MutationRef<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+  operationName: string;
+}
+export const deleteAccountContactEmailRef: DeleteAccountContactEmailRef;
+
+export function deleteAccountContactEmail(vars: DeleteAccountContactEmailVariables): MutationPromise<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+export function deleteAccountContactEmail(dc: DataConnect, vars: DeleteAccountContactEmailVariables): MutationPromise<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
 
 interface DeactivateAccountRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -1626,6 +1734,30 @@ export const getAccountByFirebaseUidRef: GetAccountByFirebaseUidRef;
 
 export function getAccountByFirebaseUid(vars: GetAccountByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
 export function getAccountByFirebaseUid(dc: DataConnect, vars: GetAccountByFirebaseUidVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountByFirebaseUidData, GetAccountByFirebaseUidVariables>;
+
+interface ListAccountContactEmailsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListAccountContactEmailsVariables): QueryRef<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListAccountContactEmailsVariables): QueryRef<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+  operationName: string;
+}
+export const listAccountContactEmailsRef: ListAccountContactEmailsRef;
+
+export function listAccountContactEmails(vars: ListAccountContactEmailsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+export function listAccountContactEmails(dc: DataConnect, vars: ListAccountContactEmailsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+
+interface GetAccountContactEmailByTokenRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetAccountContactEmailByTokenVariables): QueryRef<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetAccountContactEmailByTokenVariables): QueryRef<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+  operationName: string;
+}
+export const getAccountContactEmailByTokenRef: GetAccountContactEmailByTokenRef;
+
+export function getAccountContactEmailByToken(vars: GetAccountContactEmailByTokenVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+export function getAccountContactEmailByToken(dc: DataConnect, vars: GetAccountContactEmailByTokenVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
 
 interface ListStoresRef {
   /* Allow users to create refs without passing in DataConnect */

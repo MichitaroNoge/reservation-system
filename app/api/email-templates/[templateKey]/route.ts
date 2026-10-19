@@ -17,7 +17,7 @@ export async function PUT(request: Request, context: { params: Promise<{ templat
     const templateBody = typeof body.body === "string" ? body.body : "";
     const isActive = body.isActive !== false;
     validateTemplate(templateKey, subject, templateBody);
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const current = await repository.getEmailTemplate(templateKey);
     const template = await repository.upsertEmailTemplate({
       ...current,

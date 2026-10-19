@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const accounts = await getReservationRepository().listAccounts();
+    const accounts = await (await getReservationRepository()).listAccounts();
     return NextResponse.json({ accounts });
   } catch (error) {
     return apiErrorResponse(error);
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     if (!body.firebaseUid || !body.name || !body.contact) {
       return NextResponse.json({ error: "firebaseUid, name and contact are required" }, { status: 400 });
     }
-    const account = await getReservationRepository().createAccount({
+    const account = await (await getReservationRepository()).createAccount({
       firebaseUid: body.firebaseUid,
       name: body.name,
       contact: body.contact,

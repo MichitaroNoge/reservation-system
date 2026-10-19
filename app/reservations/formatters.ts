@@ -1,3 +1,5 @@
+import { policyConsentDate } from "@/lib/cancellation-policy-consent";
+import { reservationListStatus } from "@/lib/reservation-search";
 import {
   calculateReservationEndTime,
   reservationAssignments,
@@ -58,6 +60,8 @@ export function dateTimeMinuteLabel(value: string) {
 }
 
 export function policyAgreementLabel(reservation: Reservation) {
+  const latest = reservation.policyConsents?.at(-1);
+  if (latest) return `キャンセルポリシーに同意済み（${policyConsentDate(latest.acceptedAt)}・日本時間）`;
   if (!reservation.policyAgreement) return "未同意";
   const label = reservation.policyAgreement.kind === "temporary" ? "仮予約の注意事項" : "キャンセルポリシー";
   return `${label}に同意済み（${new Date(reservation.policyAgreement.acceptedAt).toLocaleString("ja-JP")}）`;
@@ -122,9 +126,7 @@ export function isTemporaryReservationExpired(reservation: Reservation) {
 }
 
 export function reservationDisplayLabel(reservation: Reservation) {
-  if (isTemporaryReservationExpired(reservation)) return "仮予約確定（期限切れ）";
-  if (reservation.status === "waiting_for_visit") return "本予約確定（来店待ち）";
-  return statusLabel(reservation.status);
+  return reservationListStatus(reservation, todayIso());
 }
 
 export function todayIso() {

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { deliveryRecipients, reservationNotificationRecipients } from "../lib/email/reservation-recipients";
 import { InMemoryReservationRepository } from "../lib/repositories/in-memory-reservation-repository";
 
 async function withRepository(run: (repository: InMemoryReservationRepository) => Promise<void>) {
@@ -108,5 +109,49 @@ test("updating Account profile does not rewrite reservation snapshot", async () 
     assert.equal(stored.phone, "090-2222-2222");
     assert.deepEqual((await repository.listReservationsForReservationAccount("uid-3")).map((item) => item.id), [reservation.id]);
     assert.equal((await repository.findAccountByFirebaseUid("uid-3"))?.contact, "after@example.com");
+  });
+});
+
+test("reservation notices include only verified additional contact emails", async () => {
+  await withRepository(async (repository) => {
+    const account = await repository.createAccount({
+      firebaseUid: "uid-4",
+      name: "予約者本人",
+      contact: "primary@example.com",
+      phone: "090-4444-4444",
+      accountType: "individual",
+    });
+    const reservation = await repository.createReservation({
+      ...baseReservation,
+      name: "予約者本人",
+      email: "primary@example.com",
+      phone: "090-4444-4444",
+      bookingType: "individual",
+      accountType: "individual",
+      customerAccountMode: "account",
+      accountFirebaseUid: "uid-4",
+    });
+    const verified = await repository.createAccountContactEmail({
+      accountId: account.id!,
+      email: "verified@example.com",
+      verificationTokenHash: "verified-token",
+      verificationExpiresAt: "2026-10-01T00:00:00.000Z",
+    });
+    await repository.verifyAccountContactEmail(verified.id, "2026-09-30T00:00:00.000Z");
+    await repository.createAccountContactEmail({
+      accountId: account.id!,
+      email: "pending@example.com",
+      verificationTokenHash: "pending-token",
+      verificationExpiresAt: "2026-10-01T00:00:00.000Z",
+    });
+
+    assert.deepEqual(await reservationNotificationRecipients(repository, reservation), [
+      "primary@example.com",
+      "verified@example.com",
+    ]);
+    assert.deepEqual(deliveryRecipients("primary@example.com,verified@example.com"), {
+      to: "primary@example.com",
+      bcc: ["verified@example.com"],
+    });
   });
 });

@@ -100,6 +100,16 @@ query GetAccountByFirebaseUid($firebaseUid: String!) @auth(level: NO_ACCESS) {
     id firebaseUid name phone email address accountType companyBranchName contactPersonName active
   }
 }
+query ListAccountContactEmails($accountId: UUID!) @auth(level: NO_ACCESS) {
+  accountContactEmails(where: {accountId: {eq: $accountId}}, orderBy: {createdAt: ASC}) {
+    id email verifiedAt verificationTokenHash verificationExpiresAt createdAt account { id }
+  }
+}
+query GetAccountContactEmailByToken($verificationTokenHash: String!) @auth(level: NO_ACCESS) {
+  accountContactEmails(where: {verificationTokenHash: {eq: $verificationTokenHash}}, limit: 1) {
+    id email verifiedAt verificationTokenHash verificationExpiresAt createdAt account { id firebaseUid email name }
+  }
+}
 
 query ListStores @auth(level: PUBLIC, insecureReason: "Stores are public booking data.") {
   stores(where: {active: {eq: true}}, orderBy: {displayOrder: ASC}) { id name displayOrder active }

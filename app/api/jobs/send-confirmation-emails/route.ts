@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 async function run(request: Request) {
   try {
     requireCronSecret(request);
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const result = await sendDueConfirmationEmails(repository);
     const receiptEmails = await sendPendingReceiptEmails(repository);
     const approvalEmails = await sendPendingApprovalEmails(repository);

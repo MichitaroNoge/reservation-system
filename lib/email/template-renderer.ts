@@ -1,17 +1,18 @@
 import { emailTemplateDefinitions, isEmailTemplateKey, type EmailTemplateKey, type TemplateVariables } from "./email-template-catalog";
+import { ApiValidationError } from "../api-validation";
 
 const variablePattern = /{{\s*([A-Za-z][A-Za-z0-9]*)\s*}}/g;
 
 export function validateTemplate(templateKey: string, subject: string, body: string) {
-  if (!isEmailTemplateKey(templateKey)) throw new Error(`未対応のtemplateKeyです: ${templateKey}`);
-  if (!subject.trim()) throw new Error("件名を入力してください。");
-  if (!body.trim()) throw new Error("本文を入力してください。");
+  if (!isEmailTemplateKey(templateKey)) throw new ApiValidationError(`未対応のtemplateKeyです: ${templateKey}`);
+  if (!subject.trim()) throw new ApiValidationError("件名を入力してください。");
+  if (!body.trim()) throw new ApiValidationError("本文を入力してください。");
   const combined = `${subject}\n${body}`;
   const withoutValidVariables = combined.replace(variablePattern, "");
-  if (withoutValidVariables.includes("{{") || withoutValidVariables.includes("}}")) throw new Error("テンプレート変数の記述が正しくありません。");
+  if (withoutValidVariables.includes("{{") || withoutValidVariables.includes("}}")) throw new ApiValidationError("テンプレート変数の記述が正しくありません。");
   const allowed = new Set(Object.keys(emailTemplateDefinitions[templateKey].variables));
   for (const variable of extractTemplateVariables(combined)) {
-    if (!allowed.has(variable)) throw new Error(`このテンプレートでは {{${variable}}} を使用できません。`);
+    if (!allowed.has(variable)) throw new ApiValidationError(`このテンプレートでは {{${variable}}} を使用できません。`);
   }
 }
 

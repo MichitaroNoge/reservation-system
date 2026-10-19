@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const existing = await repository.listEmailTemplates();
     const existingKeys = new Set(existing.map((item) => item.templateKey));
     for (const template of defaultEmailTemplates()) {

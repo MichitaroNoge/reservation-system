@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const customers = await getReservationRepository().listAccounts();
+    const customers = await (await getReservationRepository()).listAccounts();
     return NextResponse.json({ customers });
   } catch (error) {
     return apiErrorResponse(error);
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!firebaseUid || !name || !contact) {
       return NextResponse.json({ error: "Account creation requires firebaseUid, name and contact." }, { status: 400 });
     }
-    const customer = await getReservationRepository().createAccount({
+    const customer = await (await getReservationRepository()).createAccount({
       firebaseUid,
       name,
       contact,

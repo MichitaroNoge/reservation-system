@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const stores = await getReservationRepository().listStores();
+    const stores = await (await getReservationRepository()).listStores();
     return NextResponse.json({ stores });
   } catch (error) {
     return apiErrorResponse(error);
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   try {
     await requireAdmin(request);
     const input = validateStoreInput(await readJsonObject(request));
-    const store = await getReservationRepository().createStore(input);
+    const store = await (await getReservationRepository()).createStore(input);
     return NextResponse.json({ store }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

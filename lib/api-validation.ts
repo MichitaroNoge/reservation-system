@@ -1,6 +1,7 @@
-﻿import { normalizeReservationStatus, paymentConditions, reservationStatuses, type CreateReservationInput, type PaymentCondition, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
+﻿import { duplicateAssignmentStores, normalizeReservationStatus, paymentConditions, reservationStatuses, type CreateReservationInput, type PaymentCondition, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
 
 import type { CreateReservationChangeRequestInput, CustomerAccountType, ReservationBookingType } from "./domain";
+import { ZodError } from "zod";
 
 export class ApiValidationError extends Error {
   constructor(message: string) {
@@ -12,13 +13,23 @@ export class ApiValidationError extends Error {
 export function apiErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "Unexpected error";
   if (error instanceof Error && "statusCode" in error && typeof error.statusCode === "number") {
-    return Response.json({ error: message }, { status: error.statusCode });
+    return Response.json({ error: message }, { status: error.statusCode, headers: "retryAfter" in error ? { "Retry-After": String(error.retryAfter) } : undefined });
   }
   if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
+  if (error instanceof ZodError) return Response.json({ error: error.issues[0]?.message ?? "入力内容を確認してください。", fields: error.flatten().fieldErrors }, { status: 400 });
   if (/Invalid reservation status transition/i.test(message)) return Response.json({ error: message }, { status: 400 });
   if (/Could not load the default credentials|invalid-credential|credential/i.test(message)) {
     console.error(error);
     return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
+  }
+  const databaseCode = postgresErrorCode(error);
+  if (databaseCode) {
+    // Drizzle exceptions include SQL values. Never expose personal data or connection details.
+    if (databaseCode === "23505") return Response.json({ error: "同じ識別情報のデータが既に登録されています。" }, { status: 409 });
+    if (databaseCode === "23503") return Response.json({ error: "関連するデータが見つからないか、他のデータから参照されています。" }, { status: 409 });
+    if (["23502", "22001", "22P02", "22007", "22008"].includes(databaseCode)) return Response.json({ error: "入力内容がデータベースの制約を満たしていません。" }, { status: 400 });
+    console.error("PostgreSQL operation failed:", databaseCode);
+    return Response.json({ error: "データベースに接続できないか、処理に失敗しました。" }, { status: 503 });
   }
   if (isDataConnectError(error)) {
     console.error(error);
@@ -28,6 +39,19 @@ export function apiErrorResponse(error: unknown) {
   if (/already exists/i.test(message)) return Response.json({ error: message }, { status: 409 });
   console.error(error);
   return Response.json({ error: "Internal server error" }, { status: 500 });
+}
+
+function postgresErrorCode(error: unknown): string | undefined {
+  let current = error;
+  let queryFailure = false;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    if ("query" in current && "params" in current) queryFailure = true;
+    if ("code" in current && typeof current.code === "string" && (/^[0-9A-Z]{5}$/.test(current.code) || ["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT"].includes(current.code))) return current.code;
+    current = "cause" in current ? current.cause : null;
+  }
+  if (error instanceof Error && /timeout exceeded when trying to connect|connection terminated due to connection timeout/i.test(error.message)) return "ETIMEDOUT";
+  if (queryFailure) return "DB_QUERY_FAILED";
+  return undefined;
 }
 
 function isDataConnectError(error: unknown): error is Error {
@@ -50,7 +74,27 @@ function dataConnectErrorMessage(error: Error) {
 
 export async function readJsonObject(request: Request) {
   try {
-    const body = await request.json();
+    const maxBytes = 64 * 1024;
+    const tooLarge = () => Object.assign(new ApiValidationError("Request body must be 64 KiB or smaller."), { statusCode: 413 });
+    if (Number(request.headers.get("content-length")) > maxBytes) throw tooLarge();
+    const reader = request.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > maxBytes) { await reader.cancel(); throw tooLarge(); }
+          chunks.push(value);
+        }
+      } finally { reader.releaseLock(); }
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const body: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     if (!isRecord(body)) throw new ApiValidationError("Request body must be a JSON object.");
     return body;
   } catch (error) {
@@ -91,6 +135,7 @@ export function validateCreateReservationInput(body: Record<string, unknown>): C
     menuItems,
     status,
     policyAgreement: validatePolicyAgreement(body.policyAgreement),
+    cancellationPolicyAgreement: validateCancellationPolicyAgreement(body.cancellationPolicyAgreement),
     customerAccountMode: validateCustomerAccountMode(body.customerAccountMode),
   };
   assertGroupReservationFields(input);
@@ -113,15 +158,15 @@ export function validateUpdateReservationInput(body: Record<string, unknown>): U
   if (body.customer !== undefined) input.customer = requireNonEmptyString(body.customer, "customer", 100);
   if (body.email !== undefined) input.email = requireEmail(body.email, "email");
   if (body.phone !== undefined) input.phone = requirePhone(body.phone, "phone");
-  if (body.address !== undefined) input.address = optionalTrimmedString(body.address, "address", 500);
+    if (body.address !== undefined) input.address = requireString(body.address, "address", 500).trim();
   if (body.bookingType !== undefined) input.bookingType = validateReservationBookingType(body.bookingType);
-  if (body.bookingContactName !== undefined) input.bookingContactName = optionalTrimmedString(body.bookingContactName, "bookingContactName", 100);
-  if (body.dayContactName !== undefined) input.dayContactName = optionalTrimmedString(body.dayContactName, "dayContactName", 100);
-  if (body.dayContactPhone !== undefined) input.dayContactPhone = body.dayContactPhone === "" ? undefined : requirePhone(body.dayContactPhone, "dayContactPhone");
-  if (body.groupName !== undefined) input.groupName = optionalTrimmedString(body.groupName, "groupName", 100);
-  if (body.groupNameKana !== undefined) input.groupNameKana = optionalTrimmedString(body.groupNameKana, "groupNameKana", 100);
-  if (body.groupType !== undefined) input.groupType = optionalTrimmedString(body.groupType, "groupType", 100);
-  if (body.groupTypeOther !== undefined) input.groupTypeOther = optionalTrimmedString(body.groupTypeOther, "groupTypeOther", 100);
+    if (body.bookingContactName !== undefined) input.bookingContactName = requireString(body.bookingContactName, "bookingContactName", 100).trim();
+    if (body.dayContactName !== undefined) input.dayContactName = requireString(body.dayContactName, "dayContactName", 100).trim();
+    if (body.dayContactPhone !== undefined) input.dayContactPhone = body.dayContactPhone === "" ? "" : requirePhone(body.dayContactPhone, "dayContactPhone");
+    if (body.groupName !== undefined) input.groupName = requireString(body.groupName, "groupName", 100).trim();
+    if (body.groupNameKana !== undefined) input.groupNameKana = requireString(body.groupNameKana, "groupNameKana", 100).trim();
+    if (body.groupType !== undefined) input.groupType = requireString(body.groupType, "groupType", 100).trim();
+    if (body.groupTypeOther !== undefined) input.groupTypeOther = requireString(body.groupTypeOther, "groupTypeOther", 100).trim();
   if (body.tcCount !== undefined) input.tcCount = optionalInteger(body.tcCount, "tcCount", { min: 0, max: 999 }) ?? 0;
   if (body.dgCount !== undefined) input.dgCount = optionalInteger(body.dgCount, "dgCount", { min: 0, max: 999 }) ?? 0;
   if (body.paymentCondition !== undefined) input.paymentCondition = validatePaymentCondition(body.paymentCondition);
@@ -178,6 +223,7 @@ export function validateConfirmationContactedAt(value: unknown) {
 export function validateStoreAssignments(body: Record<string, unknown>, expectedPeople: number): StoreAssignment[] {
   const rawAssignments = body.assignments ?? (body.store ? [{ store: body.store, people: body.people ?? expectedPeople }] : []);
   if (!Array.isArray(rawAssignments)) throw new ApiValidationError("assignments must be an array.");
+  if (rawAssignments.length > 50) throw new ApiValidationError("assignments must contain 50 items or fewer.");
   const assignments = rawAssignments.map((item, index) => {
     if (!isRecord(item)) throw new ApiValidationError(`assignments[${index}] must be an object.`);
     return {
@@ -185,6 +231,8 @@ export function validateStoreAssignments(body: Record<string, unknown>, expected
       people: requireInteger(item.people, `assignments[${index}].people`, { min: 1, max: 999 }),
     };
   });
+  const duplicates = duplicateAssignmentStores(assignments);
+  if (duplicates.length) throw new ApiValidationError(`同じ店舗を複数行に割り当てることはできません：${duplicates.join("、")}`);
   const assignedPeople = assignments.reduce((total, assignment) => total + assignment.people, 0);
   if (assignments.length > 0 && assignedPeople !== expectedPeople) {
     throw new ApiValidationError(`Assigned people must equal reservation people: ${expectedPeople}.`);
@@ -236,6 +284,7 @@ function assertGroupReservationFields(input: CreateReservationInput) {
 
 export function validateStoreInput(body: Record<string, unknown>): SaveStoreInput {
   return {
+    ...(body.capacity === undefined ? {} : { capacity: body.capacity === null ? null : requireInteger(body.capacity, "capacity", { min: 0, max: 99999 }) }),
     id: body.id === undefined ? undefined : requireNonEmptyString(body.id, "id", 64),
     name: requireNonEmptyString(body.name, "name", 100),
     displayOrder: body.displayOrder === undefined ? 0 : requireInteger(body.displayOrder, "displayOrder", { min: 0, max: 9999 }),
@@ -282,6 +331,7 @@ function optionalTrimmedString(value: unknown, field: string, maxLength: number)
 function optionalStringArray(value: unknown, field: string) {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) throw new ApiValidationError(`${field} must be an array.`);
+  if (value.length > 50) throw new ApiValidationError(`${field} must contain 50 items or fewer.`);
   return value.map((item, index) => requireNonEmptyString(item, `${field}[${index}]`, 100));
 }
 
@@ -335,4 +385,15 @@ function requireOneOf<const T extends readonly string[]>(value: unknown, field: 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function validateFeeAcknowledgement(value: unknown) {
+  if (value !== undefined && typeof value !== "boolean") throw new ApiValidationError("キャンセル料の確認内容が不正です。");
+  return value === true;
+}
+
+export function validateCancellationPolicyAgreement(value: unknown): import("./cancellation-policy-consent").CancellationPolicyAgreementInput | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value) || value.accepted !== true) throw new ApiValidationError("キャンセルポリシーを確認し、同意にチェックを入れてください。");
+  return { accepted: true, version: requireNonEmptyString(value.version, "cancellationPolicyAgreement.version", 64) };
 }

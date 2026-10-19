@@ -1,0 +1,1 @@
+ALTER TABLE "reservation" ADD COLUMN "initial_confirmed_people" integer;

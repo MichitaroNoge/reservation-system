@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { apiErrorResponse } from "@/lib/api-validation";
+import { apiErrorResponse, readJsonObject } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
+import { updateAdminAccountProfile, withAccountTransaction } from "@/lib/services/account-profile-service";
 
 export const runtime = "nodejs";
 
@@ -9,17 +10,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   try {
     await requireAdmin(request);
     const { id } = await context.params;
-    const body = await request.json();
-    const account = await getReservationRepository().updateAccount(id, {
-      id,
-      name: body.name,
-      contact: body.contact,
-      phone: body.phone,
-      address: body.address,
-      accountType: body.accountType,
-      companyBranchName: body.companyBranchName,
-      contactPersonName: body.contactPersonName,
-    });
+    const body = await readJsonObject(request);
+    const account = await updateAdminAccountProfile((await getReservationRepository()), id, body);
     return NextResponse.json({ account });
   } catch (error) {
     return apiErrorResponse(error);
@@ -30,7 +22,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   try {
     await requireAdmin(request);
     const { id } = await context.params;
-    await getReservationRepository().deactivateAccount(id);
+    await withAccountTransaction((await getReservationRepository()), id, repository => repository.deactivateAccount(id));
     return new Response(null, { status: 204 });
   } catch (error) {
     return apiErrorResponse(error);

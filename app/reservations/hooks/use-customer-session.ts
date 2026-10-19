@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { browserLocalPersistence, createUserWithEmailAndPassword, onAuthStateChanged, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, verifyBeforeUpdateEmail, type User } from "firebase/auth";
+import { browserLocalPersistence, createUserWithEmailAndPassword, EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, verifyBeforeUpdateEmail, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
+import { completeCustomerRegistration } from "@/lib/customer-registration";
 
 const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
 
@@ -15,7 +16,9 @@ export function useCustomerSession() {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
 
-    customerAuthPersistence.finally(() => {
+    void customerAuthPersistence.catch(() => {
+      if (!cancelled) setCustomerAuthError("ログイン状態を保存できませんでした。ブラウザの保存設定を確認してください。");
+    }).then(() => {
       if (cancelled) return;
       unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
         setCustomerUser(user);
@@ -42,15 +45,17 @@ export function useCustomerSession() {
     }
   };
 
-  const registerCustomer = async (email: string, password: string) => {
+  const registerCustomer = async (email: string, password: string, saveProfile: (user: User) => Promise<void>) => {
     setCustomerAuthError("");
     try {
       await customerAuthPersistence;
       const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-      await sendEmailVerification(credential.user);
+      await completeCustomerRegistration(credential.user, saveProfile, async () => {
+        await sendEmailVerification(credential.user);
+      });
       return credential.user;
     } catch (error) {
-      const message = customerAuthMessage(error, "アカウント作成に失敗しました。入力内容を確認してください。");
+      const message = customerAuthMessage(error, error instanceof Error ? error.message : "アカウント作成に失敗しました。入力内容を確認してください。");
       setCustomerAuthError(message);
       throw customerAuthUiError(message, error);
     }
@@ -72,7 +77,7 @@ export function useCustomerSession() {
   const resetCustomerPassword = async (email: string) => {
     setCustomerAuthError("");
     try {
-      await sendPasswordResetEmail(firebaseAuth, email);
+      await sendPasswordResetEmail(firebaseAuth, email.trim());
     } catch (error) {
       const message = customerAuthMessage(error, "パスワード再設定メールを送信できませんでした。");
       setCustomerAuthError(message);
@@ -89,6 +94,19 @@ export function useCustomerSession() {
     });
   };
 
+  const reauthenticateCustomer = async (password: string) => {
+    const user = firebaseAuth.currentUser;
+    if (!user?.email) throw new Error("ログイン状態を確認できませんでした。もう一度ログインしてください。");
+    if (!password && user.providerData.some(p => p.providerId === "google.com")) return await user.getIdToken(true); // API still enforces a recent Google sign-in.
+    if (!password) throw new Error("現在のパスワードを入力してください。");
+    try {
+      const result = await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      return await result.user.getIdToken(true);
+    } catch (error) {
+      throw customerAuthUiError(customerAuthMessage(error, "本人確認に失敗しました。もう一度ログインしてください。"), error);
+    }
+  };
+
   return {
     customerUser,
     customerAuthLoading,
@@ -99,6 +117,7 @@ export function useCustomerSession() {
     refreshEmailVerification,
     resetCustomerPassword,
     requestCustomerEmailChange,
+    reauthenticateCustomer,
     signOutCustomer: () => signOut(firebaseAuth),
   };
 }
@@ -112,6 +131,7 @@ function customerAuthMessage(error: unknown, fallback: string) {
   if (code === "auth/operation-not-allowed") return "メールアドレスとパスワードでのログインがFirebase Authenticationで有効になっていません。";
   if (code === "auth/network-request-failed") return "ネットワーク接続を確認して、もう一度お試しください。";
   if (code === "auth/invalid-api-key") return "Firebaseの公開APIキー設定を確認してください。";
+  if (code === "auth/too-many-requests") return "送信回数が多いため一時的に制限されています。時間をおいてお試しください。";
   return fallback;
 }
 

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateConfirmationContactedAt } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
 import { sendConfirmationEmailForReservation } from "@/lib/services/confirmation-email-service";
+import { saveConfirmationContact } from "@/lib/services/reservation-update-service";
 
 export const runtime = "nodejs";
 
@@ -12,13 +13,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const { id } = await context.params;
     const { contactedAt, sendEmail } = await readJsonObject(request);
     const nextContactedAt = validateConfirmationContactedAt(contactedAt);
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const reservation = nextContactedAt && sendEmail !== false
       ? await sendConfirmationEmailForReservation(repository, id, {
         now: new Date(nextContactedAt),
         idempotencyKeyScope: `manual/${nextContactedAt}`,
       })
-      : await repository.updateConfirmationContact(id, nextContactedAt);
+      : await saveConfirmationContact(repository, id, nextContactedAt);
     return NextResponse.json({ reservation });
   } catch (error) {
     return apiErrorResponse(error);

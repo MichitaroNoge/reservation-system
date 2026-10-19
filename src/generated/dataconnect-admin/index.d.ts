@@ -35,6 +35,11 @@ export enum ReservationStatus {
   CANCELLED = "CANCELLED",
 }
 
+export interface AccountContactEmail_Key {
+  id: UUIDString;
+  __typename?: 'AccountContactEmail_Key';
+}
+
 export interface Account_Key {
   id: UUIDString;
   __typename?: 'Account_Key';
@@ -77,6 +82,17 @@ export interface ClearConfirmationContactData {
 
 export interface ClearConfirmationContactVariables {
   id: UUIDString;
+}
+
+export interface CreateAccountContactEmailData {
+  accountContactEmail_insert: AccountContactEmail_Key;
+}
+
+export interface CreateAccountContactEmailVariables {
+  accountId: UUIDString;
+  email: string;
+  verificationTokenHash: string;
+  verificationExpiresAt: TimestampString;
 }
 
 export interface CreateAccountData {
@@ -246,6 +262,14 @@ export interface DeactivateStoreVariables {
   id: UUIDString;
 }
 
+export interface DeleteAccountContactEmailData {
+  accountContactEmail_delete?: AccountContactEmail_Key | null;
+}
+
+export interface DeleteAccountContactEmailVariables {
+  id: UUIDString;
+}
+
 export interface DeleteReservationDetailData {
   reservationDetail_delete?: ReservationDetail_Key | null;
 }
@@ -313,6 +337,27 @@ export interface GetAccountByIdData {
 
 export interface GetAccountByIdVariables {
   id: UUIDString;
+}
+
+export interface GetAccountContactEmailByTokenData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+      firebaseUid: string;
+      email: string;
+      name: string;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+
+export interface GetAccountContactEmailByTokenVariables {
+  verificationTokenHash: string;
 }
 
 export interface GetEmailDeliveryByKeyData {
@@ -585,6 +630,24 @@ export interface GetStoreByNameVariables {
 export interface Invoice_Key {
   id: UUIDString;
   __typename?: 'Invoice_Key';
+}
+
+export interface ListAccountContactEmailsData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+
+export interface ListAccountContactEmailsVariables {
+  accountId: UUIDString;
 }
 
 export interface ListAccountsData {
@@ -1058,6 +1121,15 @@ export interface UpdateStoreVariables {
   active: boolean;
 }
 
+export interface VerifyAccountContactEmailData {
+  accountContactEmail_update?: AccountContactEmail_Key | null;
+}
+
+export interface VerifyAccountContactEmailVariables {
+  id: UUIDString;
+  verifiedAt: TimestampString;
+}
+
 export interface VisitDetail_Key {
   id: UUIDString;
   __typename?: 'VisitDetail_Key';
@@ -1077,6 +1149,21 @@ export function createAccount(vars: CreateAccountVariables, options?: OperationO
 export function updateAccount(dc: DataConnect, vars: UpdateAccountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateAccountData>>;
 /** Generated Node Admin SDK operation action function for the 'UpdateAccount' Mutation. Allow users to pass in custom DataConnect instances. */
 export function updateAccount(vars: UpdateAccountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<UpdateAccountData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CreateAccountContactEmail' Mutation. Allow users to execute without passing in DataConnect. */
+export function createAccountContactEmail(dc: DataConnect, vars: CreateAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateAccountContactEmailData>>;
+/** Generated Node Admin SDK operation action function for the 'CreateAccountContactEmail' Mutation. Allow users to pass in custom DataConnect instances. */
+export function createAccountContactEmail(vars: CreateAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<CreateAccountContactEmailData>>;
+
+/** Generated Node Admin SDK operation action function for the 'VerifyAccountContactEmail' Mutation. Allow users to execute without passing in DataConnect. */
+export function verifyAccountContactEmail(dc: DataConnect, vars: VerifyAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<VerifyAccountContactEmailData>>;
+/** Generated Node Admin SDK operation action function for the 'VerifyAccountContactEmail' Mutation. Allow users to pass in custom DataConnect instances. */
+export function verifyAccountContactEmail(vars: VerifyAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<VerifyAccountContactEmailData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeleteAccountContactEmail' Mutation. Allow users to execute without passing in DataConnect. */
+export function deleteAccountContactEmail(dc: DataConnect, vars: DeleteAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteAccountContactEmailData>>;
+/** Generated Node Admin SDK operation action function for the 'DeleteAccountContactEmail' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deleteAccountContactEmail(vars: DeleteAccountContactEmailVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeleteAccountContactEmailData>>;
 
 /** Generated Node Admin SDK operation action function for the 'DeactivateAccount' Mutation. Allow users to execute without passing in DataConnect. */
 export function deactivateAccount(dc: DataConnect, vars: DeactivateAccountVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<DeactivateAccountData>>;
@@ -1297,6 +1384,16 @@ export function getAccountById(vars: GetAccountByIdVariables, options?: Operatio
 export function getAccountByFirebaseUid(dc: DataConnect, vars: GetAccountByFirebaseUidVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetAccountByFirebaseUidData>>;
 /** Generated Node Admin SDK operation action function for the 'GetAccountByFirebaseUid' Query. Allow users to pass in custom DataConnect instances. */
 export function getAccountByFirebaseUid(vars: GetAccountByFirebaseUidVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetAccountByFirebaseUidData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ListAccountContactEmails' Query. Allow users to execute without passing in DataConnect. */
+export function listAccountContactEmails(dc: DataConnect, vars: ListAccountContactEmailsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAccountContactEmailsData>>;
+/** Generated Node Admin SDK operation action function for the 'ListAccountContactEmails' Query. Allow users to pass in custom DataConnect instances. */
+export function listAccountContactEmails(vars: ListAccountContactEmailsVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<ListAccountContactEmailsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetAccountContactEmailByToken' Query. Allow users to execute without passing in DataConnect. */
+export function getAccountContactEmailByToken(dc: DataConnect, vars: GetAccountContactEmailByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetAccountContactEmailByTokenData>>;
+/** Generated Node Admin SDK operation action function for the 'GetAccountContactEmailByToken' Query. Allow users to pass in custom DataConnect instances. */
+export function getAccountContactEmailByToken(vars: GetAccountContactEmailByTokenVariables, options?: OperationOptions): Promise<ExecuteOperationResponse<GetAccountContactEmailByTokenData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ListStores' Query. Allow users to execute without passing in DataConnect. */
 export function listStores(dc: DataConnect, options?: OperationOptions): Promise<ExecuteOperationResponse<ListStoresData>>;

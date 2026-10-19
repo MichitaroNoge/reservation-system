@@ -46,6 +46,16 @@ type Account @table {
   updatedAt: Timestamp! @default(expr: "request.time")
 }
 
+type AccountContactEmail @table {
+  id: UUID! @default(expr: "uuidV4()")
+  account: Account!
+  email: String! @col(dataType: "varchar(255)")
+  verifiedAt: Timestamp
+  verificationTokenHash: String! @unique @col(dataType: "varchar(64)")
+  verificationExpiresAt: Timestamp!
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 type Store @table {
   id: UUID! @default(expr: "uuidV4()")
   name: String! @col(dataType: "varchar(100)")
@@ -151,7 +161,7 @@ type EmailDelivery @table {
   deliveryKey: String! @unique @col(dataType: "varchar(240)")
   reservation: Reservation
   templateKey: String! @col(dataType: "varchar(80)")
-  recipient: String! @col(dataType: "varchar(255)")
+  recipient: String! @col(dataType: "text")
   subject: String! @col(dataType: "varchar(500)")
   body: String!
   status: String! @col(dataType: "varchar(20)")

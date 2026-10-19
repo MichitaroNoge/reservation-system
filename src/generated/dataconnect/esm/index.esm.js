@@ -66,6 +66,42 @@ export function updateAccount(dcOrVars, vars) {
   return executeMutation(updateAccountRef(dcInstance, inputVars));
 }
 
+export const createAccountContactEmailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreateAccountContactEmail', inputVars);
+}
+createAccountContactEmailRef.operationName = 'CreateAccountContactEmail';
+
+export function createAccountContactEmail(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createAccountContactEmailRef(dcInstance, inputVars));
+}
+
+export const verifyAccountContactEmailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'VerifyAccountContactEmail', inputVars);
+}
+verifyAccountContactEmailRef.operationName = 'VerifyAccountContactEmail';
+
+export function verifyAccountContactEmail(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(verifyAccountContactEmailRef(dcInstance, inputVars));
+}
+
+export const deleteAccountContactEmailRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'DeleteAccountContactEmail', inputVars);
+}
+deleteAccountContactEmailRef.operationName = 'DeleteAccountContactEmail';
+
+export function deleteAccountContactEmail(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(deleteAccountContactEmailRef(dcInstance, inputVars));
+}
+
 export const deactivateAccountRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -605,6 +641,32 @@ export function getAccountByFirebaseUid(dcOrVars, varsOrOptions, options) {
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(getAccountByFirebaseUidRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const listAccountContactEmailsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListAccountContactEmails', inputVars);
+}
+listAccountContactEmailsRef.operationName = 'ListAccountContactEmails';
+
+export function listAccountContactEmails(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listAccountContactEmailsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+
+export const getAccountContactEmailByTokenRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'GetAccountContactEmailByToken', inputVars);
+}
+getAccountContactEmailByTokenRef.operationName = 'GetAccountContactEmailByToken';
+
+export function getAccountContactEmailByToken(dcOrVars, varsOrOptions, options) {
+
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(getAccountContactEmailByTokenRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
 }
 
 export const listStoresRef = (dc) => {

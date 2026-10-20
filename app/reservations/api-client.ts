@@ -1,5 +1,12 @@
 import type { ApiRequestInit } from "./types";
 
+export class ApiRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
 export async function requestJson<T>(url: string, init?: ApiRequestInit): Promise<T> {
   const { authToken, headers, ...requestInit } = init ?? {};
   const response = await fetch(url, {
@@ -18,7 +25,8 @@ export async function requestJson<T>(url: string, init?: ApiRequestInit): Promis
     } catch {
       // Keep the status-based fallback when the response is not JSON.
     }
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }

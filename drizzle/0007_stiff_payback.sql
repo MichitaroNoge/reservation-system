@@ -1,0 +1,1 @@
+ALTER TABLE "system_settings" ADD COLUMN "reservation_lead_days" integer DEFAULT 3 NOT NULL;

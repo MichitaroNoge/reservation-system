@@ -142,6 +142,15 @@ export type Account = {
   contactPersonName?: string;
   active?: boolean;
 };
+export type AccountContactEmail = {
+  id: string;
+  accountId: string;
+  email: string;
+  verifiedAt?: string | null;
+  verificationTokenHash?: string;
+  verificationExpiresAt?: string;
+  createdAt?: string;
+};
 export type SaveAccountInput = Omit<Account,"active">;
 /** @deprecated Compatibility alias. New code should use Account. */
 export type Customer = Account & { count?: number; last?: string };
@@ -150,6 +159,9 @@ export type SaveCustomerInput = SaveAccountInput & { originalContact?: string };
 
 export type Reservation = {
   id: string;
+  accountType?: AccountType;
+  companyBranchName?: string;
+  contactPersonName?: string;
   accountId?: string | null;
   customer: string;
   email?: string;
@@ -170,6 +182,8 @@ export type Reservation = {
   startTime?: string;
   endTime?: string;
   people: number;
+  /** Immutable party size at first completed booking; null for unknown legacy history. */
+  initialConfirmedPeople?: number | null;
   menu?: string;
   menuItems: string[];
   totalAmount: number;
@@ -178,6 +192,7 @@ export type Reservation = {
   status: ReservationStatus;
   requestType?: ReservationRequestType | null;
   policyAgreement?: PolicyAgreement;
+  policyConsents?: import("./cancellation-policy-consent").CancellationPolicyConsent[];
   confirmationContactedAt?: string | null;
   receiptEmailRequestedAt?: string | null;
   receiptEmailSentAt?: string | null;
@@ -194,7 +209,18 @@ export type ReservationChangeRequest = { id:string; reservationId:string; custom
 export type CreateReservationChangeRequestInput = { reservationId:string; email?:string; phone?:string; requestedDate:string; requestedStartTime:string; requestedPeople:number; requestedMenuItems:string[]; reason?:string };
 export type PolicyAgreement = { kind:"temporary"|"confirmed"; acceptedAt:string };
 export type StoreAssignment = { store:string; people:number };
-export type Store = { id?:string; name:string; displayOrder:number };
+export function duplicateAssignmentStores(assignments: readonly StoreAssignment[]) {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const assignment of assignments) {
+    const store = assignment.store.trim();
+    if (!store) continue;
+    if (seen.has(store)) duplicates.add(store);
+    seen.add(store);
+  }
+  return [...duplicates];
+}
+export type Store = { id?:string; name:string; displayOrder:number; capacity?:number|null };
 export type SaveStoreInput = Store;
 export type Menu = { id?:string; name:string; description:string; price:number; duration:string; displayOrder:number; active?:boolean };
 export type SaveMenuInput = Menu;
@@ -204,6 +230,7 @@ export type CreateReservationInput = {
   accountFirebaseUid?: string;
   /** @deprecated Use accountFirebaseUid. */ customerFirebaseUid?: string;
   customerAccountMode?: "account"|"admin";
+  cancellationPolicyAgreement?: import("./cancellation-policy-consent").CancellationPolicyAgreementInput;
   date:string; startTime?:string; endTime?:string; people:number; name:string; email:string; phone:string; address?:string;
   accountType?:AccountType; companyBranchName?:string; contactPersonName?:string; bookingType?:ReservationBookingType; bookingContactName?:string;
   dayContactName?:string; dayContactPhone?:string; groupName?:string; groupNameKana?:string; groupType?:string; groupTypeOther?:string;
@@ -266,10 +293,18 @@ export function isConfirmedReservation(reservation: Pick<Reservation, "status">)
 }
 
 export function isVisitReadyReservation(reservation: ReservationReadinessInput) {
+  const assignments = reservationAssignments(reservation);
   return isConfirmedReservation(reservation)
     && Boolean(reservation.menuItems?.length)
-    && Boolean(reservationAssignments(reservation).length)
+    && assignments.length > 0
+    && assignments.every(item => Number.isSafeInteger(item.people) && item.people > 0)
+    && assignments.reduce((total, item) => total + item.people, 0) === reservation.people
     && Boolean(reservation.confirmationContactedAt);
+}
+
+export function assertReservationChangeAllowed(status: ReservationStatus) {
+  const allowed: ReservationStatus[] = ["temporary_requested", "temporary_confirmed", "confirmed_requested", "confirmed", "waiting_for_visit"];
+  if (!allowed.includes(status)) throw Object.assign(new Error("この予約は現在のステータスでは変更を承認できません。最新の予約情報を確認してください。"), { statusCode: 409 });
 }
 
 export function getPendingVisitReadinessActions(reservation: Omit<ReservationReadinessInput, "status">) {
@@ -319,3 +354,6 @@ export function reservationDisplayStatusLabel(reservation: ReservationReadinessI
   if (isTemporaryReservationExpired(reservation, todayIso)) return "仮予約確定（期限切れ）";
   return isVisitReadyReservation(reservation) ? "本予約確定（来店待ち）" : reservationStatusLabel(reservation.status);
 }
+
+export type AcceptanceBlock = { start: string; end: string; reason: string };
+export type SystemSettings = { acceptanceCapacity: number | null; reservationLeadDays?: number; blockedPeriods?: AcceptanceBlock[] };

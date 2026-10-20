@@ -34,7 +34,7 @@ test("confirmation email service sends due unsent reservations only", async () =
   assert.equal(result.skipped, 1);
   assert.equal(result.failed, 0);
   assert.deepEqual(emailClient.sent.map((message) => message.to), ["kenta@example.jp"]);
-  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-DUE" }));
+  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-DUE")!));
   assert.equal(repository.get("RSV-DUE")?.confirmationContactedAt, now.toISOString());
   assert.equal(repository.get("RSV-NO-EMAIL")?.confirmationContactedAt, null);
 });
@@ -75,9 +75,9 @@ test("manual confirmation contact sends an email before marking contacted", asyn
   const updated = await sendConfirmationEmailForReservation(repository, "RSV-MANUAL", { now, emailClient });
 
   assert.equal(emailClient.sent.length, 1);
-  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL" }));
+  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL")!));
   assert.equal(updated.confirmationContactedAt, now.toISOString());
-  const delivery = await repository.getEmailDelivery(confirmationEmailIdempotencyKey({ id: "RSV-MANUAL" }));
+  const delivery = await repository.getEmailDelivery(confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL")!));
   assert.equal(delivery?.status, "sent");
   assert.equal(delivery?.subject, emailClient.sent[0].subject);
   assert.match(delivery?.body ?? "", /RSV-MANUAL/);
@@ -115,7 +115,7 @@ test("email retry uses the original subject and body snapshot after template cha
     () => sendConfirmationEmailForReservation(repository, "RSV-SNAPSHOT", { now, emailClient: failedClient }),
     /Resend unavailable/,
   );
-  const deliveryKey = confirmationEmailIdempotencyKey({ id: "RSV-SNAPSHOT" });
+  const deliveryKey = confirmationEmailIdempotencyKey(repository.get("RSV-SNAPSHOT")!);
   const original = await repository.getEmailDelivery(deliveryKey);
   assert.equal(original?.status, "failed");
 
@@ -155,8 +155,8 @@ test("manual confirmation contact can use a scoped idempotency key for resend af
   });
 
   assert.equal(emailClient.sent.length, 2);
-  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL-RESEND" }, `manual/${now.toISOString()}`));
-  assert.equal(emailClient.sent[1].idempotencyKey, confirmationEmailIdempotencyKey({ id: "RSV-MANUAL-RESEND" }, `manual/${later.toISOString()}`));
+  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!, `manual/${now.toISOString()}`));
+  assert.equal(emailClient.sent[1].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!, `manual/${later.toISOString()}`));
 });
 
 test("manual confirmation contact does not update contacted when email send fails", async () => {
@@ -255,6 +255,89 @@ test("approval emails retain failures for periodic retry", async () => {
   assert.ok((await repository.listApprovalEmailDeliveries())[0].sentAt);
 });
 
+test("reminders exclude past visit dates using the Japan calendar date", () => {
+  const midnight = new Date("2026-08-13T15:00:00Z");
+  assert.equal(isConfirmationEmailDue(reservation({ date: "2026-08-13" }), midnight, 6), false);
+  assert.equal(isConfirmationEmailDue(reservation({ date: "2026-08-14" }), midnight, 6), true);
+});
+
+test("a run without due reminders does not require mail settings", async () => {
+  const repository = new MemoryReservationRepository([reservation({ date: "2026-09-01" })]);
+  assert.equal((await sendDueConfirmationEmails(repository, { now })).due, 0);
+});
+
+test("changed reservations receive a fresh reminder snapshot and delivery key", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-CHANGED-REMINDER" })]);
+  const emailClient = new RecordingEmailClient();
+  await sendConfirmationEmailForReservation(repository, "RSV-CHANGED-REMINDER", { now, emailClient });
+  const current = repository.get("RSV-CHANGED-REMINDER")!;
+  current.date = "2026-08-21";
+  current.confirmationContactedAt = null;
+  current.status = "confirmed";
+  await sendConfirmationEmailForReservation(repository, current.id, { now, emailClient });
+  assert.equal(emailClient.sent.length, 2);
+  assert.notEqual(emailClient.sent[0].idempotencyKey, emailClient.sent[1].idempotencyKey);
+  assert.notEqual(emailClient.sent[0].text, emailClient.sent[1].text);
+});
+
+test("an in-flight reservation edit does not mark the changed booking as contacted", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-SEND-RACE" })]);
+  let key = "";
+  const emailClient: EmailClient = { async send(message) {
+    key = message.idempotencyKey;
+    repository.get("RSV-SEND-RACE")!.date = "2026-08-21";
+    return { id: "sent" };
+  } };
+  await assert.rejects(sendConfirmationEmailForReservation(repository, "RSV-SEND-RACE", { now, emailClient }), /送信中に予約内容が変更/);
+  assert.equal(repository.get("RSV-SEND-RACE")?.confirmationContactedAt, null);
+  assert.equal((await repository.getEmailDelivery(key))?.status, "sent");
+});
+
+test("receipt template failures increment retries without claiming email delivery", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-TEMPLATE-FAIL", receiptEmailRequestedAt: now.toISOString() })]);
+  const template = (await repository.getEmailTemplate("reservation_received"))!;
+  await repository.upsertEmailTemplate({ ...template, isActive: false });
+  await assert.rejects(sendReceiptEmailForReservation(repository, "RSV-TEMPLATE-FAIL", { now, emailClient: new RecordingEmailClient() }), /無効/);
+  assert.equal(repository.get("RSV-TEMPLATE-FAIL")?.receiptEmailRetryCount, 1);
+  assert.equal(repository.get("RSV-TEMPLATE-FAIL")?.receiptEmailSentAt, null);
+});
+
+test("temporary and confirmed approvals send separate notifications", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-APPROVAL-STAGES" })]);
+  const emailClient = new RecordingEmailClient();
+  await requestAndSendApprovalEmail(repository, "RSV-APPROVAL-STAGES", "reservation_approved", "temporary_confirmed", { now, emailClient });
+  await requestAndSendApprovalEmail(repository, "RSV-APPROVAL-STAGES", "reservation_approved", "confirmed", { now, emailClient });
+  assert.equal(emailClient.sent.length, 2);
+  assert.notEqual(emailClient.sent[0].idempotencyKey, emailClient.sent[1].idempotencyKey);
+});
+
+test("approval email remains sent when its secondary bookkeeping fails", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-APPROVAL-BOOKKEEPING" })]);
+  const emailClient = new RecordingEmailClient();
+  const update = repository.updateApprovalEmailDelivery.bind(repository);
+  let failOnce = true;
+  repository.updateApprovalEmailDelivery = async (key, input) => {
+    if (input.sentAt && failOnce) { failOnce = false; throw new Error("bookkeeping unavailable"); }
+    return update(key, input);
+  };
+  await assert.rejects(requestAndSendApprovalEmail(repository, "RSV-APPROVAL-BOOKKEEPING", "reservation_approved", "confirmed", { emailClient, now }), /bookkeeping/);
+  const auditKey = `reservation-approval/${approvalEmailDeliveryKey("RSV-APPROVAL-BOOKKEEPING", "reservation_approved", "confirmed")}`;
+  assert.equal((await repository.getEmailDelivery(auditKey))?.status, "sent");
+  await sendPendingApprovalEmails(repository, { emailClient, now });
+  assert.equal(emailClient.sent.length, 1);
+  assert.ok((await repository.listApprovalEmailDeliveries())[0].sentAt);
+});
+
+test("queued approval emails stop after cancellation instead of confirming a cancelled visit", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-OBSOLETE-APPROVAL", status: "cancelled" })]);
+  await repository.createApprovalEmailDelivery({ deliveryKey: "obsolete-approval", reservationId: "RSV-OBSOLETE-APPROVAL", type: "reservation_approved", requestedAt: now.toISOString() });
+  const emailClient = new RecordingEmailClient();
+  const result = await sendPendingApprovalEmails(repository, { emailClient, now });
+  assert.equal(result.skipped, 1); assert.equal(emailClient.sent.length, 0);
+  assert.match((await repository.listApprovalEmailDeliveries())[0].lastError!, /送信を停止/);
+  assert.equal((await sendPendingApprovalEmails(repository, { emailClient, now })).pending, 0);
+});
+
 class RecordingEmailClient implements EmailClient {
   sent: SendEmailInput[] = [];
 
@@ -268,6 +351,8 @@ class RecordingEmailClient implements EmailClient {
 }
 
 class MemoryReservationRepository implements ReservationRepository {
+  async getSystemSettings() { return {acceptanceCapacity:null}; }
+  async saveSystemSettings(input: import("../lib/domain").SystemSettings) { return input; }
   private approvalEmailDeliveries: ApprovalEmailDelivery[] = [];
   private emailTemplates: EmailTemplate[] = defaultEmailTemplates();
   private emailDeliveries: EmailDelivery[] = [];
@@ -336,7 +421,7 @@ class MemoryReservationRepository implements ReservationRepository {
   listReservationsForReservationAccount = unsupported;
   createReservation = unsupported;
   updateReservation = unsupported;
-  updateReservationStatus = unsupported;
+  async updateReservationStatus(id: string, status: Reservation["status"]) { const current = this.get(id); if (!current) throw new Error("Reservation not found"); current.status = status; return current; }
   assignStores = unsupported;
   listReservationChangeRequests = unsupported;
   createReservationChangeRequest = unsupported;
@@ -349,6 +434,11 @@ class MemoryReservationRepository implements ReservationRepository {
   updateAccount = unsupported;
   deactivateAccount = unsupported;
   reactivateAccount = unsupported;
+  listAccountContactEmails = unsupported;
+  findAccountContactEmailByToken = unsupported;
+  createAccountContactEmail = unsupported;
+  verifyAccountContactEmail = async () => { unsupported(); };
+  deleteAccountContactEmail = unsupported;
   listStores = unsupported;
   listInactiveStores = unsupported;
   createStore = unsupported;

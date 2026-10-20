@@ -19,7 +19,7 @@ type StoreManagementProps = {
   notify: (message: string) => void;
 };
 
-const emptyStore: StoreForm = { name: "", displayOrder: 0 };
+const emptyStore: StoreForm = { name: "", displayOrder: 0, capacity: undefined };
 
 export function StoreManagement({
   stores,
@@ -46,7 +46,7 @@ export function StoreManagement({
   const startEdit = (store: Store) => {
     setIsCreating(false);
     setEditingName(store.name);
-    setForm({ id: store.id, name: store.name, displayOrder: store.displayOrder ?? 0 });
+    setForm({ id: store.id, name: store.name, displayOrder: store.displayOrder ?? 0, capacity: undefined });
   };
 
   const cancel = () => {
@@ -82,7 +82,7 @@ export function StoreManagement({
   };
 
   const remove = async (store: Store) => {
-    const ok = window.confirm(`${store.name}を削除済みにします。関連する予約の店舗割当は未割当に戻ります。よろしいですか？`);
+    const ok = window.confirm(`${store.name}を新規選択肢から削除します。既存予約の店舗割当は保持されます。よろしいですか？`);
     if (!ok) return;
     try {
       await onDeleteStore(store.name);
@@ -155,6 +155,7 @@ export function StoreManagement({
             <tr>
               <th>表示順</th>
               <th>店舗名</th>
+
               <th>状態</th>
               <th />
             </tr>
@@ -197,6 +198,7 @@ export function StoreManagement({
                 <tr>
                   <th>表示順</th>
                   <th>店舗名</th>
+
                   <th>状態</th>
                   <th />
                 </tr>

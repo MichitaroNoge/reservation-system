@@ -23,6 +23,8 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListInactiveAccounts*](#listinactiveaccounts)
   - [*GetAccountById*](#getaccountbyid)
   - [*GetAccountByFirebaseUid*](#getaccountbyfirebaseuid)
+  - [*ListAccountContactEmails*](#listaccountcontactemails)
+  - [*GetAccountContactEmailByToken*](#getaccountcontactemailbytoken)
   - [*ListStores*](#liststores)
   - [*ListInactiveStores*](#listinactivestores)
   - [*GetStoreByName*](#getstorebyname)
@@ -34,6 +36,9 @@ This README will guide you through the process of using the generated JavaScript
 - [**Mutations**](#mutations)
   - [*CreateAccount*](#createaccount)
   - [*UpdateAccount*](#updateaccount)
+  - [*CreateAccountContactEmail*](#createaccountcontactemail)
+  - [*VerifyAccountContactEmail*](#verifyaccountcontactemail)
+  - [*DeleteAccountContactEmail*](#deleteaccountcontactemail)
   - [*DeactivateAccount*](#deactivateaccount)
   - [*ReactivateAccount*](#reactivateaccount)
   - [*CreateReservation*](#createreservation)
@@ -1777,6 +1782,247 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## ListAccountContactEmails
+You can execute the `ListAccountContactEmails` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+listAccountContactEmails(vars: ListAccountContactEmailsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+
+interface ListAccountContactEmailsRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListAccountContactEmailsVariables): QueryRef<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+}
+export const listAccountContactEmailsRef: ListAccountContactEmailsRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+listAccountContactEmails(dc: DataConnect, vars: ListAccountContactEmailsVariables, options?: ExecuteQueryOptions): QueryPromise<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+
+interface ListAccountContactEmailsRef {
+  ...
+  (dc: DataConnect, vars: ListAccountContactEmailsVariables): QueryRef<ListAccountContactEmailsData, ListAccountContactEmailsVariables>;
+}
+export const listAccountContactEmailsRef: ListAccountContactEmailsRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the listAccountContactEmailsRef:
+```typescript
+const name = listAccountContactEmailsRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `ListAccountContactEmails` query requires an argument of type `ListAccountContactEmailsVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface ListAccountContactEmailsVariables {
+  accountId: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `ListAccountContactEmails` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `ListAccountContactEmailsData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface ListAccountContactEmailsData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+```
+### Using `ListAccountContactEmails`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, listAccountContactEmails, ListAccountContactEmailsVariables } from '@reservation-system/dataconnect';
+
+// The `ListAccountContactEmails` query requires an argument of type `ListAccountContactEmailsVariables`:
+const listAccountContactEmailsVars: ListAccountContactEmailsVariables = {
+  accountId: ...,
+};
+
+// Call the `listAccountContactEmails()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await listAccountContactEmails(listAccountContactEmailsVars);
+// Variables can be defined inline as well.
+const { data } = await listAccountContactEmails({ accountId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await listAccountContactEmails(dataConnect, listAccountContactEmailsVars);
+
+console.log(data.accountContactEmails);
+
+// Or, you can use the `Promise` API.
+listAccountContactEmails(listAccountContactEmailsVars).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmails);
+});
+```
+
+### Using `ListAccountContactEmails`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, listAccountContactEmailsRef, ListAccountContactEmailsVariables } from '@reservation-system/dataconnect';
+
+// The `ListAccountContactEmails` query requires an argument of type `ListAccountContactEmailsVariables`:
+const listAccountContactEmailsVars: ListAccountContactEmailsVariables = {
+  accountId: ...,
+};
+
+// Call the `listAccountContactEmailsRef()` function to get a reference to the query.
+const ref = listAccountContactEmailsRef(listAccountContactEmailsVars);
+// Variables can be defined inline as well.
+const ref = listAccountContactEmailsRef({ accountId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = listAccountContactEmailsRef(dataConnect, listAccountContactEmailsVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.accountContactEmails);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmails);
+});
+```
+
+## GetAccountContactEmailByToken
+You can execute the `GetAccountContactEmailByToken` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+getAccountContactEmailByToken(vars: GetAccountContactEmailByTokenVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+
+interface GetAccountContactEmailByTokenRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetAccountContactEmailByTokenVariables): QueryRef<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+}
+export const getAccountContactEmailByTokenRef: GetAccountContactEmailByTokenRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getAccountContactEmailByToken(dc: DataConnect, vars: GetAccountContactEmailByTokenVariables, options?: ExecuteQueryOptions): QueryPromise<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+
+interface GetAccountContactEmailByTokenRef {
+  ...
+  (dc: DataConnect, vars: GetAccountContactEmailByTokenVariables): QueryRef<GetAccountContactEmailByTokenData, GetAccountContactEmailByTokenVariables>;
+}
+export const getAccountContactEmailByTokenRef: GetAccountContactEmailByTokenRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getAccountContactEmailByTokenRef:
+```typescript
+const name = getAccountContactEmailByTokenRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetAccountContactEmailByToken` query requires an argument of type `GetAccountContactEmailByTokenVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetAccountContactEmailByTokenVariables {
+  verificationTokenHash: string;
+}
+```
+### Return Type
+Recall that executing the `GetAccountContactEmailByToken` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetAccountContactEmailByTokenData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetAccountContactEmailByTokenData {
+  accountContactEmails: ({
+    id: UUIDString;
+    email: string;
+    verifiedAt?: TimestampString | null;
+    verificationTokenHash: string;
+    verificationExpiresAt: TimestampString;
+    createdAt: TimestampString;
+    account: {
+      id: UUIDString;
+      firebaseUid: string;
+      email: string;
+      name: string;
+    } & Account_Key;
+  } & AccountContactEmail_Key)[];
+}
+```
+### Using `GetAccountContactEmailByToken`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getAccountContactEmailByToken, GetAccountContactEmailByTokenVariables } from '@reservation-system/dataconnect';
+
+// The `GetAccountContactEmailByToken` query requires an argument of type `GetAccountContactEmailByTokenVariables`:
+const getAccountContactEmailByTokenVars: GetAccountContactEmailByTokenVariables = {
+  verificationTokenHash: ...,
+};
+
+// Call the `getAccountContactEmailByToken()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getAccountContactEmailByToken(getAccountContactEmailByTokenVars);
+// Variables can be defined inline as well.
+const { data } = await getAccountContactEmailByToken({ verificationTokenHash: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getAccountContactEmailByToken(dataConnect, getAccountContactEmailByTokenVars);
+
+console.log(data.accountContactEmails);
+
+// Or, you can use the `Promise` API.
+getAccountContactEmailByToken(getAccountContactEmailByTokenVars).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmails);
+});
+```
+
+### Using `GetAccountContactEmailByToken`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getAccountContactEmailByTokenRef, GetAccountContactEmailByTokenVariables } from '@reservation-system/dataconnect';
+
+// The `GetAccountContactEmailByToken` query requires an argument of type `GetAccountContactEmailByTokenVariables`:
+const getAccountContactEmailByTokenVars: GetAccountContactEmailByTokenVariables = {
+  verificationTokenHash: ...,
+};
+
+// Call the `getAccountContactEmailByTokenRef()` function to get a reference to the query.
+const ref = getAccountContactEmailByTokenRef(getAccountContactEmailByTokenVars);
+// Variables can be defined inline as well.
+const ref = getAccountContactEmailByTokenRef({ verificationTokenHash: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getAccountContactEmailByTokenRef(dataConnect, getAccountContactEmailByTokenVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.accountContactEmails);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmails);
+});
+```
+
 ## ListStores
 You can execute the `ListStores` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
 ```typescript
@@ -2891,6 +3137,345 @@ console.log(data.account_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.account_update);
+});
+```
+
+## CreateAccountContactEmail
+You can execute the `CreateAccountContactEmail` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+createAccountContactEmail(vars: CreateAccountContactEmailVariables): MutationPromise<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+
+interface CreateAccountContactEmailRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: CreateAccountContactEmailVariables): MutationRef<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+}
+export const createAccountContactEmailRef: CreateAccountContactEmailRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+createAccountContactEmail(dc: DataConnect, vars: CreateAccountContactEmailVariables): MutationPromise<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+
+interface CreateAccountContactEmailRef {
+  ...
+  (dc: DataConnect, vars: CreateAccountContactEmailVariables): MutationRef<CreateAccountContactEmailData, CreateAccountContactEmailVariables>;
+}
+export const createAccountContactEmailRef: CreateAccountContactEmailRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the createAccountContactEmailRef:
+```typescript
+const name = createAccountContactEmailRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `CreateAccountContactEmail` mutation requires an argument of type `CreateAccountContactEmailVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface CreateAccountContactEmailVariables {
+  accountId: UUIDString;
+  email: string;
+  verificationTokenHash: string;
+  verificationExpiresAt: TimestampString;
+}
+```
+### Return Type
+Recall that executing the `CreateAccountContactEmail` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `CreateAccountContactEmailData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface CreateAccountContactEmailData {
+  accountContactEmail_insert: AccountContactEmail_Key;
+}
+```
+### Using `CreateAccountContactEmail`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, createAccountContactEmail, CreateAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `CreateAccountContactEmail` mutation requires an argument of type `CreateAccountContactEmailVariables`:
+const createAccountContactEmailVars: CreateAccountContactEmailVariables = {
+  accountId: ...,
+  email: ...,
+  verificationTokenHash: ...,
+  verificationExpiresAt: ...,
+};
+
+// Call the `createAccountContactEmail()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await createAccountContactEmail(createAccountContactEmailVars);
+// Variables can be defined inline as well.
+const { data } = await createAccountContactEmail({ accountId: ..., email: ..., verificationTokenHash: ..., verificationExpiresAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await createAccountContactEmail(dataConnect, createAccountContactEmailVars);
+
+console.log(data.accountContactEmail_insert);
+
+// Or, you can use the `Promise` API.
+createAccountContactEmail(createAccountContactEmailVars).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_insert);
+});
+```
+
+### Using `CreateAccountContactEmail`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, createAccountContactEmailRef, CreateAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `CreateAccountContactEmail` mutation requires an argument of type `CreateAccountContactEmailVariables`:
+const createAccountContactEmailVars: CreateAccountContactEmailVariables = {
+  accountId: ...,
+  email: ...,
+  verificationTokenHash: ...,
+  verificationExpiresAt: ...,
+};
+
+// Call the `createAccountContactEmailRef()` function to get a reference to the mutation.
+const ref = createAccountContactEmailRef(createAccountContactEmailVars);
+// Variables can be defined inline as well.
+const ref = createAccountContactEmailRef({ accountId: ..., email: ..., verificationTokenHash: ..., verificationExpiresAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = createAccountContactEmailRef(dataConnect, createAccountContactEmailVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.accountContactEmail_insert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_insert);
+});
+```
+
+## VerifyAccountContactEmail
+You can execute the `VerifyAccountContactEmail` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+verifyAccountContactEmail(vars: VerifyAccountContactEmailVariables): MutationPromise<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+
+interface VerifyAccountContactEmailRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: VerifyAccountContactEmailVariables): MutationRef<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+}
+export const verifyAccountContactEmailRef: VerifyAccountContactEmailRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+verifyAccountContactEmail(dc: DataConnect, vars: VerifyAccountContactEmailVariables): MutationPromise<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+
+interface VerifyAccountContactEmailRef {
+  ...
+  (dc: DataConnect, vars: VerifyAccountContactEmailVariables): MutationRef<VerifyAccountContactEmailData, VerifyAccountContactEmailVariables>;
+}
+export const verifyAccountContactEmailRef: VerifyAccountContactEmailRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the verifyAccountContactEmailRef:
+```typescript
+const name = verifyAccountContactEmailRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `VerifyAccountContactEmail` mutation requires an argument of type `VerifyAccountContactEmailVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface VerifyAccountContactEmailVariables {
+  id: UUIDString;
+  verifiedAt: TimestampString;
+}
+```
+### Return Type
+Recall that executing the `VerifyAccountContactEmail` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `VerifyAccountContactEmailData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface VerifyAccountContactEmailData {
+  accountContactEmail_update?: AccountContactEmail_Key | null;
+}
+```
+### Using `VerifyAccountContactEmail`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, verifyAccountContactEmail, VerifyAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `VerifyAccountContactEmail` mutation requires an argument of type `VerifyAccountContactEmailVariables`:
+const verifyAccountContactEmailVars: VerifyAccountContactEmailVariables = {
+  id: ...,
+  verifiedAt: ...,
+};
+
+// Call the `verifyAccountContactEmail()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await verifyAccountContactEmail(verifyAccountContactEmailVars);
+// Variables can be defined inline as well.
+const { data } = await verifyAccountContactEmail({ id: ..., verifiedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await verifyAccountContactEmail(dataConnect, verifyAccountContactEmailVars);
+
+console.log(data.accountContactEmail_update);
+
+// Or, you can use the `Promise` API.
+verifyAccountContactEmail(verifyAccountContactEmailVars).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_update);
+});
+```
+
+### Using `VerifyAccountContactEmail`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, verifyAccountContactEmailRef, VerifyAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `VerifyAccountContactEmail` mutation requires an argument of type `VerifyAccountContactEmailVariables`:
+const verifyAccountContactEmailVars: VerifyAccountContactEmailVariables = {
+  id: ...,
+  verifiedAt: ...,
+};
+
+// Call the `verifyAccountContactEmailRef()` function to get a reference to the mutation.
+const ref = verifyAccountContactEmailRef(verifyAccountContactEmailVars);
+// Variables can be defined inline as well.
+const ref = verifyAccountContactEmailRef({ id: ..., verifiedAt: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = verifyAccountContactEmailRef(dataConnect, verifyAccountContactEmailVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.accountContactEmail_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_update);
+});
+```
+
+## DeleteAccountContactEmail
+You can execute the `DeleteAccountContactEmail` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+deleteAccountContactEmail(vars: DeleteAccountContactEmailVariables): MutationPromise<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+
+interface DeleteAccountContactEmailRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: DeleteAccountContactEmailVariables): MutationRef<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+}
+export const deleteAccountContactEmailRef: DeleteAccountContactEmailRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+deleteAccountContactEmail(dc: DataConnect, vars: DeleteAccountContactEmailVariables): MutationPromise<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+
+interface DeleteAccountContactEmailRef {
+  ...
+  (dc: DataConnect, vars: DeleteAccountContactEmailVariables): MutationRef<DeleteAccountContactEmailData, DeleteAccountContactEmailVariables>;
+}
+export const deleteAccountContactEmailRef: DeleteAccountContactEmailRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the deleteAccountContactEmailRef:
+```typescript
+const name = deleteAccountContactEmailRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `DeleteAccountContactEmail` mutation requires an argument of type `DeleteAccountContactEmailVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface DeleteAccountContactEmailVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `DeleteAccountContactEmail` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `DeleteAccountContactEmailData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface DeleteAccountContactEmailData {
+  accountContactEmail_delete?: AccountContactEmail_Key | null;
+}
+```
+### Using `DeleteAccountContactEmail`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, deleteAccountContactEmail, DeleteAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `DeleteAccountContactEmail` mutation requires an argument of type `DeleteAccountContactEmailVariables`:
+const deleteAccountContactEmailVars: DeleteAccountContactEmailVariables = {
+  id: ...,
+};
+
+// Call the `deleteAccountContactEmail()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await deleteAccountContactEmail(deleteAccountContactEmailVars);
+// Variables can be defined inline as well.
+const { data } = await deleteAccountContactEmail({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await deleteAccountContactEmail(dataConnect, deleteAccountContactEmailVars);
+
+console.log(data.accountContactEmail_delete);
+
+// Or, you can use the `Promise` API.
+deleteAccountContactEmail(deleteAccountContactEmailVars).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_delete);
+});
+```
+
+### Using `DeleteAccountContactEmail`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, deleteAccountContactEmailRef, DeleteAccountContactEmailVariables } from '@reservation-system/dataconnect';
+
+// The `DeleteAccountContactEmail` mutation requires an argument of type `DeleteAccountContactEmailVariables`:
+const deleteAccountContactEmailVars: DeleteAccountContactEmailVariables = {
+  id: ...,
+};
+
+// Call the `deleteAccountContactEmailRef()` function to get a reference to the mutation.
+const ref = deleteAccountContactEmailRef(deleteAccountContactEmailVars);
+// Variables can be defined inline as well.
+const ref = deleteAccountContactEmailRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = deleteAccountContactEmailRef(dataConnect, deleteAccountContactEmailVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.accountContactEmail_delete);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.accountContactEmail_delete);
 });
 ```
 

@@ -12,12 +12,18 @@ For each operation, there is a wrapper hook that can be used to call the operati
 
 Here are all of the hooks that get generated:
 ```ts
-import { useCreateAccount, useUpdateAccount, useDeactivateAccount, useReactivateAccount, useCreateReservation, useUpdateReservation, useAddReservationDetail, useDeleteReservationDetail, useUpdateReservationStatus, useUpdateConfirmationContact } from '@reservation-system/dataconnect/react';
+import { useCreateAccount, useUpdateAccount, useCreateAccountContactEmail, useVerifyAccountContactEmail, useDeleteAccountContactEmail, useDeactivateAccount, useReactivateAccount, useCreateReservation, useUpdateReservation, useAddReservationDetail } from '@reservation-system/dataconnect/react';
 // The types of these hooks are available in react/index.d.ts
 
 const { data, isPending, isSuccess, isError, error } = useCreateAccount(createAccountVars);
 
 const { data, isPending, isSuccess, isError, error } = useUpdateAccount(updateAccountVars);
+
+const { data, isPending, isSuccess, isError, error } = useCreateAccountContactEmail(createAccountContactEmailVars);
+
+const { data, isPending, isSuccess, isError, error } = useVerifyAccountContactEmail(verifyAccountContactEmailVars);
+
+const { data, isPending, isSuccess, isError, error } = useDeleteAccountContactEmail(deleteAccountContactEmailVars);
 
 const { data, isPending, isSuccess, isError, error } = useDeactivateAccount(deactivateAccountVars);
 
@@ -28,12 +34,6 @@ const { data, isPending, isSuccess, isError, error } = useCreateReservation(crea
 const { data, isPending, isSuccess, isError, error } = useUpdateReservation(updateReservationVars);
 
 const { data, isPending, isSuccess, isError, error } = useAddReservationDetail(addReservationDetailVars);
-
-const { data, isPending, isSuccess, isError, error } = useDeleteReservationDetail(deleteReservationDetailVars);
-
-const { data, isPending, isSuccess, isError, error } = useUpdateReservationStatus(updateReservationStatusVars);
-
-const { data, isPending, isSuccess, isError, error } = useUpdateConfirmationContact(updateConfirmationContactVars);
 
 ```
 
@@ -72,7 +72,7 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { createAccount, updateAccount, deactivateAccount, reactivateAccount, createReservation, updateReservation, addReservationDetail, deleteReservationDetail, updateReservationStatus, updateConfirmationContact } from '@reservation-system/dataconnect';
+import { createAccount, updateAccount, createAccountContactEmail, verifyAccountContactEmail, deleteAccountContactEmail, deactivateAccount, reactivateAccount, createReservation, updateReservation, addReservationDetail } from '@reservation-system/dataconnect';
 
 
 // Operation CreateAccount:  For variables, look at type CreateAccountVars in ../index.d.ts
@@ -80,6 +80,15 @@ const { data } = await CreateAccount(dataConnect, createAccountVars);
 
 // Operation UpdateAccount:  For variables, look at type UpdateAccountVars in ../index.d.ts
 const { data } = await UpdateAccount(dataConnect, updateAccountVars);
+
+// Operation CreateAccountContactEmail:  For variables, look at type CreateAccountContactEmailVars in ../index.d.ts
+const { data } = await CreateAccountContactEmail(dataConnect, createAccountContactEmailVars);
+
+// Operation VerifyAccountContactEmail:  For variables, look at type VerifyAccountContactEmailVars in ../index.d.ts
+const { data } = await VerifyAccountContactEmail(dataConnect, verifyAccountContactEmailVars);
+
+// Operation DeleteAccountContactEmail:  For variables, look at type DeleteAccountContactEmailVars in ../index.d.ts
+const { data } = await DeleteAccountContactEmail(dataConnect, deleteAccountContactEmailVars);
 
 // Operation DeactivateAccount:  For variables, look at type DeactivateAccountVars in ../index.d.ts
 const { data } = await DeactivateAccount(dataConnect, deactivateAccountVars);
@@ -95,15 +104,6 @@ const { data } = await UpdateReservation(dataConnect, updateReservationVars);
 
 // Operation AddReservationDetail:  For variables, look at type AddReservationDetailVars in ../index.d.ts
 const { data } = await AddReservationDetail(dataConnect, addReservationDetailVars);
-
-// Operation DeleteReservationDetail:  For variables, look at type DeleteReservationDetailVars in ../index.d.ts
-const { data } = await DeleteReservationDetail(dataConnect, deleteReservationDetailVars);
-
-// Operation UpdateReservationStatus:  For variables, look at type UpdateReservationStatusVars in ../index.d.ts
-const { data } = await UpdateReservationStatus(dataConnect, updateReservationStatusVars);
-
-// Operation UpdateConfirmationContact:  For variables, look at type UpdateConfirmationContactVars in ../index.d.ts
-const { data } = await UpdateConfirmationContact(dataConnect, updateConfirmationContactVars);
 
 
 ```

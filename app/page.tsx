@@ -1,9 +1,26 @@
 "use client";
+import { cancellationPolicyVersion, policyConsentDetail, type CancellationPolicyAgreementInput } from "@/lib/cancellation-policy-consent";
+import { ReservationInquiryHistoryButton } from "@/components/inquiries/reservation-inquiry-history";
+import { InquiryManagement } from "@/components/inquiries/inquiry-management";
+import Link from "next/link";
+import { PolicyConsentHistory } from "./reservations/components/policy-consent-history";
+import { CancellationPolicyAgreement } from "./reservations/components/cancellation-policy-agreement";
+import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange } from "@/lib/cancellation-policy";
+import { earliestReservationDate } from "@/lib/reservation-lead-time";
+import { CustomerRequestSubmit } from "./reservations/components/customer-request-submit";
+import { CustomerAuthLink } from "./reservations/components/customer-auth-link";
+import { usePathname } from "next/navigation";
+import { isAccountProfileComplete } from "@/lib/account-profile";
+import { GoogleCustomerAuthProvider, GoogleCustomerButton, CustomerLoginMethods, useGoogleCustomer } from "./reservations/components/google-customer-auth";
+import { ReservationCsvExport } from "./reservations/components/reservation-csv-export";
+import { matchesReservation, compareReservations, type ReservationSearch } from "@/lib/reservation-search";
+import { OtherSettingsManagement } from "./reservations/components/other-settings-management";
 
 import {
   Fragment,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -15,38 +32,44 @@ import { useForm } from "react-hook-form";
 import { toast as sonnerToast } from "sonner";
 import { z } from "zod";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAutomaticReservationStatus,
   getPendingVisitReadinessActions,
   isConfirmedReservation,
-  isVisitReadyReservation,
   defaultPaymentCondition,
   paymentConditionLabel,
   paymentConditions,
+  duplicateAssignmentStores,
   reservationAssignments,
 } from "@/lib/domain";
 import { requestJson } from "./reservations/api-client";
+import { applyAccountToReservationForm } from "./reservations/customer-form";
+import { ReservationSubmission } from "./reservations/reservation-submission";
 import { AdminAuthShell, AdminLogin } from "./reservations/components/auth";
-import { Icon, InfoMetric, Stat, Task } from "./reservations/components/common";
+import { Icon, InfoMetric, Task, TaskGrid } from "./reservations/components/common";
 import { CustomerManagement } from "./reservations/components/customer-management";
 import { EmailTemplateManagement } from "./reservations/components/email-template-management";
 import { MenuManagement } from "./reservations/components/menu-management";
+import { isReservationReminderTarget } from "@/lib/reservation-reminders";
+import { ReservationSearchToolbar } from "./reservations/components/reservation-worklist";
+import { ReservationCalendarPage } from "./reservations/components/reservation-calendar-page";
+import { ReservationReminderPage } from "./reservations/components/reservation-reminder-page";
+import { StoreAssignmentPage } from "./reservations/components/store-assignment-page";
 import { StoreManagement } from "./reservations/components/store-management";
+import { useReservationPolicy } from "./reservations/hooks/use-reservation-policy";
+import { ReservationDetailsDialog } from "@/components/ui/reservation-details-dialog";
+import { ReservationApprovalDialog } from "./reservations/components/reservation-approval-dialog";
 import {
   DEFAULT_START_TIME,
   STATUS,
   VISIT_MENU_NAME,
-  approvalStatuses,
   cancellationApprovalStatuses,
-  defaultMenus,
-  defaultStores,
-  initialReservations,
   reservationApprovalStatuses,
   statusClass,
   statusOptions,
@@ -55,13 +78,11 @@ import {
   assignmentLabel,
   bookingFormDateTimeLabel,
   bookingFormEndTime,
-  buildCustomers,
   dateHeadingLabel,
   dateTimeMinuteLabel,
   daysUntilVisit,
   fullDateHeadingLabel,
   isConfirmationContactDue,
-  isTemporaryReservationExpired,
   menuSelectionLabel,
   monthIso,
   policyAgreementLabel,
@@ -83,6 +104,7 @@ import {
 } from "./reservations/hooks/use-customer-session";
 import type {
   BookingForm,
+  AccountContactEmail,
   Customer,
   CustomerForm,
   Menu,
@@ -120,6 +142,8 @@ const customerPortalModeFromSearch = (
 ): CustomerPortalMode | null => {
   if (
     value === "home" ||
+    value === "login" ||
+    value === "register" ||
     value === "account" ||
     value === "reservation" ||
     value === "confirmedChange" ||
@@ -161,6 +185,7 @@ const isGroupBooking = (form: Pick<BookingForm, "bookingType">) =>
   form.bookingType === "travel_agency_group";
 const isTravelAgencyAccount = (form: Pick<BookingForm, "accountType">) =>
   form.accountType === "travel_agency";
+
 const emptyReservationForm = (status: Status): BookingForm => ({
   menuItems: [],
   date: "",
@@ -180,7 +205,9 @@ const emptyReservationForm = (status: Status): BookingForm => ({
 });
 
 export default function Home() {
-  const [role, setRole] = useState<"admin" | "customer">("admin");
+  const pathname = usePathname();
+  const directAuthMode = pathname === "/login" ? "login" : pathname === "/register" ? "register" : null;
+  const [role, setRole] = useState<"admin" | "customer">(directAuthMode ? "customer" : "admin");
   const {
     adminSession,
     authError,
@@ -189,8 +216,7 @@ export default function Home() {
     loginAdmin,
     signOutAdmin,
   } = useAdminSession({ enabled: role === "admin" });
-  const [reservations, setReservations] = useState(initialReservations);
-  const [filter, setFilter] = useState("すべて");
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [selected, setSelected] = useState<Reservation | null>(null);
   const [formStep, setFormStep] = useState(1);
   const [view, setView] = useState<View>("dashboard");
@@ -200,9 +226,13 @@ export default function Home() {
     useState("");
   const [reservationDateToFilter, setReservationDateToFilter] = useState("");
   const [reservationSearch, setReservationSearch] = useState("");
-  const [menuCatalog, setMenuCatalog] = useState<Menu[]>(defaultMenus);
+  const [menuCatalog, setMenuCatalog] = useState<Menu[]>([]);
   const [inactiveMenuList, setInactiveMenuList] = useState<Menu[]>([]);
-  const [stores, setStores] = useState<Store[]>(defaultStores);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [dataErrors, setDataErrors] = useState<Record<string, string>>({});
+  const [dataReloadVersion, setDataReloadVersion] = useState(0);
+  const [masterLoading, setMasterLoading] = useState(true);
+  const [adminDataLoading, setAdminDataLoading] = useState(false);
   const [inactiveStoreList, setInactiveStoreList] = useState<Store[]>([]);
   const [customerList, setCustomerList] = useState<Customer[]>([]);
   const [inactiveCustomerList, setInactiveCustomerList] = useState<Customer[]>(
@@ -215,6 +245,7 @@ export default function Home() {
     emptyReservationForm(STATUS.confirmedRequested),
   );
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
+  const reservationRequest = useRef(new ReservationSubmission());
   const [isBulkContacting, setIsBulkContacting] = useState(false);
   const [confirmationContactWindowDays, setConfirmationContactWindowDays] =
     useState(7);
@@ -222,9 +253,11 @@ export default function Home() {
     emptyReservationForm(STATUS.confirmed),
   );
   const [customerEntryMode, setCustomerEntryMode] =
-    useState<CustomerPortalMode>("home");
+    useState<CustomerPortalMode>(directAuthMode ?? "home");
 
   const openCustomerPortal = (mode: CustomerPortalMode = "home") => {
+    setForm(emptyReservationForm(STATUS.confirmedRequested));
+    setFormStep(1);
     const url = new URL(window.location.href);
     url.pathname = "/";
     url.searchParams.set("customerMode", mode);
@@ -242,64 +275,60 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const directMode = customerPortalModeFromSearch(
+    const directMode = directAuthMode ?? customerPortalModeFromSearch(
       new URLSearchParams(window.location.search).get("customerMode"),
     );
     if (!directMode) return;
     setRole("customer");
     setCustomerEntryMode(directMode);
     if (directMode === "reservation") setFormStep(1);
-  }, []);
+  }, [directAuthMode, pathname]);
 
   useEffect(() => {
-    requestJson<{ menus: Menu[] }>("/api/menus")
-      .then(({ menus }) => setMenuCatalog(sortByDisplayOrderThenName(menus)))
-      .catch(() => notify("メニューデータの読み込みに失敗しました"));
-    requestJson<{ stores: Store[] }>("/api/stores")
-      .then(({ stores }) => setStores(sortByDisplayOrderThenName(stores)))
-      .catch(() => notify("店舗データの読み込みに失敗しました"));
-  }, []);
+    let cancelled = false;
+    setMasterLoading(true);
+    const load = async <T,>(key: string, url: string, apply: (data: T) => void) => {
+      try {
+        const result = await requestJson<T>(url);
+        if (cancelled) return;
+        apply(result);
+        setDataErrors(current => ({ ...current, [key]: "" }));
+      } catch (error) {
+        if (!cancelled) setDataErrors(current => ({ ...current, [key]: `${key}: ${error instanceof Error ? error.message : "読み込みに失敗しました"}` }));
+      }
+    };
+    void Promise.all([
+      load<{ menus: Menu[] }>("メニュー", "/api/menus", ({ menus }) => setMenuCatalog(sortByDisplayOrderThenName(menus))),
+      load<{ stores: Store[] }>("店舗", "/api/stores", ({ stores }) => setStores(sortByDisplayOrderThenName(stores))),
+    ]).finally(() => { if (!cancelled) setMasterLoading(false); });
+    return () => { cancelled = true; };
+  }, [dataReloadVersion]);
 
   useEffect(() => {
-    if (!adminSession) return;
-    adminRequestJson<{ reservations: Reservation[] }>("/api/reservations")
-      .then(({ reservations }) => setReservations(reservations))
-      .catch(() => notify("予約データの読み込みに失敗しました"));
-    adminRequestJson<{ requests: ReservationChangeRequest[] }>(
-      "/api/reservations/change-requests",
-    )
-      .then(({ requests }) => setReservationChangeRequests(requests))
-      .catch(() => notify("予約変更承認の読み込みに失敗しました"));
-    adminRequestJson<{ customers: Customer[] }>("/api/customers")
-      .then(({ customers }) => setCustomerList(customers))
-      .catch(() => notify("顧客データの読み込みに失敗しました"));
-    adminRequestJson<{ customers: Customer[] }>("/api/customers/inactive")
-      .then(({ customers }) => setInactiveCustomerList(customers))
-      .catch(() => notify("削除済み顧客データの読み込みに失敗しました"));
-    adminRequestJson<{ stores: Store[] }>("/api/stores/inactive")
-      .then(({ stores }) =>
-        setInactiveStoreList(sortByDisplayOrderThenName(stores)),
-      )
-      .catch(() => notify("削除済み店舗データの読み込みに失敗しました"));
-    adminRequestJson<{ menus: Menu[] }>("/api/menus/inactive")
-      .then(({ menus }) =>
-        setInactiveMenuList(sortByDisplayOrderThenName(menus)),
-      )
-      .catch(() => notify("削除済みメニューデータの読み込みに失敗しました"));
-  }, [adminSession]);
-
-  const visible = useMemo(
-    () =>
-      filter === "すべて"
-        ? reservations
-        : reservations.filter((r) => r.status.includes(filter)),
-    [filter, reservations],
-  );
-  const reservationCustomers = useMemo(
-    () => buildCustomers(reservations),
-    [reservations],
-  );
-  const customers = customerList.length ? customerList : reservationCustomers;
+    let cancelled = false;
+    if (!adminSession) { setReservations([]); setCustomerList([]); setInactiveCustomerList([]); setReservationChangeRequests([]); setSelected(null); setAdminDataLoading(false); return; }
+    setAdminDataLoading(true);
+    const load = async <T,>(key: string, url: string, apply: (data: T) => void) => {
+      try {
+        const result = await requestJson<T>(url, { authToken: await adminSession.user.getIdToken() });
+        if (cancelled) return;
+        apply(result);
+        setDataErrors(current => ({ ...current, [key]: "" }));
+      } catch (error) {
+        if (!cancelled) setDataErrors(current => ({ ...current, [key]: `${key}: ${error instanceof Error ? error.message : "読み込みに失敗しました"}` }));
+      }
+    };
+    void Promise.all([
+      load<{ reservations: Reservation[] }>("予約", "/api/reservations", ({ reservations }) => setReservations(reservations)),
+      load<{ requests: ReservationChangeRequest[] }>("予約変更", "/api/reservations/change-requests", ({ requests }) => setReservationChangeRequests(requests)),
+      load<{ customers: Customer[] }>("アカウント", "/api/customers", ({ customers }) => setCustomerList(customers)),
+      load<{ customers: Customer[] }>("無効アカウント", "/api/customers/inactive", ({ customers }) => setInactiveCustomerList(customers)),
+      load<{ stores: Store[] }>("無効店舗", "/api/stores/inactive", ({ stores }) => setInactiveStoreList(sortByDisplayOrderThenName(stores))),
+      load<{ menus: Menu[] }>("無効メニュー", "/api/menus/inactive", ({ menus }) => setInactiveMenuList(sortByDisplayOrderThenName(menus))),
+    ]).finally(() => { if (!cancelled) setAdminDataLoading(false); });
+    return () => { cancelled = true; };
+  }, [adminSession, dataReloadVersion]);
+  const customers = customerList;
   const taskCounts = useMemo(
     () => ({
       reservationApprovals: reservations.filter(
@@ -313,7 +342,7 @@ export default function Home() {
       confirmedReservationRequests: reservations.filter(
         isConfirmedReservationChangeRequest,
       ).length,
-      temporaryExpired: reservations.filter(isTemporaryReservationExpired)
+      temporaryExpired: reservations.filter(r => isReservationReminderTarget(r, "booking", todayIso()))
         .length,
       storeUnassigned: reservations.filter(
         (reservation) =>
@@ -322,7 +351,7 @@ export default function Home() {
       ).length,
       menuUnselected: reservations.filter(
         (reservation) =>
-          isConfirmedReservation(reservation) && !reservation.menuItems?.length,
+          isReservationReminderTarget(reservation, "menu", todayIso()),
       ).length,
       preContact: reservations.filter(
         (reservation) =>
@@ -411,39 +440,25 @@ export default function Home() {
     status: Status,
     options?: { manualReason?: string },
   ) => {
-    setReservations((rs) =>
-      rs.map((r) => (r.id === id ? { ...r, status } : r)),
-    );
-    setSelected((s) => (s?.id === id ? { ...s, status } : s));
     try {
-      const { reservation } = await adminRequestJson<{
+      const { reservation, approvalEmail } = await adminRequestJson<{
         reservation: Reservation;
+        approvalEmail?: { status: string };
       }>(`/api/reservations/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status, manualReason: options?.manualReason }),
       });
       setReservations((rs) => rs.map((r) => (r.id === id ? reservation : r)));
       setSelected((s) => (s?.id === id ? reservation : s));
+      if (approvalEmail?.status === "failed") { notify("予約の更新は完了しましたが、承認メールを送信できませんでした。通知の再試行が必要です。", "error"); return true; }
       notify(`予約を「${statusLabel(status)}」へ更新しました`);
+      return true;
     } catch {
       notify("ステータス更新の保存に失敗しました");
+      return false;
     }
   };
   const assignStores = async (id: string, assignments: StoreAssignment[]) => {
-    const store =
-      assignments.length === 1
-        ? assignments[0].store
-        : assignments.length > 1
-          ? "複数店舗"
-          : null;
-    setReservations((rs) =>
-      rs.map((r) =>
-        r.id === id ? { ...r, store, storeAssignments: assignments } : r,
-      ),
-    );
-    setSelected((s) =>
-      s?.id === id ? { ...s, store, storeAssignments: assignments } : s,
-    );
     try {
       const { reservation } = await adminRequestJson<{
         reservation: Reservation;
@@ -459,22 +474,24 @@ export default function Home() {
         notify(
           "メニュー・店舗割当・確認連絡が完了したため、来店待ちに更新しました",
         );
-        return;
+        return true;
       }
       if (
         reservation.status === STATUS.waitingForVisit &&
         transitioned.status === STATUS.confirmed
       ) {
         notify("店舗割当を未割当に戻したため、本予約確定に戻しました");
-        return;
+        return true;
       }
       notify(
         reservation.status === STATUS.confirmed
           ? "店舗割当を保存しました。メニュー選択と確認連絡後に来店待ちへ進みます"
           : "店舗割当を保存しました",
       );
+      return true;
     } catch {
       notify("店舗割当の保存に失敗しました");
+      return false;
     }
   };
   const createReservation = async (
@@ -488,27 +505,31 @@ export default function Home() {
     const needsAdmin =
       options?.forceAdmin ||
       Boolean(input.status && !publicStatuses.includes(input.status));
-    const { reservation } = needsAdmin
-      ? await adminRequestJson<{ reservation: Reservation }>(
+    const payload = JSON.stringify({ ...input, customerAccountMode: options?.customerAccountMode });
+    const requestKey = reservationRequest.current.begin(`${Boolean(needsAdmin)}:${payload}`);
+    const { reservation, receiptEmail } = needsAdmin
+      ? await adminRequestJson<{ reservation: Reservation; receiptEmail?: { status: "not_requested" | "sent" | "failed" } }>(
           "/api/reservations",
-          { method: "POST", body: JSON.stringify(input) },
+          { method: "POST", body: JSON.stringify(input), headers: { "Idempotency-Key": requestKey } },
         )
-      : await requestJson<{ reservation: Reservation }>("/api/reservations", {
+      : await requestJson<{ reservation: Reservation; receiptEmail?: { status: "not_requested" | "sent" | "failed" } }>("/api/reservations", {
           method: "POST",
+          headers: { "Idempotency-Key": requestKey },
           body: JSON.stringify({
             ...input,
             customerAccountMode: options?.customerAccountMode,
           }),
           authToken: options?.authToken,
         });
+    reservationRequest.current.complete(requestKey);
     setReservations((rs) => [
       reservation,
       ...rs.filter((r) => r.id !== reservation.id),
     ]);
-    return reservation;
+    return { ...reservation, receiptEmailStatus: receiptEmail?.status };
   };
   const requestCancellation = async (
-    input: { reservationId: string; email?: string; phone?: string },
+    input: { reservationId: string; email?: string; phone?: string; cancellationPolicyAgreement?: CancellationPolicyAgreementInput; cancellationFeeAcknowledged?: boolean },
     options?: { authToken?: string },
   ) => {
     const { reservation } = await requestJson<{ reservation: Reservation }>(
@@ -526,7 +547,7 @@ export default function Home() {
     return reservation;
   };
   const requestConfirmedReservationChange = async (
-    input: { reservationId: string; email?: string; phone?: string },
+    input: { reservationId: string; email?: string; phone?: string; cancellationPolicyAgreement?: CancellationPolicyAgreementInput; cancellationFeeAcknowledged?: boolean },
     options?: { authToken?: string },
   ) => {
     const { reservation } = await requestJson<{ reservation: Reservation }>(
@@ -553,6 +574,7 @@ export default function Home() {
       requestedPeople: number;
       requestedMenuItems: string[];
       reason?: string;
+      cancellationFeeAcknowledged?: boolean;
     },
     options?: { authToken?: string },
   ) => {
@@ -571,9 +593,10 @@ export default function Home() {
   };
   const approveReservationChangeRequest = async (id: string) => {
     try {
-      const { request, reservation } = await adminRequestJson<{
+      const { request, reservation, approvalEmail } = await adminRequestJson<{
         request: ReservationChangeRequest;
         reservation: Reservation;
+        approvalEmail?: { status: string };
       }>(`/api/reservations/change-requests/${id}/approve`, { method: "POST" });
       setReservationChangeRequests((requests) =>
         requests.map((item) => (item.id === id ? request : item)),
@@ -582,6 +605,7 @@ export default function Home() {
         rs.map((r) => (r.id === reservation.id ? reservation : r)),
       );
       setSelected((s) => (s?.id === reservation.id ? reservation : s));
+      if (approvalEmail?.status === "failed") { notify("予約変更の承認は完了しましたが、通知メールを送信できませんでした。通知の再試行が必要です。", "error"); return; }
       notify(`予約変更を承認しました（${reservation.id}）`);
     } catch {
       notify("予約変更承認の保存に失敗しました");
@@ -655,16 +679,11 @@ export default function Home() {
       method: "PATCH",
       body: JSON.stringify({ contactedAt, sendEmail: options?.sendEmail }),
     });
-    const current = reservations.find((r) => r.id === id) ?? selected;
-    const normalizedReservation =
-      !contactedAt && current?.status === STATUS.waitingForVisit
-        ? { ...reservation, status: STATUS.confirmed }
-        : reservation;
     setReservations((rs) =>
-      rs.map((r) => (r.id === id ? normalizedReservation : r)),
+      rs.map((r) => (r.id === id ? reservation : r)),
     );
-    setSelected((s) => (s?.id === id ? normalizedReservation : s));
-    return normalizedReservation;
+    setSelected((s) => (s?.id === id ? reservation : s));
+    return reservation;
   };
   const updateConfirmationContact = async (
     id: string,
@@ -709,12 +728,14 @@ export default function Home() {
     setIsBulkContacting(true);
     try {
       const contactedAt = new Date().toISOString();
-      const updated = await Promise.all(
+      const updated = await Promise.allSettled(
         confirmationContactTargets.map((reservation) =>
           saveConfirmationContact(reservation.id, contactedAt),
         ),
       );
-      notify(`${updated.length}件の確認メールを送信しました`);
+      const sent = updated.filter(result => result.status === "fulfilled").length;
+      const failed = updated.length - sent;
+      notify(failed ? `${sent}件の確認連絡が完了し、${failed}件が失敗しました。時間をおいて未送信分を再実行してください。` : `${sent}件の確認メールを送信しました`, failed ? "error" : "success");
     } catch {
       notify("確認メールの一括送信に失敗しました");
     } finally {
@@ -795,36 +816,13 @@ export default function Home() {
     notify(`${restored.name}を有効にしました`);
   };
   const saveCustomer = async (originalName: string, input: CustomerForm) => {
-    const { customer } = await adminRequestJson<{ customer: Customer }>(
-      `/api/customers/${encodeURIComponent(originalName)}`,
-      { method: "PATCH", body: JSON.stringify(input) },
+    if (!input.id) throw new Error("対象アカウントのIDを確認できません。");
+    const { account: customer } = await adminRequestJson<{ account: Customer }>(
+      `/api/accounts/${encodeURIComponent(input.id)}`,
+      { method: "PUT", body: JSON.stringify(input) },
     );
-    const reservationSnapshot = {
-      customer: customer.name,
-      email: customer.contact,
-      phone: customer.phone ?? "",
-      address: customer.address,
-    };
     setCustomerList((items) =>
-      items.map((item) =>
-        item.id && customer.id && item.id === customer.id
-          ? customer
-          : item.name === originalName || item.contact === input.originalContact
-            ? customer
-            : item,
-      ),
-    );
-    setReservations((rs) =>
-      rs.map((r) =>
-        r.customer === originalName || r.email === input.originalContact
-          ? { ...r, ...reservationSnapshot }
-          : r,
-      ),
-    );
-    setSelected((s) =>
-      s && (s.customer === originalName || s.email === input.originalContact)
-        ? { ...s, ...reservationSnapshot }
-        : s,
+      items.map((item) => item.id === customer.id ? customer : item),
     );
     notify(`${customer.name}様の顧客情報を更新しました`);
   };
@@ -846,23 +844,23 @@ export default function Home() {
     ]);
     notify(`${customer.name}様の顧客情報を登録しました`);
   };
-  const deleteCustomer = async (name: string) => {
-    await adminRequestJson<{ ok: boolean }>(
-      `/api/customers/${encodeURIComponent(name)}`,
+  const deleteCustomer = async (id: string) => {
+    const deleted = customerList.find((item) => item.id === id);
+    if (!deleted) throw new Error("対象アカウントを確認できません。");
+    await adminRequestJson<void>(
+      `/api/accounts/${encodeURIComponent(id)}`,
       { method: "DELETE" },
     );
     setCustomerList((items) => {
-      const deleted = items.find((item) => item.name === name);
       if (deleted) {
         setInactiveCustomerList((inactive) => [
           deleted,
           ...inactive.filter((item) => item.id !== deleted.id),
         ]);
       }
-      return items.filter((item) => item.name !== name);
+      return items.filter((item) => item.id !== id);
     });
-    setSelected((s) => (s?.customer === name ? null : s));
-    notify(`${name}様の顧客情報を削除しました`);
+    notify(`${deleted.name}様のアカウントを無効化しました`);
   };
   const reactivateCustomer = async (customer: Customer) => {
     if (!customer.id) throw new Error("復元対象の顧客IDがありません");
@@ -1027,6 +1025,8 @@ export default function Home() {
 
   if (role === "customer")
     return (
+      <>
+      {(dataErrors["メニュー"] || dataErrors["店舗"]) && <Alert className="m-4 border-destructive/40 text-destructive"><p>予約に必要なデータを読み込めませんでした。</p><Button type="button" className="mt-2" variant="outline" disabled={masterLoading} onClick={() => setDataReloadVersion(value => value + 1)}>再読み込み</Button></Alert>}
       <CustomerPortal
         initialMode={customerEntryMode}
         form={form}
@@ -1041,6 +1041,7 @@ export default function Home() {
         onSubmitChangeRequest={requestReservationChange}
         menuCatalog={menuCatalog}
       />
+      </>
     );
   if (authLoading)
     return (
@@ -1063,7 +1064,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:flex-row">
-      <aside className="z-10 flex w-full flex-col bg-[#14213d] px-4 py-4 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-60 lg:px-5 lg:py-7">
+      <aside className="z-10 flex w-full flex-col bg-[#14213d] px-4 py-4 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-68 lg:px-5 lg:py-7 lg:overflow-y-auto">
         <div className="mb-4 flex items-center gap-3 px-2 lg:mb-8">
           <span className="grid size-10 place-items-center rounded-lg bg-primary text-lg font-bold">
             R
@@ -1090,6 +1091,8 @@ export default function Home() {
             <Icon name="calendar" />
             予約一覧
           </button>
+          <button className={adminNavClass(view === "inquiries")} onClick={()=>setView("inquiries")}><Mail className="size-4" />問い合わせ管理</button>
+          <button className={adminNavClass(view === "reservationCalendar")} onClick={()=>setView("reservationCalendar")}><Icon name="calendar" />予約カレンダー</button>
           <button
             className={adminNavClass(view === "reservationApprovals")}
             onClick={() => setView("reservationApprovals")}
@@ -1150,25 +1153,27 @@ export default function Home() {
               </i>
             )}
           </button>
+          <button className={adminNavClass(view === "storeAssignments")} onClick={() => setView("storeAssignments")}><Icon name="store" />店舗割当{taskCounts.storeUnassigned > 0 && <i className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-[10px] not-italic text-white">{taskCounts.storeUnassigned}</i>}</button>
+          <button className={adminNavClass(view === "bookingReminders")} onClick={() => setView("bookingReminders")}>
+            <Icon name="bell" />本予約の催促
+            {taskCounts.temporaryExpired > 0 && <i className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-[10px] not-italic text-white">{taskCounts.temporaryExpired}</i>}
+          </button>
+          <button className={adminNavClass(view === "menuReminders")} onClick={() => setView("menuReminders")}>
+            <Icon name="bell" />メニュー確定の催促
+            {taskCounts.menuUnselected > 0 && <i className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-[10px] not-italic text-white">{taskCounts.menuUnselected}</i>}
+          </button>
           <button
             className={adminNavClass(
               view === "masters" ||
                 view === "customers" ||
                 view === "stores" ||
                 view === "menus" ||
-                view === "emailTemplates",
+                view === "otherSettings" || view === "emailTemplates",
             )}
             onClick={() => setView("masters")}
           >
             <Icon name="settings" />
             マスタ管理
-          </button>
-          <button
-            className={adminNavClass(view === "billing")}
-            onClick={() => setView("billing")}
-          >
-            <Icon name="chart" />
-            利用実績・請求
           </button>
         </nav>
         <div className="mt-auto hidden border-t border-white/10 pt-5 lg:grid lg:gap-2">
@@ -1201,7 +1206,7 @@ export default function Home() {
           </div>
         </div>
       </aside>
-      <div className="min-w-0 flex-1 lg:ml-60">
+      <div className="min-w-0 flex-1 lg:ml-68">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card/95 px-5 backdrop-blur lg:px-8">
           <h1 className="text-lg font-semibold">
             {
@@ -1213,12 +1218,17 @@ export default function Home() {
                 confirmedReservationRequests: "本予約変更承認",
                 reservationChangeRequests: "予約変更承認",
                 confirmationContacts: "確認連絡",
+                reservationCalendar: "予約カレンダー",
+                storeAssignments: "店舗割当",
+                inquiries: "問い合わせ管理",
+                bookingReminders: "本予約の催促",
+                menuReminders: "メニュー確定の催促",
                 masters: "マスタ管理",
                 customers: "顧客管理",
                 stores: "店舗管理",
+                otherSettings: "その他",
                 menus: "メニュー管理",
                 emailTemplates: "メールテンプレート管理",
-                billing: "利用実績・請求",
               }[view]
             }
           </h1>
@@ -1233,6 +1243,8 @@ export default function Home() {
             </div>
           </div>
         </header>
+        {(masterLoading || adminDataLoading) && <p role="status" className="px-5 py-3 text-sm text-muted-foreground">データを読み込んでいます…</p>}
+        {Object.values(dataErrors).some(Boolean) && <Alert className="m-4 border-destructive/40 text-destructive"><p>一部のデータを読み込めませんでした。表示内容が最新でない可能性があります。</p><ul className="mt-2 list-inside list-disc text-xs">{Object.entries(dataErrors).filter(([, message]) => Boolean(message)).map(([key, message]) => <li key={key}>{message}</li>)}</ul><Button type="button" className="mt-3" variant="outline" disabled={masterLoading || adminDataLoading} onClick={() => setDataReloadVersion(value => value + 1)}>再読み込み</Button></Alert>}
         {view === "dashboard" ? (
           <main className="mx-auto grid w-full max-w-[1600px] gap-6 p-4 sm:p-6 lg:p-8">
             <Card className="overflow-hidden">
@@ -1303,7 +1315,7 @@ export default function Home() {
                   <h4 className="mb-2 text-xs font-medium text-muted-foreground">
                     承認系
                   </h4>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <TaskGrid>
                     <Task
                       color="amber"
                       title="予約の承認"
@@ -1332,13 +1344,13 @@ export default function Home() {
                       text="キャンセル申請を確認しましょう"
                       onClick={() => setView("cancellationApprovals")}
                     />
-                  </div>
+                  </TaskGrid>
                 </div>
                 <div>
                   <h4 className="mb-2 text-xs font-medium text-muted-foreground">
                     内部業務系
                   </h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <TaskGrid>
                     <Task
                       color="blue"
                       title="確認連絡"
@@ -1356,22 +1368,22 @@ export default function Home() {
                       count={taskCounts.storeUnassigned}
                       text="店舗割当を行いましょう"
                       onClick={() =>
-                        openReservations("本予約確定（店舗未割当）")
+                        setView("storeAssignments")
                       }
                     />
-                  </div>
+                  </TaskGrid>
                 </div>
                 <div>
                   <h4 className="mb-2 text-xs font-medium text-muted-foreground">
                     催促系
                   </h4>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <TaskGrid>
                     <Task
                       color="amber"
                       title="本予約の催促"
                       count={taskCounts.temporaryExpired}
-                      text="期限切れの仮予約へ本予約への変更を依頼しましょう"
-                      onClick={() => openReservations("仮予約確定（期限切れ）")}
+                      text="本予約への変更が必要な仮予約を確認しましょう"
+                      onClick={() => setView("bookingReminders")}
                     />
                     <Task
                       color="green"
@@ -1379,14 +1391,34 @@ export default function Home() {
                       count={taskCounts.menuUnselected}
                       text="メニューが未確定のお客様を確認しましょう"
                       onClick={() =>
-                        openReservations("本予約確定（メニュー未確定）")
+                        setView("menuReminders")
                       }
                     />
-                  </div>
+                  </TaskGrid>
                 </div>
               </div>
             </section>
           </main>
+        ) : view === "inquiries" ? (
+          <InquiryManagement getAdminToken={getAdminToken} onOpenReservation={number=>{const reservation=reservations.find(r=>r.id===number);if(reservation)setSelected(reservation);else notify("予約が見つかりません。予約データを再読み込みしてください。");}} />
+        ) : view === "reservationCalendar" ? (
+          <ReservationCalendarPage reservations={reservations} stores={stores} menus={menuCatalog} loading={masterLoading || adminDataLoading} error={Boolean(dataErrors["予約"] || dataErrors["店舗"] || dataErrors["メニュー"])} detailOpen={Boolean(selected)} getAdminToken={getAdminToken} onReload={async(signal)=>{
+            const authToken=await getAdminToken();
+            const [reservationData,storeData,menuData]=await Promise.all([
+              requestJson<{reservations:Reservation[]}>("/api/reservations",{authToken,cache:"no-store",signal}),
+              requestJson<{stores:Store[]}>("/api/stores",{authToken,cache:"no-store",signal}),
+              requestJson<{menus:Menu[]}>("/api/menus",{authToken,cache:"no-store",signal}),
+            ]);
+            if(signal.aborted)return;
+            setReservations(reservationData.reservations);
+            setStores(sortByDisplayOrderThenName(storeData.stores));
+            setMenuCatalog(sortByDisplayOrderThenName(menuData.menus));
+            setDataErrors(current=>({...current,"予約":"","店舗":"","メニュー":""}));
+          }} onSelect={setSelected} />
+        ) : view === "bookingReminders" || view === "menuReminders" ? (
+          <ReservationReminderPage key={view} kind={view === "bookingReminders" ? "booking" : "menu"} reservations={reservations} loading={adminDataLoading} error={Boolean(dataErrors["予約"])} onSelect={setSelected} />
+        ) : view === "storeAssignments" ? (
+          <StoreAssignmentPage reservations={reservations} stores={stores} loading={masterLoading || adminDataLoading} error={Boolean(dataErrors["予約"] || dataErrors["店舗"])} onAssign={assignStores} />
         ) : (
           <ManagementPage
             view={view}
@@ -1442,8 +1474,11 @@ export default function Home() {
           menuCatalog={menuCatalog}
         />
       )}
-      {selected && (
+      {selected && (selected.status === STATUS.temporaryRequested || selected.status === STATUS.confirmedRequested) ? (
+        <ReservationApprovalDialog key={selected.id} reservation={selected} getAdminToken={getAdminToken} onClose={() => setSelected(null)} onDecision={updateStatus} />
+      ) : selected && (
         <ReservationDrawer
+          getAdminToken={getAdminToken}
           reservation={selected}
           onClose={() => setSelected(null)}
           updateStatus={updateStatus}
@@ -1504,7 +1539,7 @@ function ManagementPage({
 }: {
   view: Exclude<View, "dashboard">;
   onSelectMasterView: (
-    view: "masters" | "customers" | "stores" | "menus" | "emailTemplates",
+    view: "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings",
   ) => void;
   getAdminToken: () => Promise<string>;
   reservations: Reservation[];
@@ -1558,110 +1593,13 @@ function ManagementPage({
     Status[]
   >(() =>
     statusOptions.filter(
-      (status) => status !== STATUS.cancelled && status !== STATUS.visited,
+      (status) => status !== STATUS.cancelled && status !== STATUS.visited &&
+      status !== STATUS.temporaryRejected && status !== STATUS.confirmedRejected,
     ),
   );
-  const filteredReservations = useMemo(
-    () =>
-      reservations.filter((reservation) => {
-        const effectiveDateFrom =
-          reservationDateFromFilter &&
-          reservationDateToFilter &&
-          reservationDateFromFilter > reservationDateToFilter
-            ? reservationDateToFilter
-            : reservationDateFromFilter;
-        const effectiveDateTo =
-          reservationDateFromFilter &&
-          reservationDateToFilter &&
-          reservationDateFromFilter > reservationDateToFilter
-            ? reservationDateFromFilter
-            : reservationDateToFilter;
-        const matchesDateFrom =
-          !effectiveDateFrom || reservation.date >= effectiveDateFrom;
-        const matchesDateTo =
-          !effectiveDateTo || reservation.date <= effectiveDateTo;
-        const matchesDate = matchesDateFrom && matchesDateTo;
-        if (!matchesDate) return false;
-        const keyword = reservationSearch.trim().toLowerCase();
-        const matchesSearch =
-          !keyword ||
-          [
-            reservation.id,
-            reservation.customer,
-            reservation.groupName ?? "",
-            reservation.phone,
-            reservation.email ?? "",
-          ].some((value) => value.toLowerCase().includes(keyword));
-        if (!matchesSearch) return false;
-        if (
-          reservationStatusFilters.length > 0 &&
-          !reservationStatusFilters.includes(reservation.status)
-        )
-          return false;
-        if (reservationFilter === "すべて") return true;
-        if (reservationFilter === "承認待ち")
-          return approvalStatuses.includes(reservation.status);
-        if (reservationFilter === "仮予約確定（期限切れ）")
-          return isTemporaryReservationExpired(reservation);
-        if (reservationFilter === "本予約確定")
-          return isConfirmedReservation(reservation);
-        if (reservationFilter === "本予約確定（メニュー未確定）")
-          return (
-            isConfirmedReservation(reservation) &&
-            !reservation.menuItems?.length
-          );
-        if (reservationFilter === "本予約確定（店舗未割当）")
-          return (
-            isConfirmedReservation(reservation) &&
-            !reservationAssignments(reservation).length
-          );
-        if (reservationFilter === "本予約確定（未確認連絡）")
-          return (
-            isConfirmedReservation(reservation) &&
-            !reservation.confirmationContactedAt
-          );
-        if (reservationFilter === "本予約確定（来店待ち）")
-          return isVisitReadyReservation(reservation);
-        return statusLabel(reservation.status) === reservationFilter;
-      }),
-    [
-      reservationDateFromFilter,
-      reservationDateToFilter,
-      reservationFilter,
-      reservationSearch,
-      reservationStatusFilters,
-      reservations,
-    ],
-  );
-  const sortedReservations = useMemo(() => {
-    const valueFor = (
-      reservation: Reservation,
-      key: ReservationSortKey,
-    ): string | number => {
-      if (key === "status") return reservationDisplayLabel(reservation);
-      if (key === "id")
-        return Number(reservation.id.replace(/\D/g, "")) || reservation.id;
-      if (key === "customer") return reservation.customer;
-      if (key === "date")
-        return reservation.date + "T" + reservationStartTime(reservation);
-      if (key === "menu") return reservationMenuLabel(reservation);
-      if (key === "store") return assignmentLabel(reservation) || "未割当";
-      return reservation.confirmationContactedAt
-        ? "連絡済み" + reservation.confirmationContactedAt
-        : "未連絡";
-    };
-    return [...filteredReservations].sort((a, b) => {
-      const aValue = valueFor(a, reservationSort.key);
-      const bValue = valueFor(b, reservationSort.key);
-      const result =
-        typeof aValue === "number" && typeof bValue === "number"
-          ? aValue - bValue
-          : String(aValue).localeCompare(String(bValue), "ja-JP", {
-              numeric: true,
-            });
-      return reservationSort.direction === "asc" ? result : -result;
-    });
-  }, [filteredReservations, reservationSort]);
+  const reservationQuery = useMemo<ReservationSearch>(() => ({ search: reservationSearch, dateFrom: reservationDateFromFilter, dateTo: reservationDateToFilter, statuses: reservationStatusFilters, filter: reservationFilter, sortKey: reservationSort.key, direction: reservationSort.direction }), [reservationSearch, reservationDateFromFilter, reservationDateToFilter, reservationStatusFilters, reservationFilter, reservationSort]);
+  const filteredReservations = useMemo(() => reservations.filter(reservation => matchesReservation(reservation, reservationQuery, todayIso())), [reservations, reservationQuery]);
+  const sortedReservations = useMemo(() => [...filteredReservations].sort((a,b) => compareReservations(a,b,reservationQuery,todayIso())), [filteredReservations,reservationQuery]);
   const pendingChangeRequests = useMemo(
     () =>
       reservationChangeRequests.filter(
@@ -1718,22 +1656,8 @@ function ManagementPage({
         : [...current, status],
     );
   };
-  const pageDescriptions: Record<Exclude<View, "dashboard">, string> = {
-    reservations: "",
-    reservationApprovals: "",
-    cancellationApprovals: "",
-    confirmedReservationRequests: "",
-    reservationChangeRequests: "",
-    confirmationContacts: "",
-    masters: "",
-    customers: "予約者の連絡先を確認できます。",
-    stores: "店舗ごとの割当状況を確認できます。",
-    menus: "予約フォームで選択できる料理・コースを管理します。",
-    emailTemplates: "送信メールの件名と本文を管理します。",
-    billing: "来店実績、売上、請求書の発行状況を管理します。",
-  };
   const isMasterChildView =
-    view === "customers" || view === "stores" || view === "menus" || view === "emailTemplates";
+    view === "customers" || view === "stores" || view === "menus" || view === "otherSettings" || view === "emailTemplates";
   return (
     <main className="management">
       {isMasterChildView && (
@@ -1745,33 +1669,6 @@ function ManagementPage({
           ← マスタ管理
         </button>
       )}
-      {view !== "reservations" &&
-        view !== "reservationApprovals" &&
-        view !== "cancellationApprovals" &&
-        view !== "confirmedReservationRequests" &&
-        view !== "reservationChangeRequests" &&
-        view !== "confirmationContacts" &&
-        view !== "masters" &&
-        view !== "customers" &&
-        view !== "stores" &&
-        view !== "menus" &&
-        view !== "emailTemplates" && (
-          <section className="page-title compact">
-            <span>{pageDescriptions[view]}</span>
-            <button
-              onClick={() =>
-                notify(
-                  view === "billing"
-                    ? "請求データをCSV出力しました"
-                    : "新規登録画面を準備しました",
-                )
-              }
-            >
-              <Icon name={view === "billing" ? "chart" : "plus"} />
-              {view === "billing" ? "CSV出力" : "新規登録"}
-            </button>
-          </section>
-        )}
       {view === "confirmationContacts" && (
         <ConfirmationContactPage
           reservations={confirmationContactTargets}
@@ -1807,11 +1704,11 @@ function ManagementPage({
         <ReservationChangeRequestPage
           requests={pendingChangeRequests}
           reservations={reservations}
-          onSelect={onSelect}
           onApproveChangeRequest={onApproveChangeRequest}
           onRejectChangeRequest={onRejectChangeRequest}
         />
       )}
+      {view === "otherSettings" && <OtherSettingsManagement getAdminToken={getAdminToken} />}
       {view === "masters" && (
         <MasterManagementPage onSelectMasterView={onSelectMasterView} />
       )}
@@ -1933,6 +1830,7 @@ function ManagementPage({
               </button>
             </div>
           </div>
+          <div className="border-b border-border px-4 py-3 sm:px-5"><ReservationCsvExport query={reservationQuery} count={filteredReservations.length} getAdminToken={getAdminToken} /></div>
           <div className="table-wrap">
             <table className="large-table">
               <thead>
@@ -2091,107 +1989,6 @@ function ManagementPage({
       {view === "emailTemplates" && (
         <EmailTemplateManagement getAdminToken={getAdminToken} notify={notify} />
       )}
-      {view === "billing" && (
-        <>
-          <section className="stats billing-stats">
-            <Stat
-              icon="chart"
-              label="今月の売上"
-              value="682,400"
-              note="先月比 +8.2%"
-              color="green"
-            />
-            <Stat
-              icon="calendar"
-              label="利用完了"
-              value="96"
-              note="予約24件中"
-              color="blue"
-            />
-            <Stat
-              icon="users"
-              label="未請求"
-              value="4"
-              note="対応が必要です"
-              color="amber"
-            />
-            <Stat
-              icon="chart"
-              label="請求書発行"
-              value="18"
-              note="今月の発行数"
-              color="violet"
-            />
-          </section>
-          <section className="panel management-panel">
-            <div className="panel-head">
-              <div>
-                <h3>最近の利用実績</h3>
-                <p>来店受付後に登録された実績と請求状況です。</p>
-              </div>
-            </div>
-            <div className="table-wrap">
-              <table className="large-table">
-                <thead>
-                  <tr>
-                    <th>利用日</th>
-                    <th>予約ID / お客様</th>
-                    <th>店舗</th>
-                    <th>利用内容</th>
-                    <th>金額</th>
-                    <th>請求状況</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>2026/07/08</td>
-                    <td>
-                      <strong>RSV-1044</strong>
-                      <small>伊藤 結衣 様</small>
-                    </td>
-                    <td>横浜店</td>
-                    <td>パーソナル診断 x 1</td>
-                    <td>
-                      <strong>¥8,800</strong>
-                    </td>
-                    <td>
-                      <span className="badge green">
-                        <i />
-                        請求済
-                      </span>
-                    </td>
-                    <td>
-                      <Icon name="arrow" />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>2026/07/07</td>
-                    <td>
-                      <strong>RSV-1042</strong>
-                      <small>小林 優 様</small>
-                    </td>
-                    <td>渋谷店</td>
-                    <td>スタンダード x 2</td>
-                    <td>
-                      <strong>¥11,000</strong>
-                    </td>
-                    <td>
-                      <span className="badge amber">
-                        <i />
-                        未請求
-                      </span>
-                    </td>
-                    <td>
-                      <Icon name="arrow" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
-      )}
     </main>
   );
 }
@@ -2217,6 +2014,14 @@ function CustomerPortalHome({
   onDeleteAccount,
   emailChangeMessage,
   onRequestEmailChange,
+  contactVerificationStatus,
+  customerAccount,
+  accountLoadError,
+  onRetryAccount,
+  onUpdateAccount,
+  contactEmails,
+  onAddContactEmail,
+  onRemoveContactEmail,
   onOpenAccount,
   onOpenReservation,
 }: {
@@ -2234,12 +2039,20 @@ function CustomerPortalHome({
   onAccountEmailChange: (value: string) => void;
   onAccountPasswordChange: (value: string) => void;
   onLogin: (email?: string, password?: string) => void;
-  onSubmitAccount: (email?: string, password?: string) => void;
+  onSubmitAccount: (email?: string, password?: string, profile?: RegisterAuthFields) => void;
   onResetPassword: (email: string) => void;
   onLogout: () => void;
-  onDeleteAccount: () => void;
+  onDeleteAccount: (password: string) => Promise<void>;
   emailChangeMessage: string;
   onRequestEmailChange: (email: string) => Promise<void>;
+  contactVerificationStatus: "verified" | "invalid" | null;
+  customerAccount: Customer | null;
+  accountLoadError: string;
+  onRetryAccount: () => void;
+  onUpdateAccount: (values: AccountProfileFields) => Promise<void>;
+  contactEmails: AccountContactEmail[];
+  onAddContactEmail: (email: string) => Promise<void>;
+  onRemoveContactEmail: (id: string) => Promise<void>;
   onOpenAccount: () => void;
   onOpenReservation: () => void;
 }) {
@@ -2248,17 +2061,34 @@ function CustomerPortalHome({
   const [confirmEmail, setConfirmEmail] = useState("");
   const [emailChangeSubmitting, setEmailChangeSubmitting] = useState(false);
   const [emailChangeError, setEmailChangeError] = useState("");
+  const [additionalEmail, setAdditionalEmail] = useState("");
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactEmailError, setContactEmailError] = useState("");
+  const [showAccountDeletion, setShowAccountDeletion] = useState(false);
+  const googleCustomer = useGoogleCustomer();
+  const hasGoogleLogin = Boolean(googleCustomer?.user?.providerData.some(p => p.providerId === "google.com"));
+  const [deletionPassword, setDeletionPassword] = useState("");
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
+  const [deletionError, setDeletionError] = useState("");
+  const submitAccountDeletion = async () => {
+    if (deletionSubmitting || accountSubmitting) return;
+    if (!deletionPassword && !hasGoogleLogin) { setDeletionError("本人確認を行ってください。"); return; }
+    setDeletionSubmitting(true); setDeletionError("");
+    try { if (hasGoogleLogin) await googleCustomer!.reauthenticate(""); await onDeleteAccount(deletionPassword); setShowAccountDeletion(false); }
+    catch (error) { setDeletionError(error instanceof Error ? error.message : "アカウントを削除できませんでした。"); }
+    finally { setDeletionPassword(""); setDeletionSubmitting(false); }
+  };
   const submitEmailChange = async () => {
     if (!newEmail || newEmail !== confirmEmail) { setEmailChangeError("新しいメールアドレスが一致しません。"); return; }
     setEmailChangeSubmitting(true); setEmailChangeError("");
-    try { await onRequestEmailChange(newEmail); setShowEmailChange(false); setNewEmail(""); setConfirmEmail(""); }
+    try { if (hasGoogleLogin) await googleCustomer!.reauthenticate(""); await onRequestEmailChange(newEmail); setShowEmailChange(false); setNewEmail(""); setConfirmEmail(""); }
     catch (error) { setEmailChangeError(customerAuthErrorCode(error) === "auth/requires-recent-login" ? "安全のため再ログインしてからお試しください。" : error instanceof Error ? error.message : "確認メールを送信できませんでした。"); }
     finally { setEmailChangeSubmitting(false); }
   };
   return (
-    <div className="form-body narrow portal-entry">
+    <div className={isLoggedIn ? "form-body narrow portal-entry" : "portal-entry mx-auto w-full max-w-5xl px-4 py-8 sm:px-8 sm:py-10"}>
       <p className="form-kicker">REQUEST</p>
-      <h2>お手続きを選択</h2>
+      <h2 className="my-2 text-[22px]">{isLoggedIn && !customerAuthLoading && !accountLoadError && !isAccountProfileComplete(customerAccount) ? "お客様情報登録" : "お手続きを選択"}</h2>
       <section className="customer-account-panel portal-account-panel">
         {isLoggedIn ? (
           <div className="customer-account-current">
@@ -2271,7 +2101,7 @@ function CustomerPortalHome({
             <button
               type="button"
               className="account-delete-button"
-              onClick={onDeleteAccount}
+              onClick={() => { setShowAccountDeletion((value) => !value); setDeletionPassword(""); setDeletionError(""); }}
               disabled={accountSubmitting}
             >
               アカウント削除
@@ -2296,6 +2126,31 @@ function CustomerPortalHome({
           />
         )}
       </section>
+      {contactVerificationStatus && <Alert className={contactVerificationStatus === "verified" ? "border-success/40" : "border-destructive/40 text-destructive"}>{contactVerificationStatus === "verified" ? "追加の連絡先メールアドレスを確認しました。今後の予約案内をこのアドレスにも送信します。" : "確認URLが無効か、有効期限が切れています。追加連絡先を削除して、もう一度登録してください。"}</Alert>}
+      {isLoggedIn && customerAccount && <AccountProfileEditor key={`${customerAccount.id}-${customerAccount.accountType}-${customerAccount.name}-${customerAccount.phone}-${customerAccount.address}`} account={customerAccount} onSave={onUpdateAccount} />}
+      {isLoggedIn && accountLoadError && <Alert className="border-destructive/40 text-destructive"><p>{accountLoadError}</p><Button type="button" className="mt-3" variant="outline" disabled={customerAuthLoading} onClick={onRetryAccount}>再読み込み</Button></Alert>}
+      {isLoggedIn && !customerAccount && !customerAuthLoading && !accountLoadError && (
+        <div className="grid gap-3">
+          <Alert>アカウント情報の保存が完了していません。プロフィールを保存すると登録が完了します。</Alert>
+          <AccountProfileEditor account={{ name: googleCustomer?.user?.displayName ?? "", contactPersonName: googleCustomer?.user?.displayName ?? "", contact: customerEmail, phone: "" }} onSave={onUpdateAccount} />
+        </div>
+      )}
+      {isLoggedIn && showAccountDeletion && !showEmailChange && (
+        <form className="mt-4 grid gap-3 rounded-md border border-destructive/40 p-4" onSubmit={(event) => { event.preventDefault(); void submitAccountDeletion(); }}>
+          <p className="text-sm">アカウント削除の前に、本人確認を行います。削除するとログインできなくなります。</p>
+          {!hasGoogleLogin && <>
+          <div className="grid gap-2">
+            <Label htmlFor="account-deletion-password">現在のパスワード</Label>
+            <Input id="account-deletion-password" type="password" autoComplete="current-password" required value={deletionPassword} disabled={deletionSubmitting || accountSubmitting} aria-invalid={Boolean(deletionError)} aria-describedby={deletionError ? "account-deletion-error" : undefined} onChange={(event) => { setDeletionPassword(event.target.value); setDeletionError(""); }} />
+          </div>
+          </>}
+          {deletionError && <p id="account-deletion-error" role="alert" className="text-sm text-destructive">{deletionError}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="destructive" disabled={(!deletionPassword && !hasGoogleLogin) || deletionSubmitting || accountSubmitting}>{deletionSubmitting ? "本人確認・削除中…" : "本人確認して削除する"}</Button>
+            <Button type="button" variant="outline" disabled={deletionSubmitting || accountSubmitting} onClick={() => { setShowAccountDeletion(false); setDeletionPassword(""); setDeletionError(""); }}>キャンセル</Button>
+          </div>
+        </form>
+      )}
       {isLoggedIn && (showEmailChange || emailChangeMessage) && (
         <Card className="p-5">
           <h3 className="font-semibold">メールアドレス変更</h3>
@@ -2304,7 +2159,17 @@ function CustomerPortalHome({
           {emailChangeMessage && <Alert className="mt-4 border-success/40">{emailChangeMessage}</Alert>}
         </Card>
       )}
-      {isLoggedIn ? (
+      {isLoggedIn && isAccountProfileComplete(customerAccount) && !showAccountDeletion && !showEmailChange && <CustomerLoginMethods />}
+      {isLoggedIn && isAccountProfileComplete(customerAccount) && (
+        <Card className="p-5">
+          <h3 className="font-semibold">追加の連絡先メールアドレス</h3>
+          <p className="mt-1 text-sm text-muted-foreground">確認済みのアドレスにも予約に関する案内を送信します。最大5件まで登録できます。</p>
+          <div className="mt-4 grid gap-2">{contactEmails.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"><span className="min-w-0 truncate">{item.email}</span><div className="flex items-center gap-2"><Badge variant={item.verifiedAt ? "success" : "secondary"}>{item.verifiedAt ? "確認済み" : "確認待ち"}</Badge><Button type="button" size="sm" variant="outline" disabled={contactSubmitting} onClick={async () => { setContactSubmitting(true); setContactEmailError(""); try { await onRemoveContactEmail(item.id); } catch (error) { setContactEmailError(error instanceof Error ? error.message : "追加連絡先を削除できませんでした。"); } finally { setContactSubmitting(false); } }}>削除</Button></div></div>)}</div>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row"><Input type="email" aria-label="追加するメールアドレス" placeholder="追加するメールアドレス" value={additionalEmail} onChange={(event) => { setAdditionalEmail(event.target.value); setContactEmailError(""); }} /><Button type="button" disabled={!additionalEmail || contactSubmitting || contactEmails.length >= 5} onClick={async () => { setContactSubmitting(true); setContactEmailError(""); try { await onAddContactEmail(additionalEmail); setAdditionalEmail(""); } catch (error) { setContactEmailError(error instanceof Error ? error.message : "確認メールを送信できませんでした。"); } finally { setContactSubmitting(false); } }}>{contactSubmitting ? "送信中" : "確認メールを送信"}</Button></div>
+          {contactEmailError && <Alert className="mt-3 border-destructive/40 text-destructive">{contactEmailError}</Alert>}
+        </Card>
+      )}
+      {isLoggedIn && isAccountProfileComplete(customerAccount) ? (
         <div className="portal-entry-grid">
           <button type="button" onClick={onOpenReservation}>
             <strong>予約申請</strong>
@@ -2372,7 +2237,83 @@ const registerAuthSchema = z
 type LoginAuthFields = z.infer<typeof loginAuthSchema>;
 type RegisterAuthFields = z.infer<typeof registerAuthSchema>;
 
+const accountProfileSchema = z
+  .object({
+    accountType: z.enum(["individual", "travel_agency"]),
+    name: z.string(),
+    companyBranchName: z.string(),
+    contactPersonName: z.string(),
+    phone: z.string().trim().min(1, "電話番号を入力してください").regex(/^[0-9+()\-\s]+$/, "電話番号の形式を確認してください"),
+    address: z.string(),
+  })
+  .superRefine((value, context) => {
+    if (value.accountType === "travel_agency") {
+      if (!value.companyBranchName.trim()) context.addIssue({ code: z.ZodIssueCode.custom, path: ["companyBranchName"], message: "会社・支店名を入力してください" });
+      if (!value.contactPersonName.trim()) context.addIssue({ code: z.ZodIssueCode.custom, path: ["contactPersonName"], message: "担当者名を入力してください" });
+    } else if (!value.name.trim()) context.addIssue({ code: z.ZodIssueCode.custom, path: ["name"], message: "お名前を入力してください" });
+  });
+
+type AccountProfileFields = z.infer<typeof accountProfileSchema>;
+
+function AccountProfileEditor({ account, onSave }: { account: Customer; onSave: (values: AccountProfileFields) => Promise<void> }) {
+  const [editing, setEditing] = useState(!isAccountProfileComplete(account));
+  const [submitError, setSubmitError] = useState("");
+  const profileForm = useForm<AccountProfileFields>({
+    resolver: zodResolver(accountProfileSchema),
+    defaultValues: {
+      accountType: account.accountType === "travel_agency" ? "travel_agency" : "individual",
+      name: account.accountType === "travel_agency" ? "" : account.name,
+      companyBranchName: account.companyBranchName ?? (account.accountType === "travel_agency" ? account.name : ""),
+      contactPersonName: account.contactPersonName ?? "",
+      phone: account.phone ?? "",
+      address: account.address ?? "",
+    },
+    mode: "onTouched",
+  });
+  const accountType = profileForm.watch("accountType");
+  const submit = profileForm.handleSubmit(async (values) => {
+    setSubmitError("");
+    try { await onSave(values); setEditing(false); }
+    catch (error) { setSubmitError(error instanceof Error ? error.message : "アカウント情報を更新できませんでした。"); }
+  });
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-3"><h3 className="font-semibold">{account.id ? "お客様情報" : "お客様情報登録"}</h3>{!editing && <Button type="button" size="sm" variant="outline" onClick={() => setEditing(true)}>変更</Button>}</div>
+      {!editing ? (
+        <dl className="mt-4 grid gap-3 text-sm">
+          <div><dt className="text-muted-foreground">利用者区分</dt><dd className="mt-1 font-medium">{account.accountType === "travel_agency" ? "旅行会社の担当者様" : "一般のお客様"}</dd></div>
+          <div><dt className="text-muted-foreground">{account.accountType === "travel_agency" ? "会社・支店名" : "氏名"}</dt><dd className="mt-1 font-medium">{account.accountType === "travel_agency" ? account.companyBranchName || account.name : account.name}</dd></div>
+          {account.accountType === "travel_agency" && <div><dt className="text-muted-foreground">担当者名</dt><dd className="mt-1 font-medium">{account.contactPersonName || "未登録"}</dd></div>}
+          <div><dt className="text-muted-foreground">電話番号</dt><dd className="mt-1 font-medium">{account.phone || "未登録"}</dd></div>
+          <div><dt className="text-muted-foreground">住所</dt><dd className="mt-1 whitespace-pre-wrap font-medium">{account.address || "未登録"}</dd></div>
+        </dl>
+      ) : (
+        <form className="mt-4 grid gap-4" onSubmit={submit} noValidate>
+          <fieldset className="grid gap-2 sm:grid-cols-2"><legend className="mb-1 text-sm font-medium sm:col-span-2">利用者区分 <span className="ml-2 text-xs text-primary">必須</span></legend><Button type="button" variant="outline" aria-pressed={accountType === "individual"} className={accountType === "individual" ? "border-primary bg-primary/5 text-primary" : ""} onClick={() => profileForm.setValue("accountType", "individual", { shouldValidate: true })}>一般のお客様</Button><Button type="button" variant="outline" aria-pressed={accountType === "travel_agency"} className={accountType === "travel_agency" ? "border-primary bg-primary/5 text-primary" : ""} onClick={() => profileForm.setValue("accountType", "travel_agency", { shouldValidate: true })}>旅行会社の担当者様</Button></fieldset>
+          {accountType === "travel_agency" ? <><AuthField label="会社・支店名" required error={profileForm.formState.errors.companyBranchName?.message}><Input {...profileForm.register("companyBranchName")} /></AuthField><AuthField label="担当者名" required error={profileForm.formState.errors.contactPersonName?.message}><Input autoComplete="name" {...profileForm.register("contactPersonName")} /></AuthField></> : <AuthField label="氏名" required error={profileForm.formState.errors.name?.message}><Input autoComplete="name" {...profileForm.register("name")} /></AuthField>}
+          <AuthField label="電話番号" required error={profileForm.formState.errors.phone?.message}><Input type="tel" inputMode="tel" autoComplete="tel" {...profileForm.register("phone")} /></AuthField>
+          <AuthField label="住所" error={profileForm.formState.errors.address?.message}><Input autoComplete="street-address" {...profileForm.register("address")} /></AuthField>
+          {submitError && <Alert className="border-destructive/40 text-destructive">{submitError}</Alert>}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={profileForm.formState.isSubmitting} onClick={() => { profileForm.reset(); setSubmitError(""); setEditing(false); }}>キャンセル</Button><Button type="submit" disabled={profileForm.formState.isSubmitting}>{profileForm.formState.isSubmitting ? "保存中" : "保存"}</Button></div>
+        </form>
+      )}
+    </Card>
+  );
+}
+
+function CustomerAuthEntryLinks() {
+  return <div className="grid gap-5 p-5 sm:p-6">
+    <p className="text-sm leading-6 text-muted-foreground">ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。</p>
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Button asChild size="lg"><CustomerAuthLink href="/login">ログイン</CustomerAuthLink></Button>
+      <Button asChild size="lg" variant="outline"><CustomerAuthLink href="/register">新規登録</CustomerAuthLink></Button>
+    </div>
+  </div>;
+}
+
 function CustomerAccountAccessPanel({
+  standalone = false,
   authError,
   accountEmail,
   accountPassword,
@@ -2380,7 +2321,6 @@ function CustomerAccountAccessPanel({
   customerAuthLoading,
   bookingMode,
   registrationForm,
-  onBookingModeChange,
   onRegistrationFormChange,
   onAccountEmailChange,
   onAccountPasswordChange,
@@ -2388,6 +2328,7 @@ function CustomerAccountAccessPanel({
   onSubmitAccount,
   onResetPassword,
 }: {
+  standalone?: boolean;
   authError: string;
   accountEmail: string;
   accountPassword: string;
@@ -2400,7 +2341,7 @@ function CustomerAccountAccessPanel({
   onAccountEmailChange: (value: string) => void;
   onAccountPasswordChange: (value: string) => void;
   onLogin: (email?: string, password?: string) => void;
-  onSubmitAccount: (email?: string, password?: string) => void;
+  onSubmitAccount: (email?: string, password?: string, profile?: RegisterAuthFields) => void;
   onResetPassword: (email: string) => void;
 }) {
   const travelAgency = isTravelAgencyAccount(registrationForm);
@@ -2441,35 +2382,15 @@ function CustomerAccountAccessPanel({
         accountType === "travel_agency" ? current.contactPersonName : "",
     }));
   };
+  if (!standalone) return <CustomerAuthEntryLinks />;
   return (
-    <Tabs
-      value={bookingMode}
-      onValueChange={(value) =>
-        onBookingModeChange(value as "login" | "register")
-      }
-      className="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm"
-    >
+    <section className="@container overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm" aria-label={bookingMode === "login" ? "ログイン方法" : "新規登録方法"}>
       <p className="px-5 pb-3 pt-4 text-sm leading-6 text-muted-foreground">
-        ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。
+        {bookingMode === "login" ? "メールアドレスまたはGoogleアカウントでログインしてください。" : "メールアドレスまたはGoogleアカウントで新規登録できます。"}
       </p>
-      <TabsList
-        className="grid h-auto w-full grid-cols-2 rounded-none border-b bg-muted/60 p-0"
-        aria-label="認証方法"
-      >
-        <TabsTrigger
-          className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-          value="login"
-        >
-          ログイン
-        </TabsTrigger>
-        <TabsTrigger
-          className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none"
-          value="register"
-        >
-          アカウント登録
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent className="mt-0" value="login">
+      <div className="grid border-t @min-[640px]:grid-cols-2">
+      <div className="min-w-0 @min-[640px]:border-r">
+      {bookingMode === "login" && <div>
         <form
           className="grid gap-5 p-5 sm:p-6"
           onSubmit={loginForm.handleSubmit((values) => {
@@ -2479,6 +2400,7 @@ function CustomerAccountAccessPanel({
           })}
           noValidate
         >
+          <h3 className="text-base font-semibold">メールアドレスでログイン</h3>
           <AuthField
             label="メールアドレス"
             error={loginForm.formState.errors.email?.message}
@@ -2487,7 +2409,9 @@ function CustomerAccountAccessPanel({
             <Input
               type="email"
               autoComplete="email"
-              {...loginForm.register("email")}
+              {...loginForm.register("email", {
+                onChange: (event) => onAccountEmailChange(event.target.value),
+              })}
             />
           </AuthField>
           <AuthField
@@ -2500,7 +2424,9 @@ function CustomerAccountAccessPanel({
                 className="pr-12"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                {...loginForm.register("password")}
+                {...loginForm.register("password", {
+                  onChange: (event) => onAccountPasswordChange(event.target.value),
+                })}
               />
               <Button
                 className="absolute right-1 top-1 size-9"
@@ -2520,9 +2446,12 @@ function CustomerAccountAccessPanel({
               type="button"
               variant="link"
               className="justify-start px-0 text-xs"
-              onClick={loginForm.handleSubmit((values) =>
-                onResetPassword(values.email),
-              )}
+              disabled={busy}
+              onClick={async () => {
+                if (!(await loginForm.trigger("email", { shouldFocus: true }))) return;
+                loginForm.clearErrors("password");
+                onResetPassword(loginForm.getValues("email"));
+              }}
             >
               パスワードをお忘れですか？
             </Button>
@@ -2532,17 +2461,18 @@ function CustomerAccountAccessPanel({
             </Button>
           </div>
         </form>
-      </TabsContent>
-      <TabsContent className="mt-0" value="register">
+      </div>}
+      {bookingMode === "register" && <div>
         <form
           className="grid gap-4 p-5 sm:p-6"
           onSubmit={registerForm.handleSubmit((values) => {
             onAccountEmailChange(values.email);
             onAccountPasswordChange(values.password);
-            onSubmitAccount(values.email, values.password);
+            onSubmitAccount(values.email, values.password, values);
           })}
           noValidate
         >
+          <h3 className="text-base font-semibold">メールアドレスで登録</h3>
           <fieldset className="grid gap-2 sm:grid-cols-2">
             <legend className="mb-1 text-sm font-medium sm:col-span-2">
               利用者区分
@@ -2589,7 +2519,9 @@ function CustomerAccountAccessPanel({
             <Input
               type="email"
               autoComplete="email"
-              {...registerForm.register("email")}
+              {...registerForm.register("email", {
+                onChange: (event) => onAccountEmailChange(event.target.value),
+              })}
             />
           </AuthField>
           <AuthField
@@ -2602,7 +2534,9 @@ function CustomerAccountAccessPanel({
                 className="pr-12"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                {...registerForm.register("password")}
+                {...registerForm.register("password", {
+                  onChange: (event) => onAccountPasswordChange(event.target.value),
+                })}
               />
               <Button
                 className="absolute right-1 top-1 size-9"
@@ -2708,8 +2642,18 @@ function CustomerAccountAccessPanel({
             {busy ? "登録中" : "アカウントを登録"}
           </Button>
         </form>
-      </TabsContent>
-    </Tabs>
+      </div>}
+      </div>
+      <section className="order-first grid min-w-0 content-start gap-4 border-b p-5 sm:p-6 @min-[640px]:order-last @min-[640px]:border-b-0" aria-label={bookingMode === "login" ? "Googleアカウントでログイン" : "Googleアカウントで登録"}>
+        <h3 className="text-base font-semibold">{bookingMode === "login" ? "Googleアカウントでログイン" : "Googleアカウントで登録"}</h3>
+        <GoogleCustomerButton registration={bookingMode === "register"} />
+        <p className="text-sm leading-6 text-muted-foreground">{bookingMode === "login" ? "Googleアカウントを選択してログインできます。" : "Googleで認証した後、お客様情報を登録します。パスワードの入力は不要です。"}</p>
+      </section>
+      </div>
+      <div className="border-t p-5 text-sm sm:p-6">
+        {bookingMode === "login" ? <p>アカウントをお持ちでない方は、<CustomerAuthLink href="/register" className="font-semibold text-primary underline underline-offset-4">新規登録へ</CustomerAuthLink></p> : <p>すでにアカウントをお持ちの方は、<CustomerAuthLink href="/login" className="font-semibold text-primary underline underline-offset-4">ログインへ</CustomerAuthLink></p>}
+      </div>
+    </section>
   );
 }
 
@@ -2752,6 +2696,8 @@ function AuthField({
 }
 
 function CustomerReservationDashboard({
+  getCustomerToken,
+  customerIdentity,
   customerEmail,
   isLoggedIn,
   authError,
@@ -2781,6 +2727,8 @@ function CustomerReservationDashboard({
   onChange,
   onCancellation,
 }: {
+  getCustomerToken: () => Promise<string>;
+  customerIdentity: string;
   customerEmail: string;
   isLoggedIn: boolean;
   authError: string;
@@ -2803,7 +2751,7 @@ function CustomerReservationDashboard({
   onAccountEmailChange: (value: string) => void;
   onAccountPasswordChange: (value: string) => void;
   onLogin: (email?: string, password?: string) => void;
-  onSubmitAccount: (email?: string, password?: string) => void;
+  onSubmitAccount: (email?: string, password?: string, profile?: RegisterAuthFields) => void;
   onResetPassword: (email: string) => void;
   onLogout: () => void;
   onConfirmedChange: (reservation: Reservation) => void;
@@ -2902,6 +2850,7 @@ function CustomerReservationDashboard({
                       (request) => request.reservationId === reservation.id,
                     )}
                   />
+                  <div className="col-span-full"><ReservationInquiryHistoryButton key={`${customerIdentity}:${reservation.id}`} reservationNumber={reservation.id} audience="customer" getToken={getCustomerToken} /></div>
                   <ReservationActionButtons
                     reservation={reservation}
                     canRequestConfirmedChange={canRequestConfirmedChange}
@@ -2985,7 +2934,8 @@ function ReservationActionButtons({
   onCancellation: (reservation: Reservation) => void;
 }) {
   return (
-    <div className="customer-reservation-actions">
+    <div className="customer-reservation-actions flex-wrap [&_button]:min-h-11">
+      <Button asChild variant="outline"><Link href={`/contact?reservation=${encodeURIComponent(reservation.id)}`}>この予約について問い合わせる</Link></Button>
       <button
         type="button"
         disabled={!canRequestConfirmedChange(reservation)}
@@ -3015,7 +2965,8 @@ function CustomerRequestForms({
   mode,
   confirmedChangeForm,
   changeRequestForm,
-  cancellationForm,
+  changeReservation,
+  cancellationReservation,
   confirmedChangeSubmitted,
   changeRequestSubmitted,
   cancellationSubmitted,
@@ -3029,7 +2980,6 @@ function CustomerRequestForms({
   onBack,
   onConfirmedChangeFormChange,
   onChangeRequestFormChange,
-  onCancellationFormChange,
   onSubmitConfirmedChange,
   onSubmitChangeRequest,
   onSubmitCancellation,
@@ -3037,7 +2987,8 @@ function CustomerRequestForms({
   mode: CustomerPortalMode;
   confirmedChangeForm: CustomerContactRequestForm;
   changeRequestForm: CustomerReservationChangeRequestForm;
-  cancellationForm: CustomerContactRequestForm;
+  changeReservation?: Reservation;
+  cancellationReservation?: Reservation;
   confirmedChangeSubmitted: boolean;
   changeRequestSubmitted: boolean;
   cancellationSubmitted: boolean;
@@ -3055,12 +3006,9 @@ function CustomerRequestForms({
   onChangeRequestFormChange: Dispatch<
     SetStateAction<CustomerReservationChangeRequestForm>
   >;
-  onCancellationFormChange: Dispatch<
-    SetStateAction<CustomerContactRequestForm>
-  >;
-  onSubmitConfirmedChange: () => void;
-  onSubmitChangeRequest: () => void;
-  onSubmitCancellation: () => void;
+  onSubmitConfirmedChange: (agreement: CancellationPolicyAgreementInput) => void | Promise<void>;
+  onSubmitChangeRequest: (acknowledged?: boolean) => void | Promise<void>;
+  onSubmitCancellation: (acknowledged?: boolean) => void | Promise<void>;
 }) {
   if (mode === "confirmedChange")
     return (
@@ -3078,6 +3026,7 @@ function CustomerRequestForms({
     return (
       <CustomerChangeRequestForm
         form={changeRequestForm}
+        reservation={changeReservation}
         submitted={changeRequestSubmitted}
         isSubmitting={isSubmittingChangeRequest}
         canSubmit={canSubmitChangeRequest}
@@ -3090,12 +3039,11 @@ function CustomerRequestForms({
   if (mode === "cancellation")
     return (
       <CustomerCancellationForm
-        form={cancellationForm}
+        reservation={cancellationReservation}
         submitted={cancellationSubmitted}
         isSubmitting={isSubmittingCancellation}
         canSubmit={canSubmitCancellation}
         onBack={onBack}
-        onFormChange={onCancellationFormChange}
         onSubmit={onSubmitCancellation}
       />
     );
@@ -3117,8 +3065,10 @@ function CustomerConfirmedChangeForm({
   canSubmit: boolean;
   onBack: () => void;
   onFormChange: Dispatch<SetStateAction<CustomerContactRequestForm>>;
-  onSubmit: () => void;
+  onSubmit: (agreement: CancellationPolicyAgreementInput) => void | Promise<void>;
 }) {
+  const [accepted, setAccepted] = useState(false);
+  useEffect(() => setAccepted(false), [form.reservationId]);
   return (
     <>
       <button className="portal-back-button" type="button" onClick={onBack}>
@@ -3141,9 +3091,10 @@ function CustomerConfirmedChangeForm({
           <p className="customer-mode-note">
             ログイン中のアカウントに紐づく、仮予約確定済みの予約だけ申請できます。
           </p>
+          <CancellationPolicyAgreement checked={accepted} onChange={setAccepted} disabled={isSubmitting} />
           <div className="form-nav">
             <button onClick={onBack}>戻る</button>
-            <button className="next" disabled={!canSubmit} onClick={onSubmit}>
+            <button className="next" disabled={!canSubmit || !accepted || isSubmitting} onClick={() => { if (accepted) void onSubmit({ accepted: true, version: cancellationPolicyVersion }); }}>
               {isSubmitting ? "送信中" : "本予約への変更を申請する"}{" "}
               <Icon name="arrow" />
             </button>
@@ -3156,6 +3107,7 @@ function CustomerConfirmedChangeForm({
 
 function CustomerChangeRequestForm({
   form,
+  reservation,
   submitted,
   isSubmitting,
   canSubmit,
@@ -3165,14 +3117,20 @@ function CustomerChangeRequestForm({
   onSubmit,
 }: {
   form: CustomerReservationChangeRequestForm;
+  reservation?: Reservation;
   submitted: boolean;
   isSubmitting: boolean;
   canSubmit: boolean;
   menuCatalog: Menu[];
   onBack: () => void;
   onFormChange: Dispatch<SetStateAction<CustomerReservationChangeRequestForm>>;
-  onSubmit: () => void;
+  onSubmit: (acknowledged?: boolean) => void | Promise<void>;
 }) {
+  const {policy,error:policyError}=useReservationPolicy();
+  const notice = reservation ? cancellationFeeNotice(reservation, form.requestedPeople) : null;
+  const peopleOnly = reservation ? isFeeExemptPeopleOnlyChange({ ...reservation, menuItems: reservation.menuItems ?? [] }, form) : false;
+  const minimumDate = peopleOnly ? earliestReservationDate(1) : policy?.minimumDate;
+  const dateBlocked = !policy || !reservation || !minimumDate || !form.requestedDate || form.requestedDate < minimumDate || reservation.date < minimumDate;
   return (
     <>
       <button className="portal-back-button" type="button" onClick={onBack}>
@@ -3192,11 +3150,17 @@ function CustomerChangeRequestForm({
             form={form}
             onFormChange={onFormChange}
           />
+          {policyError && <p role="alert" className="text-sm text-destructive">{policyError}</p>}
+          {policy && <p className="text-sm text-muted-foreground">キャンセル料の対象外で、人数だけを変更する場合は前日まで申請できます。その他の変更は、変更前・変更後とも利用日の{policy.days}日前までに申請してください。</p>}
+          {!reservation && <p role="alert" className="text-sm text-destructive">変更対象の予約を確認できません。予約IDを確認してください。</p>}
+          {reservation && form.requestedDate && minimumDate && dateBlocked && <p role="alert" className="text-sm text-destructive">この変更は変更前・変更後とも利用日が{minimumDate}以降の場合に申請できます。</p>}
           <div className="form-fields reservation-date-fields">
             <label>
               変更希望日
               <input
                 type="date"
+                min={minimumDate}
+                aria-invalid={Boolean(form.requestedDate && dateBlocked)}
                 value={form.requestedDate}
                 onChange={(event) =>
                   onFormChange({ ...form, requestedDate: event.target.value })
@@ -3218,19 +3182,8 @@ function CustomerChangeRequestForm({
             </label>
             <label>
               人数
-              <select
-                value={form.requestedPeople}
-                onChange={(event) =>
-                  onFormChange({
-                    ...form,
-                    requestedPeople: Number(event.target.value),
-                  })
-                }
-              >
-                {[1, 2, 3, 4, 5, 6].map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
+              <Input type="number" min={1} max={999} step={1} inputMode="numeric" value={form.requestedPeople || ""} aria-invalid={!Number.isInteger(form.requestedPeople) || form.requestedPeople < 1 || form.requestedPeople > 999} onChange={event => onFormChange({ ...form, requestedPeople: Number(event.target.value) })} />
+              {(!Number.isInteger(form.requestedPeople) || form.requestedPeople < 1 || form.requestedPeople > 999) && <span role="alert" className="text-sm text-destructive">人数は1〜999名の整数で入力してください。</span>}
             </label>
           </div>
           <MenuPicker
@@ -3256,10 +3209,8 @@ function CustomerChangeRequestForm({
           </p>
           <div className="form-nav">
             <button onClick={onBack}>戻る</button>
-            <button className="next" disabled={!canSubmit} onClick={onSubmit}>
-              {isSubmitting ? "送信中" : "変更を申請する"} <Icon name="arrow" />
-            </button>
           </div>
+          <CustomerRequestSubmit key={JSON.stringify(form)} notice={notice} disabled={!canSubmit || dateBlocked || !Number.isInteger(form.requestedPeople) || form.requestedPeople < 1 || form.requestedPeople > 999} isSubmitting={isSubmitting} onSubmit={onSubmit} />
         </div>
       )}
     </>
@@ -3267,21 +3218,19 @@ function CustomerChangeRequestForm({
 }
 
 function CustomerCancellationForm({
-  form,
+  reservation,
   submitted,
   isSubmitting,
   canSubmit,
   onBack,
-  onFormChange,
   onSubmit,
 }: {
-  form: CustomerContactRequestForm;
+  reservation?: Reservation;
   submitted: boolean;
   isSubmitting: boolean;
   canSubmit: boolean;
   onBack: () => void;
-  onFormChange: Dispatch<SetStateAction<CustomerContactRequestForm>>;
-  onSubmit: () => void;
+  onSubmit: (acknowledged?: boolean) => void | Promise<void>;
 }) {
   return (
     <>
@@ -3298,20 +3247,37 @@ function CustomerCancellationForm({
         <div className="form-body narrow cancellation-form">
           <p className="form-kicker">CANCEL REQUEST</p>
           <h2>キャンセル申請</h2>
-          <CustomerContactRequestFields
-            form={form}
-            onFormChange={onFormChange}
-          />
+          {reservation ? (
+            <section className="mt-6" aria-label="キャンセル対象の予約">
+              <h3 className="text-base font-semibold">キャンセル対象の予約</h3>
+              <dl className="mt-3 divide-y divide-border rounded-md border border-border px-4">
+                {[
+                  ["予約ID", reservation.id],
+                  ["予約区分", reservationBookingTypeLabel(reservation)],
+                  ["お客様名", reservation.customer],
+                  ["利用日時", reservationDateTimeLabel(reservation)],
+                  ["予定人数", `${reservation.people}名`],
+                  ["メニュー", reservationMenuLabel(reservation)],
+                  ["予約状況", reservationDisplayLabel(reservation)],
+                ].map(([label, value]) => (
+                  <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 py-3 text-sm">
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="break-words font-medium">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-4 text-sm">上記の予約についてキャンセルを申請します。対象の予約に間違いがないかご確認ください。</p>
+            </section>
+          ) : (
+            <p role="alert" className="mt-6 text-sm text-destructive">キャンセル対象の予約を確認できません。予約一覧から対象の予約を選び直してください。</p>
+          )}
           <p className="customer-mode-note">
             ログイン中のアカウントに紐づく予約だけ申請できます。
           </p>
           <div className="form-nav">
             <button onClick={onBack}>戻る</button>
-            <button className="next" disabled={!canSubmit} onClick={onSubmit}>
-              {isSubmitting ? "送信中" : "キャンセルを申請する"}{" "}
-              <Icon name="arrow" />
-            </button>
           </div>
+          <CustomerRequestSubmit key={reservation?.id} cancellation notice={reservation ? cancellationFeeNotice(reservation) : null} disabled={!canSubmit || !reservation || isSubmitting} isSubmitting={isSubmitting} onSubmit={onSubmit} />
         </div>
       )}
     </>
@@ -3570,26 +3536,23 @@ function ConfirmationContactPage({
 function ReservationChangeRequestPage({
   requests,
   reservations,
-  onSelect,
   onApproveChangeRequest,
   onRejectChangeRequest,
 }: {
   requests: ReservationChangeRequest[];
   reservations: Reservation[];
-  onSelect: (reservation: Reservation) => void;
   onApproveChangeRequest: (id: string) => Promise<void>;
   onRejectChangeRequest: (id: string) => Promise<void>;
 }) {
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const selectedRequest = requests.find((request) => request.id === selectedRequestId);
+  const [search, setSearch] = useState("");
+  const keyword = search.trim().toLocaleLowerCase();
+  const filteredRows = requests.filter(row => [row.reservationId, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <div className="change-request-head">
-        <div className="result-count">
-          <span>該当</span>
-          <strong>{requests.length}</strong>
-          <span>件</span>
-        </div>
-      </div>
-      {requests.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} search={search} onSearch={setSearch} />
+      {filteredRows.length > 0 ? (
         <div className="table-wrap">
           <table className="large-table change-request-table">
             <thead>
@@ -3604,17 +3567,17 @@ function ReservationChangeRequestPage({
               </tr>
             </thead>
             <tbody>
-              {requests.map((request) => {
+              {filteredRows.map((request) => {
                 const reservation = reservations.find(
                   (item) => item.id === request.reservationId,
                 );
                 return (
                   <tr
                     key={request.id}
-                    onClick={() => reservation && onSelect(reservation)}
+                    onClick={() => setSelectedRequestId(request.id)}
                   >
                     <td>
-                      <strong>{request.reservationId}</strong>
+                      <button type="button" className="font-semibold text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); setSelectedRequestId(request.id); }} aria-label={`${request.reservationId}の変更内容を確認`}>{request.reservationId}</button>
                       <small>{dateTimeMinuteLabel(request.requestedAt)}</small>
                     </td>
                     <td>
@@ -3684,21 +3647,90 @@ function ReservationChangeRequestPage({
         </div>
       ) : (
         <div className="empty-table compact">
-          未対応の予約変更承認はありません。
+          {keyword ? "検索に一致する予約はありません。" : "未対応の予約変更承認はありません。"}
         </div>
       )}
+      {selectedRequest && (
+        <ReservationChangeReviewDrawer
+          request={selectedRequest}
+          reservation={reservations.find((item) => item.id === selectedRequest.reservationId)}
+          onClose={() => setSelectedRequestId(null)}
+        />
+      )}
     </section>
+  );
+}
+
+function ReservationChangeReviewDrawer({ request, reservation: r, onClose }: {
+  request: ReservationChangeRequest;
+  reservation?: Reservation;
+  onClose: () => void;
+}) {
+  const menuLabel = (items: string[]) => items.length ? items.join("、") : "メニュー未選択";
+  const rows = [
+    { label: "利用日", before: request.currentDate.replaceAll("-", "/"), after: request.requestedDate.replaceAll("-", "/"), changed: request.currentDate !== request.requestedDate },
+    { label: "開始時間", before: request.currentStartTime, after: request.requestedStartTime, changed: request.currentStartTime !== request.requestedStartTime },
+    { label: "予定人数", before: `${request.currentPeople}名`, after: `${request.requestedPeople}名`, changed: request.currentPeople !== request.requestedPeople },
+    { label: "メニュー", before: menuLabel(request.currentMenuItems), after: menuLabel(request.requestedMenuItems), changed: JSON.stringify([...request.currentMenuItems].sort()) !== JSON.stringify([...request.requestedMenuItems].sort()) },
+  ];
+  const details = r ? [
+    ["予約区分", reservationBookingTypeLabel(r)], ["お客様 / 会社・支店名", r.customer],
+    ["電話番号", r.phone], ["メールアドレス", r.email], ["住所", r.address],
+    ["現在の利用日時", reservationDateTimeLabel(r)], ["支払条件", paymentConditionLabel(r.paymentCondition)],
+    ["担当店舗", assignmentLabel(r) || "未割当"], ["確認連絡", r.confirmationContactedAt ? "連絡済み" : "未連絡"],
+    ...(r.bookingType === "travel_agency_group" ? [
+      ["予約担当者名", r.bookingContactName], ["当日責任者名", r.dayContactName], ["当日責任者携帯番号", r.dayContactPhone],
+      ["団体名", r.groupName], ["団体ふりがな", r.groupNameKana], ["団体種別", r.groupType === "その他" ? r.groupTypeOther || r.groupType : r.groupType],
+      ["T/C", `${r.tcCount ?? 0}名`], ["D/G", `${r.dgCount ?? 0}名`],
+    ] : []), ["備考", r.remarks],
+    ...(r.policyConsents ?? []).map((consent, index) => [`キャンセルポリシー同意記録 ${index + 1}`, policyConsentDetail(consent)]),
+  ] : [["お客様名", request.customer], ["電話番号", request.phone], ["メールアドレス", request.email]];
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const previousFocus = document.activeElement as HTMLElement | null;
+    document.getElementById("change-review-close")?.focus();
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("keydown", handleKey); previousFocus?.focus(); };
+  }, [onClose]);
+  return (
+    <>
+      <div className="drawer-shade" onClick={onClose} />
+      <aside role="dialog" aria-label="予約変更内容の確認" className="fixed inset-y-0 right-0 z-[21] flex w-full max-w-[640px] flex-col border-l border-border bg-background text-foreground shadow-lg">
+        <header className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div><p className="text-sm text-muted-foreground">予約変更内容の確認 · 閲覧のみ</p><h2 className="text-xl font-semibold">{request.reservationId}</h2>{r && <p className="mt-1 text-sm">{reservationDisplayLabel(r)}</p>}</div>
+          <Button id="change-review-close" type="button" variant="ghost" size="icon" aria-label="閉じる" onClick={onClose}><Icon name="close" /></Button>
+        </header>
+        <div className="overflow-y-auto p-5">
+          <section aria-labelledby="change-review-heading">
+            <h3 id="change-review-heading" className="font-semibold">変更前・変更後 <span className="text-sm text-primary">{rows.filter((row) => row.changed).length}項目の変更</span></h3>
+            <p className="mt-1 text-sm text-muted-foreground">申請日時：{dateTimeMinuteLabel(request.requestedAt)}</p>
+            <div className="mt-4 overflow-x-auto rounded-md border border-border">
+              <table className="w-full table-fixed text-left text-sm">
+                <thead className="bg-muted"><tr><th className="w-24 p-3">項目</th><th className="p-3">変更前</th><th className="p-3">変更後（希望）</th></tr></thead>
+                <tbody>{rows.map((row) => <tr key={row.label} className={row.changed ? "border-t border-border bg-accent/40" : "border-t border-border"}><th className="p-3 align-top font-medium">{row.label}<span className={row.changed ? "mt-1 block text-xs text-primary" : "mt-1 block text-xs text-muted-foreground"}>{row.changed ? "変更あり" : "変更なし"}</span></th><td className="break-words p-3 align-top">{row.before}</td><td className={"break-words p-3 align-top " + (row.changed ? "font-semibold text-primary" : "")}>{row.after}</td></tr>)}</tbody>
+              </table>
+            </div>
+            <div className="mt-4"><h4 className="text-sm font-medium">変更理由</h4><p className="mt-1 whitespace-pre-wrap break-words text-sm">{request.reason || "記載なし"}</p></div>
+          </section>
+          <section className="mt-6 border-t border-border pt-5"><h3 className="font-semibold">予約の基本情報（現在）</h3>
+            {!r && <p role="status" className="mt-2 text-sm text-muted-foreground">予約の基本情報を取得できません。申請時の顧客情報を表示しています。</p>}
+            <dl className="mt-3">{details.map(([label, value]) => <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 border-b border-border py-3 text-sm"><dt className="text-muted-foreground">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || "-"}</dd></div>)}</dl>
+          </section>
+        </div>
+      </aside>
+    </>
   );
 }
 
 function MasterManagementPage({
   onSelectMasterView,
 }: {
-  onSelectMasterView: (view: "customers" | "stores" | "menus" | "emailTemplates") => void;
+  onSelectMasterView: (view: "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings") => void;
 }) {
   return (
     <section className="master-management-page">
       <div className="master-link-grid">
+        <button type="button" onClick={() => onSelectMasterView("otherSettings")}><Icon name="settings" /><span><strong>その他</strong></span><Icon name="arrow" /></button>
         <button type="button" onClick={() => onSelectMasterView("customers")}>
           <Icon name="users" />
           <span>
@@ -3733,7 +3765,6 @@ function MasterManagementPage({
 function ConfirmedReservationRequestPage({
   reservations,
   onSelect,
-  updateStatus,
 }: {
   reservations: Reservation[];
   onSelect: (reservation: Reservation) => void;
@@ -3743,16 +3774,13 @@ function ConfirmedReservationRequestPage({
     options?: { manualReason?: string },
   ) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const keyword = search.trim().toLocaleLowerCase();
+  const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <div className="change-request-head">
-        <div className="result-count">
-          <span>該当</span>
-          <strong>{reservations.length}</strong>
-          <span>件</span>
-        </div>
-      </div>
-      {reservations.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} search={search} onSearch={setSearch} />
+      {filteredRows.length > 0 ? (
         <div className="table-wrap">
           <table className="large-table change-request-table">
             <thead>
@@ -3768,7 +3796,7 @@ function ConfirmedReservationRequestPage({
               </tr>
             </thead>
             <tbody>
-              {reservations.map((reservation) => (
+              {filteredRows.map((reservation) => (
                 <tr key={reservation.id} onClick={() => onSelect(reservation)}>
                   <td>
                     <strong>{reservation.id}</strong>
@@ -3810,10 +3838,7 @@ function ConfirmedReservationRequestPage({
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          updateStatus(
-                            reservation.id,
-                            STATUS.temporaryConfirmed,
-                          );
+                          onSelect(reservation);
                         }}
                       >
                         却下
@@ -3823,7 +3848,7 @@ function ConfirmedReservationRequestPage({
                         className="primary"
                         onClick={(event) => {
                           event.stopPropagation();
-                          updateStatus(reservation.id, STATUS.confirmed);
+                          onSelect(reservation);
                         }}
                       >
                         承認
@@ -3837,7 +3862,7 @@ function ConfirmedReservationRequestPage({
         </div>
       ) : (
         <div className="empty-table compact">
-          未対応の本予約変更承認はありません。
+          {keyword ? "検索に一致する予約はありません。" : "未対応の本予約変更承認はありません。"}
         </div>
       )}
     </section>
@@ -3847,7 +3872,6 @@ function ConfirmedReservationRequestPage({
 function ReservationApprovalPage({
   reservations,
   onSelect,
-  updateStatus,
 }: {
   reservations: Reservation[];
   onSelect: (reservation: Reservation) => void;
@@ -3871,16 +3895,13 @@ function ReservationApprovalPage({
           ? STATUS.temporaryConfirmed
           : STATUS.confirmedRejected
         : null;
+  const [search, setSearch] = useState("");
+  const keyword = search.trim().toLocaleLowerCase();
+  const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <div className="change-request-head">
-        <div className="result-count">
-          <span>該当</span>
-          <strong>{reservations.length}</strong>
-          <span>件</span>
-        </div>
-      </div>
-      {reservations.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} search={search} onSearch={setSearch} />
+      {filteredRows.length > 0 ? (
         <div className="table-wrap">
           <table className="large-table change-request-table">
             <thead>
@@ -3896,7 +3917,7 @@ function ReservationApprovalPage({
               </tr>
             </thead>
             <tbody>
-              {reservations.map((reservation) => {
+              {filteredRows.map((reservation) => {
                 const nextApprovalStatus = approveStatus(reservation);
                 const nextRejectStatus = rejectStatus(reservation);
                 return (
@@ -3946,7 +3967,7 @@ function ReservationApprovalPage({
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              updateStatus(reservation.id, nextRejectStatus);
+                              onSelect(reservation);
                             }}
                           >
                             却下
@@ -3958,7 +3979,7 @@ function ReservationApprovalPage({
                             className="primary"
                             onClick={(event) => {
                               event.stopPropagation();
-                              updateStatus(reservation.id, nextApprovalStatus);
+                              onSelect(reservation);
                             }}
                           >
                             承認
@@ -3974,7 +3995,7 @@ function ReservationApprovalPage({
         </div>
       ) : (
         <div className="empty-table compact">
-          未対応の予約承認はありません。
+          {keyword ? "検索に一致する予約はありません。" : "未対応の予約承認はありません。"}
         </div>
       )}
     </section>
@@ -3994,16 +4015,13 @@ function CancellationApprovalPage({
     options?: { manualReason?: string },
   ) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const keyword = search.trim().toLocaleLowerCase();
+  const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <div className="change-request-head">
-        <div className="result-count">
-          <span>該当</span>
-          <strong>{reservations.length}</strong>
-          <span>件</span>
-        </div>
-      </div>
-      {reservations.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} search={search} onSearch={setSearch} />
+      {filteredRows.length > 0 ? (
         <div className="table-wrap">
           <table className="large-table change-request-table">
             <thead>
@@ -4019,7 +4037,7 @@ function CancellationApprovalPage({
               </tr>
             </thead>
             <tbody>
-              {reservations.map((reservation) => (
+              {filteredRows.map((reservation) => (
                 <tr key={reservation.id} onClick={() => onSelect(reservation)}>
                   <td>
                     <strong>{reservation.id}</strong>
@@ -4075,7 +4093,7 @@ function CancellationApprovalPage({
         </div>
       ) : (
         <div className="empty-table compact">
-          未対応のキャンセル承認はありません。
+          {keyword ? "検索に一致する予約はありません。" : "未対応のキャンセル承認はありません。"}
         </div>
       )}
     </section>
@@ -4130,6 +4148,7 @@ function MenuPicker({
 }
 
 function ReservationDrawer({
+  getAdminToken,
   reservation: r,
   onClose,
   updateStatus,
@@ -4139,6 +4158,7 @@ function ReservationDrawer({
   menuCatalog,
   stores,
 }: {
+  getAdminToken: () => Promise<string>;
   reservation: Reservation;
   onClose: () => void;
   updateStatus: (
@@ -4208,9 +4228,11 @@ function ReservationDrawer({
     (total, assignment) => total + Number(assignment.people || 0),
     0,
   );
+  const duplicateStores = duplicateAssignmentStores(assignmentDraft);
+  const allAssignmentStoresUsed = stores.every(store=>assignmentDraft.some(a=>a.store===store.name));
   const canSaveAssignments =
     assignmentDraft.length === 0 ||
-    (assignedPeople === r.people &&
+    (duplicateStores.length === 0 && assignedPeople === r.people &&
       assignmentDraft.every(
         (assignment) => assignment.store && assignment.people > 0,
       ));
@@ -4313,9 +4335,7 @@ function ReservationDrawer({
     });
 
   return (
-    <>
-      <div className="drawer-shade" onClick={onClose} />
-      <aside className="drawer">
+    <ReservationDetailsDialog title={`予約詳細 ${r.id}`} busy={isSavingReservation} onClose={onClose}>
         <header>
           <div>
             <span className={"badge " + statusClass[r.status]}>
@@ -4324,11 +4344,12 @@ function ReservationDrawer({
             </span>
             <h2>{r.id}</h2>
           </div>
-          <button onClick={onClose}>
+          <button type="button" aria-label="閉じる" disabled={isSavingReservation} onClick={onClose}>
             <Icon name="close" />
           </button>
         </header>
         <div className="drawer-body">
+          <section className="border-b border-border pb-4"><ReservationInquiryHistoryButton reservationNumber={r.id} audience="admin" getToken={getAdminToken} /></section>
           {isEditingReservation ? (
             <section className="drawer-primary-action">
               <p className="section-label">予約内容を編集</p>
@@ -4717,6 +4738,7 @@ function ReservationDrawer({
                   </dl>
                 </section>
               )}
+              <PolicyConsentHistory consents={r.policyConsents ?? []} />
               <section>
                 <button
                   className="edit-reservation-button"
@@ -4876,7 +4898,7 @@ function ReservationDrawer({
                     >
                       <option value="">店舗を選択</option>
                       {stores.map((store) => (
-                        <option key={store.name} value={store.name}>
+                        <option key={store.name} value={store.name} disabled={assignmentDraft.some((a,i)=>i!==index&&a.store===store.name)&&assignment.store!==store.name}>
                           {store.name}
                         </option>
                       ))}
@@ -4901,6 +4923,7 @@ function ReservationDrawer({
               </div>
               <button
                 className="edit-reservation-button"
+                disabled={allAssignmentStoresUsed}
                 onClick={addAssignment}
               >
                 割当行を追加
@@ -4920,6 +4943,7 @@ function ReservationDrawer({
                   </>
                 )}
               </div>
+              {duplicateStores.length>0&&isAssigning&&<p role="alert" className="text-sm text-destructive">同じ店舗は複数行に割り当てられません：{duplicateStores.join("、")}</p>}
               <div className="drawer-actions">
                 <button onClick={() => setIsAssigning(false)}>
                   キャンセル
@@ -4936,8 +4960,7 @@ function ReservationDrawer({
             </section>
           )}
         </div>
-      </aside>
-    </>
+    </ReservationDetailsDialog>
   );
 }
 
@@ -5419,6 +5442,8 @@ function NewReservationDrawer({
 
 type CustomerPortalMode =
   | "home"
+  | "login"
+  | "register"
   | "account"
   | "reservation"
   | "confirmedChange"
@@ -5463,11 +5488,11 @@ function CustomerPortal({
     options?: ReservationSubmitOptions,
   ) => Promise<Reservation>;
   onSubmitCancellation: (
-    input: { reservationId: string; email?: string; phone?: string },
+    input: { reservationId: string; email?: string; phone?: string; cancellationPolicyAgreement?: CancellationPolicyAgreementInput; cancellationFeeAcknowledged?: boolean },
     options?: { authToken?: string },
   ) => Promise<Reservation>;
   onSubmitConfirmedReservationChange: (
-    input: { reservationId: string; email?: string; phone?: string },
+    input: { reservationId: string; email?: string; phone?: string; cancellationPolicyAgreement?: CancellationPolicyAgreementInput; cancellationFeeAcknowledged?: boolean },
     options?: { authToken?: string },
   ) => Promise<Reservation>;
   onSubmitChangeRequest: (
@@ -5480,11 +5505,14 @@ function CustomerPortal({
       requestedPeople: number;
       requestedMenuItems: string[];
       reason?: string;
+      cancellationFeeAcknowledged?: boolean;
     },
     options?: { authToken?: string },
   ) => Promise<ReservationChangeRequest>;
   menuCatalog: Menu[];
 }) {
+  const {policy,error:policyError}=useReservationPolicy();
+  const dateBlocked=!policy || !form.date || form.date < policy.minimumDate;
   const {
     customerUser,
     customerAuthLoading,
@@ -5495,15 +5523,27 @@ function CustomerPortal({
     refreshEmailVerification,
     resetCustomerPassword,
     requestCustomerEmailChange,
+    reauthenticateCustomer,
     signOutCustomer,
   } = useCustomerSession();
   const [portalMode, setPortalMode] = useState<CustomerPortalMode>(initialMode);
-  const [bookingMode, setBookingMode] = useState<"login" | "register">("login");
+  const [bookingMode, setBookingMode] = useState<"login" | "register">(initialMode === "register" ? "register" : "login");
   const [accountEmail, setAccountEmail] = useState(form.email);
   const [accountPassword, setAccountPassword] = useState("");
   const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
+  const [submittedReservation, setSubmittedReservation] = useState<Reservation | null>(null);
+  const activeCustomerUid = useRef(customerUser?.uid);
+  activeCustomerUid.current = customerUser?.uid;
+  const reservationSubmission = useRef(false);
   const [verificationSubmitting, setVerificationSubmitting] = useState(false);
   const [emailChangeMessage, setEmailChangeMessage] = useState("");
+  const [contactVerificationStatus, setContactVerificationStatus] = useState<"verified" | "invalid" | null>(null);
+  const [customerAccount, setCustomerAccount] = useState<Customer | null>(null);
+  const [customerAccountLoading, setCustomerAccountLoading] = useState(true);
+  const [accountLoadError, setAccountLoadError] = useState("");
+  const [accountReloadVersion, setAccountReloadVersion] = useState(0);
+  const [contactEmails, setContactEmails] = useState<AccountContactEmail[]>([]);
   const [cancellationForm, setCancellationForm] = useState({
     reservationId: "",
     email: "",
@@ -5543,6 +5583,37 @@ function CustomerPortal({
   const [isLoadingAccountReservations, setIsLoadingAccountReservations] =
     useState(false);
   const [accountReservationError, setAccountReservationError] = useState("");
+  const previousCustomerUid = useRef<string | null>(null);
+  useEffect(() => {
+    if (customerAuthLoading) return;
+    const uid = customerUser?.uid ?? null;
+    if (previousCustomerUid.current !== uid) {
+      if (previousCustomerUid.current) {
+        setForm(emptyReservationForm(STATUS.temporaryRequested));
+        setStep(1);
+        setAccountEmail("");
+        setAccountPassword("");
+        setEmailChangeMessage("");
+        setSubmittedReservation(null);
+        setCancellationForm({ reservationId: "", email: "", phone: "" });
+        setConfirmedChangeForm({ reservationId: "", email: "", phone: "" });
+        setChangeRequestForm({ reservationId: "", email: "", phone: "", requestedDate: "", requestedStartTime: "", requestedPeople: 0, requestedMenuItems: [], reason: "" });
+        setCancellationSubmitted(false);
+        setConfirmedChangeSubmitted(false);
+        setChangeRequestSubmitted(false);
+      }
+      setAccountReservations([]);
+      setAccountChangeRequests([]);
+      setCustomerAccount(null);
+      setContactEmails([]);
+      setIsLoadingAccountReservations(false);
+      previousCustomerUid.current = uid;
+    }
+  }, [customerUser?.uid, customerAuthLoading, setForm, setStep]);
+  const consentMenuKey = form.menuItems.join("\u0000");
+  useEffect(() => {
+    setForm(current => current.cancellationPolicyAgreement ? { ...current, cancellationPolicyAgreement: undefined } : current);
+  }, [form.date, form.startTime, form.people, form.status, consentMenuKey, customerUser?.uid, setForm]);
   const total = selectedMenuTotal(form.menuItems, menuCatalog);
   const groupReady =
     !isGroupBooking(form) ||
@@ -5554,7 +5625,9 @@ function CustomerPortal({
       form.groupName &&
       form.groupType,
     );
-  const canSubmit = Boolean(
+  const requiresConfirmedPolicy = form.status === STATUS.confirmedRequested;
+  const confirmedPolicyReady = !requiresConfirmedPolicy || (form.cancellationPolicyAgreement?.accepted === true && form.cancellationPolicyAgreement.version === cancellationPolicyVersion);
+  const canSubmit = !dateBlocked && !isSubmittingReservation && Boolean(
     form.name &&
     form.email &&
     form.phone &&
@@ -5564,7 +5637,7 @@ function CustomerPortal({
     groupReady,
   );
   const canSubmitCancellation =
-    Boolean(customerUser && cancellationForm.reservationId.trim()) &&
+    Boolean(customerUser && accountReservations.some((reservation) => reservation.id === cancellationForm.reservationId)) &&
     !isSubmittingCancellation;
   const canSubmitConfirmedChange =
     Boolean(customerUser && confirmedChangeForm.reservationId.trim()) &&
@@ -5580,77 +5653,125 @@ function CustomerPortal({
 
   useEffect(() => {
     setPortalMode(initialMode);
+    if (initialMode === "login" || initialMode === "register") setBookingMode(initialMode);
     if (initialMode === "reservation") setStep(1);
   }, [initialMode, setStep]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    url.pathname = "/";
-    url.searchParams.set("customerMode", portalMode);
+    if (portalMode === "login" || portalMode === "register") {
+      url.pathname = `/${portalMode}`;
+      url.searchParams.delete("customerMode");
+    } else {
+      url.pathname = "/";
+      url.searchParams.set("customerMode", portalMode);
+    }
     window.history.replaceState(null, "", url);
   }, [portalMode]);
 
   useEffect(() => {
-    if (!customerUser?.emailVerified) return;
+    if (!customerAuthLoading && customerUser && (portalMode === "login" || portalMode === "register")) setPortalMode("home");
+  }, [customerAuthLoading, customerUser, portalMode]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const status = url.searchParams.get("contactEmail");
+    if (status !== "verified" && status !== "invalid") return;
+    setContactVerificationStatus(status);
+    url.searchParams.delete("contactEmail");
+    window.history.replaceState(null, "", url);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAccountLoadError("");
+    if (!customerUser?.emailVerified) { setCustomerAccount(null); setContactEmails([]); setCustomerAccountLoading(false); return; }
+    setCustomerAccountLoading(true);
     const loadAccount = async () => {
       const token = await customerUser.getIdToken();
       const { account } = await requestJson<{ account: Customer | null }>(
         "/api/accounts/me",
         { authToken: token },
       );
-      setForm((current) => ({
-        ...current,
-        name:
-          current.bookingType === "travel_agency_group"
-            ? account?.companyBranchName || account?.name || current.name
-            : account?.name || current.name,
-        email: account?.contact || customerUser.email || current.email,
-        phone: account?.phone || current.phone,
-        address: account?.address || current.address,
-        accountType: account?.accountType || current.accountType,
-        companyBranchName:
-          account?.companyBranchName ||
-          (account?.accountType === "travel_agency"
-            ? account.name
-            : undefined) ||
-          current.companyBranchName,
-        contactPersonName:
-          account?.contactPersonName || current.contactPersonName,
-        bookingContactName:
-          current.bookingType === "travel_agency_group"
-            ? current.bookingContactName || account?.contactPersonName || ""
-            : current.bookingContactName,
-      }));
+      if (cancelled) return;
+      setCustomerAccount(account);
+      setCustomerAccountLoading(false);
+      if (!isAccountProfileComplete(account)) setPortalMode("home");
+      setForm((current) => account
+        ? applyAccountToReservationForm(current, account)
+        : { ...current, email: customerUser.email || current.email });
       setAccountEmail(account?.contact || customerUser.email || "");
+      const contacts = await requestJson<{ contactEmails: AccountContactEmail[] }>("/api/accounts/me/contact-emails", { authToken: token });
+      if (!cancelled) setContactEmails(contacts.contactEmails);
     };
-    loadAccount().catch(() =>
-      notify("ログイン済みのお客様情報を取得できませんでした"),
-    );
-  }, [customerUser, setForm]);
+    void loadAccount().catch((error) => {
+      if (!cancelled) setAccountLoadError(error instanceof Error ? error.message : "ログイン済みのお客様情報を取得できませんでした");
+    }).finally(() => { if (!cancelled) setCustomerAccountLoading(false); });
+    return () => { cancelled = true; };
+  }, [customerUser, setForm, accountReloadVersion]);
 
   useEffect(() => {
     if (!customerUser || new URLSearchParams(window.location.search).get("emailChange") !== "complete") return;
+    let cancelled = false;
     void (async () => {
       try {
         await customerUser.reload();
         const token = await customerUser.getIdToken(true);
-        const result = await requestJson<{ changed: boolean; account: Customer }>("/api/accounts/me/email", { method: "PATCH", authToken: token });
+        const result = await requestJson<{ changed: boolean; account: Customer; notification?: { status: "sent" | "failed" } }>("/api/accounts/me/email", { method: "PATCH", authToken: token });
+        if (cancelled) return;
+        setCustomerAccount(result.account);
         setAccountEmail(result.account.contact);
         setForm((current) => ({ ...current, email: result.account.contact }));
-        setEmailChangeMessage(result.changed ? "メールアドレスを変更しました。" : "メールアドレスは変更済みです。");
+        setEmailChangeMessage(result.notification?.status === "failed" ? "メールアドレスを変更しました。旧メールアドレスへの変更通知は送信できませんでした。" : result.changed ? "メールアドレスを変更しました。" : "メールアドレスは変更済みです。");
         window.history.replaceState(null, "", "/?customerMode=home");
       } catch (error) {
-        setEmailChangeMessage(error instanceof Error ? error.message : "メールアドレス変更を完了できませんでした。");
+        if (!cancelled) setEmailChangeMessage(error instanceof Error ? error.message : "メールアドレス変更を完了できませんでした。");
       }
     })();
-  }, [customerUser]);
+    return () => { cancelled = true; };
+  }, [customerUser, setForm]);
 
   const beginEmailChange = async (newEmail: string) => {
     await requestCustomerEmailChange(newEmail);
     setEmailChangeMessage("新しいメールアドレスに確認メールを送信しました。メール内のリンクから変更を完了してください。");
   };
+  const updateCustomerAccount = async (values: AccountProfileFields) => {
+    if (!customerUser) return;
+    const uid = customerUser.uid;
+    const result = await requestJson<{ account: Customer }>("/api/accounts/me", {
+      method: customerAccount ? "PATCH" : "POST",
+      authToken: await customerUser.getIdToken(),
+      body: JSON.stringify({
+        ...values,
+        contact: customerUser.email,
+        name: values.accountType === "travel_agency" ? values.companyBranchName : values.name,
+      }),
+    });
+    if (activeCustomerUid.current !== uid) return;
+    setCustomerAccount(result.account);
+    setForm((current) => applyAccountToReservationForm(current, result.account));
+    if (!isAccountProfileComplete(customerAccount)) setPortalMode("home");
+    notify("アカウント情報を更新しました。");
+  };
+  const addContactEmail = async (email: string) => {
+    if (!customerUser) return;
+    const uid = customerUser.uid;
+    const result = await requestJson<{ contactEmail: AccountContactEmail }>("/api/accounts/me/contact-emails", { method: "POST", authToken: await customerUser.getIdToken(), body: JSON.stringify({ email }) });
+    if (activeCustomerUid.current !== uid) return;
+    setContactEmails((items) => [...items, result.contactEmail]);
+    notify("追加メールアドレスへ確認メールを送信しました。");
+  };
+  const removeContactEmail = async (id: string) => {
+    if (!customerUser) return;
+    const uid = customerUser.uid;
+    await requestJson(`/api/accounts/me/contact-emails?id=${encodeURIComponent(id)}`, { method: "DELETE", authToken: await customerUser.getIdToken() });
+    if (activeCustomerUid.current !== uid) return;
+    setContactEmails((items) => items.filter((item) => item.id !== id));
+  };
 
   useEffect(() => {
+    let cancelled = false;
+    if (!customerUser) { setAccountReservations([]); setAccountChangeRequests([]); return; }
     if (portalMode !== "account" || !customerUser?.emailVerified) return;
     const loadReservations = async () => {
       setIsLoadingAccountReservations(true);
@@ -5661,42 +5782,47 @@ function CustomerPortal({
           reservations: Reservation[];
           changeRequests: ReservationChangeRequest[];
         }>("/api/accounts/me/reservations", { authToken: token });
+        if (cancelled) return;
         setAccountReservations(reservations);
         setAccountChangeRequests(changeRequests);
       } catch {
+        if (cancelled) return;
         setAccountReservationError(
           "予約情報を取得できませんでした。時間をおいて再度お試しください。",
         );
       } finally {
-        setIsLoadingAccountReservations(false);
+        if (!cancelled) setIsLoadingAccountReservations(false);
       }
     };
     loadReservations();
+    return () => { cancelled = true; };
   }, [customerUser, portalMode]);
 
   const selectBookingMode = (mode: "login" | "register") => {
     setBookingMode(mode);
-    setAccountEmail(form.email);
+    setAccountEmail((current) => current || form.email);
   };
 
-  const saveCurrentAccountProfile = async (authToken: string) => {
-    const travelAgency = isTravelAgencyAccount(form);
-    const name = travelAgency ? form.companyBranchName || form.name : form.name;
-    await requestJson<{ account: Customer }>("/api/accounts/me", {
+  const saveCurrentAccountProfile = async (authToken: string, email = accountEmail, profile?: RegisterAuthFields) => {
+    const source = profile ?? form;
+    const travelAgency = isTravelAgencyAccount(source);
+    const name = travelAgency ? source.companyBranchName || source.name : source.name;
+    const { account } = await requestJson<{ account: Customer }>("/api/accounts/me", {
       method: "POST",
       authToken,
       body: JSON.stringify({
         name,
-        contact: accountEmail,
-        phone: form.phone,
-        address: form.address,
+        contact: email,
+        phone: source.phone,
+        address: source.address,
         accountType: travelAgency ? "travel_agency" : "individual",
         companyBranchName: travelAgency
-          ? form.companyBranchName || name
+          ? source.companyBranchName || name
           : undefined,
-        contactPersonName: travelAgency ? form.contactPersonName : undefined,
+        contactPersonName: travelAgency ? source.contactPersonName : undefined,
       }),
     });
+    setCustomerAccount(account);
   };
 
   const accountProfileReady = () => {
@@ -5711,9 +5837,10 @@ function CustomerPortal({
   const submitAccount = async (
     submittedEmail = accountEmail,
     submittedPassword = accountPassword,
+    profile?: RegisterAuthFields,
   ) => {
     if (!submittedEmail || !submittedPassword || accountSubmitting) return;
-    if (!accountProfileReady()) {
+    if (!profile && !accountProfileReady()) {
       notify(
         isTravelAgencyAccount(form)
           ? "会社・支店名、担当者名、電話番号を入力してください"
@@ -5723,17 +5850,20 @@ function CustomerPortal({
     }
     setAccountSubmitting(true);
     try {
-      let accountUser = customerUser;
       if (bookingMode === "register") {
         try {
-          accountUser = await registerCustomer(
+          await registerCustomer(
             submittedEmail,
             submittedPassword,
+            async (user) => {
+              await saveCurrentAccountProfile(await user.getIdToken(), submittedEmail, profile);
+            },
           );
           notify("確認メールを送信しました");
         } catch (error) {
           if (customerAuthErrorCode(error) === "auth/email-already-in-use") {
             setBookingMode("login");
+            setPortalMode("login");
             notify(
               "このメールアドレスはアカウント登録済みです。ログインしてください",
             );
@@ -5742,9 +5872,8 @@ function CustomerPortal({
             throw error;
           }
         }
-        await saveCurrentAccountProfile(await accountUser.getIdToken());
       } else {
-        accountUser = await loginCustomer(submittedEmail, submittedPassword);
+        await loginCustomer(submittedEmail, submittedPassword);
         notify("ログインしました");
       }
       setAccountEmail(submittedEmail);
@@ -5790,7 +5919,11 @@ function CustomerPortal({
         return;
       }
       const token = await verifiedUser.getIdToken(true);
-      await saveCurrentAccountProfile(token);
+      const { account } = await requestJson<{ account: Customer | null }>("/api/accounts/me", { authToken: token });
+      setCustomerAccount(account);
+      setAccountEmail(verifiedUser.email ?? "");
+      if (account) setForm(current => applyAccountToReservationForm(current, account));
+      setAccountReloadVersion(value => value + 1);
       notify("メールアドレスを確認しました");
     } catch (error) {
       notify(
@@ -5812,7 +5945,7 @@ function CustomerPortal({
     try {
       await loginCustomer(submittedEmail, submittedPassword);
       setAccountEmail(submittedEmail);
-      setAccountPassword(submittedPassword);
+      setAccountPassword("");
       notify("ログインしました");
     } catch {
       notify("ログインに失敗しました");
@@ -5822,46 +5955,72 @@ function CustomerPortal({
   };
 
   const sendCustomerPasswordReset = async (email: string) => {
+    if (accountSubmitting) return;
+    setAccountSubmitting(true);
     try {
       await resetCustomerPassword(email);
-      notify("パスワード再設定メールを送信しました");
+      notify("登録済みのメールアドレス宛てに再設定メールを送信します。迷惑メールフォルダもご確認ください。");
     } catch (error) {
       notify(
         error instanceof Error
           ? error.message
           : "パスワード再設定メールを送信できませんでした",
       );
+    } finally {
+      setAccountSubmitting(false);
     }
   };
 
-  const deleteCustomerAccount = async () => {
+  const deleteCustomerAccount = async (password: string) => {
     if (!customerUser || accountSubmitting) return;
-    if (!window.confirm("アカウントを削除しますか？この操作は取り消せません。"))
+    if (!window.confirm("アカウントを削除するとログインできなくなります。過去の予約情報については、サービス運営上必要な範囲で保持される場合があります。\n\nアカウントを削除しますか？この操作は取り消せません。"))
       return;
+    const finishAccountDeletion = async () => {
+      setAccountReservations([]);
+      setAccountChangeRequests([]);
+      setCustomerAccount(null);
+      setContactEmails([]);
+      await signOutCustomer();
+      notify("アカウントを削除しました");
+    };
     setAccountSubmitting(true);
     try {
-      const authToken = await customerUser.getIdToken();
+      const authToken = await reauthenticateCustomer(password);
       await requestJson<{ deleted: true }>("/api/accounts/me", {
         method: "DELETE",
         authToken,
       });
-      setAccountReservations([]);
-      setAccountChangeRequests([]);
-      await signOutCustomer();
-      notify("アカウントを削除しました");
+      await finishAccountDeletion();
     } catch (error) {
+      if (error instanceof TypeError && /failed to fetch/i.test(error.message)) {
+        try {
+          await customerUser.reload();
+        } catch (reloadError) {
+          const code = customerAuthErrorCode(reloadError);
+          if (code === "auth/user-not-found" || code === "auth/user-token-expired" || code === "auth/invalid-user-token") {
+            await finishAccountDeletion();
+            return;
+          }
+        }
+      }
       notify(
-        error instanceof Error
+        error instanceof TypeError && /failed to fetch/i.test(error.message)
+          ? "削除結果を確認できませんでした。通信状態を確認して、もう一度お試しください。"
+          : error instanceof Error
           ? error.message
           : "アカウントを削除できませんでした",
       );
+      throw error;
     } finally {
       setAccountSubmitting(false);
     }
   };
 
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !confirmedPolicyReady || reservationSubmission.current) return;
+    const uid = customerUser?.uid;
+    reservationSubmission.current = true;
+    setIsSubmittingReservation(true);
     try {
       if (!customerUser) {
         notify("ログインまたはアカウント登録を完了してください");
@@ -5887,15 +6046,20 @@ function CustomerPortal({
             dgCount: 0,
           };
       const reservation = await onSubmitReservation(submitForm, options);
-      notify("予約申請を受け付けました（" + reservation.id + "）");
+      if (activeCustomerUid.current !== uid) return;
+      setSubmittedReservation(reservation);
+      notify(reservation.receiptEmailStatus === "failed" ? `予約申請は保存済みです（${reservation.id}）。受付メールを送信できませんでした。予約確認画面でご確認ください。` : "予約申請を受け付けました（" + reservation.id + "）", reservation.receiptEmailStatus === "failed" ? "error" : "success");
       setStep(5);
     } catch (error) {
       notify(
         error instanceof Error ? error.message : "予約申請の保存に失敗しました",
       );
+    } finally {
+      reservationSubmission.current = false;
+      setIsSubmittingReservation(false);
     }
   };
-  const submitCancellation = async () => {
+  const submitCancellation = async (cancellationFeeAcknowledged = false) => {
     if (!canSubmitCancellation) return;
     setIsSubmittingCancellation(true);
     try {
@@ -5907,6 +6071,7 @@ function CustomerPortal({
       const reservation = await onSubmitCancellation(
         {
           reservationId: cancellationForm.reservationId.trim(),
+          cancellationFeeAcknowledged,
           email: cancellationForm.email.trim() || undefined,
           phone: cancellationForm.phone.trim() || undefined,
         },
@@ -5924,7 +6089,7 @@ function CustomerPortal({
       setIsSubmittingCancellation(false);
     }
   };
-  const submitConfirmedChange = async () => {
+  const submitConfirmedChange = async (cancellationPolicyAgreement: CancellationPolicyAgreementInput) => {
     if (!canSubmitConfirmedChange) return;
     setIsSubmittingConfirmedChange(true);
     try {
@@ -5936,6 +6101,7 @@ function CustomerPortal({
       const reservation = await onSubmitConfirmedReservationChange(
         {
           reservationId: confirmedChangeForm.reservationId.trim(),
+          cancellationPolicyAgreement,
           email: confirmedChangeForm.email.trim() || undefined,
           phone: confirmedChangeForm.phone.trim() || undefined,
         },
@@ -5953,7 +6119,7 @@ function CustomerPortal({
       setIsSubmittingConfirmedChange(false);
     }
   };
-  const submitChangeRequest = async () => {
+  const submitChangeRequest = async (cancellationFeeAcknowledged = false) => {
     if (!canSubmitChangeRequest) return;
     setIsSubmittingChangeRequest(true);
     try {
@@ -5965,6 +6131,7 @@ function CustomerPortal({
       const request = await onSubmitChangeRequest(
         {
           reservationId: changeRequestForm.reservationId.trim(),
+          cancellationFeeAcknowledged,
           email: changeRequestForm.email.trim() || undefined,
           phone: changeRequestForm.phone.trim() || undefined,
           requestedDate: changeRequestForm.requestedDate,
@@ -6043,15 +6210,24 @@ function CustomerPortal({
   };
 
   return (
+    <GoogleCustomerAuthProvider user={customerUser} reauthenticate={reauthenticateCustomer} notify={notify} signOut={async () => { await signOutCustomer(); setAccountReservations([]); setCustomerAccount(null); setPortalMode("home"); }} onAuthenticated={(_user, mode, notification) => {
+      setAccountPassword("");
+      if (mode === "login") { setPortalMode("home"); setCustomerAccountLoading(true); }
+      if (mode !== "reauth") setAccountReloadVersion(value => value + 1);
+      if (mode === "login") notify("Googleでログインしました。");
+      if (mode === "link") notify(notification === "failed" ? "Googleアカウントを連携しました。変更通知を送信できませんでした。" : "Googleアカウントを連携しました。");
+    }}>
     <main className="min-h-screen bg-background">
-      <header className="flex h-16 items-center justify-between border-b bg-card px-5 sm:px-8">
+      <header className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-3 sm:px-8">
         <div className="flex items-center gap-3">
           <span className="grid size-9 place-items-center rounded-lg bg-primary text-base font-bold text-primary-foreground">
             R
           </span>
           <strong className="text-base">Reserve</strong>
         </div>
-        <nav>
+        <nav className="flex flex-wrap items-center gap-3">
+          <Link href="/contact" className="text-sm text-primary">お問い合わせ</Link>
+          {customerUser && <Link href="/contact/history" className="text-sm text-primary">問い合わせ履歴</Link>}
           <Button variant="outline" size="sm" onClick={onAdmin}>
             管理画面
           </Button>
@@ -6063,7 +6239,11 @@ function CustomerPortal({
             Restaurant reservation
           </p>
           <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-            {portalMode === "home"
+            {portalMode === "login"
+              ? "ログイン"
+              : portalMode === "register"
+                ? "新規登録"
+                : portalMode === "home"
               ? "お手続き"
               : portalMode === "account"
                 ? "予約確認"
@@ -6089,6 +6269,27 @@ function CustomerPortal({
         )}
         {(!customerUser || customerUser.emailVerified) && (
           <>
+            {(portalMode === "login" || portalMode === "register") && (
+              <div className="p-4 sm:p-8">
+                <CustomerAccountAccessPanel
+                  standalone
+                  authError={customerAuthError}
+                  accountEmail={accountEmail}
+                  accountPassword={accountPassword}
+                  accountSubmitting={accountSubmitting}
+                  customerAuthLoading={customerAuthLoading}
+                  bookingMode={portalMode}
+                  registrationForm={form}
+                  onBookingModeChange={selectBookingMode}
+                  onRegistrationFormChange={setForm}
+                  onAccountEmailChange={setAccountEmail}
+                  onAccountPasswordChange={setAccountPassword}
+                  onLogin={loginForAccountReservations}
+                  onSubmitAccount={submitAccount}
+                  onResetPassword={sendCustomerPasswordReset}
+                />
+              </div>
+            )}
             {portalMode === "home" && (
               <CustomerPortalHome
                 customerEmail={customerUser?.email ?? ""}
@@ -6097,7 +6298,7 @@ function CustomerPortal({
                 accountEmail={accountEmail}
                 accountPassword={accountPassword}
                 accountSubmitting={accountSubmitting}
-                customerAuthLoading={customerAuthLoading}
+                customerAuthLoading={customerAuthLoading || customerAccountLoading}
                 bookingMode={bookingMode}
                 registrationForm={form}
                 onBookingModeChange={selectBookingMode}
@@ -6110,16 +6311,27 @@ function CustomerPortal({
                 onLogout={() => {
                   setAccountReservations([]);
                   setAccountChangeRequests([]);
+                  setCustomerAccount(null);
                   signOutCustomer();
                 }}
                 onDeleteAccount={deleteCustomerAccount}
                 emailChangeMessage={emailChangeMessage}
                 onRequestEmailChange={beginEmailChange}
+                contactVerificationStatus={contactVerificationStatus}
+                customerAccount={customerAccount}
+                accountLoadError={accountLoadError}
+                onRetryAccount={() => setAccountReloadVersion(value => value + 1)}
+                onUpdateAccount={updateCustomerAccount}
+                contactEmails={contactEmails}
+                onAddContactEmail={addContactEmail}
+                onRemoveContactEmail={removeContactEmail}
                 onOpenAccount={() => {
                   setPortalMode("account");
                   setAccountReservationError("");
                 }}
                 onOpenReservation={() => {
+                  if (!isAccountProfileComplete(customerAccount)) { notify("お客様情報の登録を完了してください。"); return; }
+                  if (customerAccount) setForm((current) => applyAccountToReservationForm(current, customerAccount));
                   setPortalMode("reservation");
                   setStep(1);
                 }}
@@ -6127,6 +6339,8 @@ function CustomerPortal({
             )}
             {portalMode === "account" && (
               <CustomerReservationDashboard
+                customerIdentity={customerUser?.uid ?? ""}
+                getCustomerToken={async () => { if (!customerUser) throw new Error("ログインしてください。"); return customerUser.getIdToken(); }}
                 customerEmail={customerUser?.email ?? ""}
                 isLoggedIn={Boolean(customerUser)}
                 authError={customerAuthError}
@@ -6156,6 +6370,7 @@ function CustomerPortal({
                 onLogout={() => {
                   setAccountReservations([]);
                   setAccountChangeRequests([]);
+                  setCustomerAccount(null);
                   signOutCustomer();
                 }}
                 onConfirmedChange={startConfirmedChangeFromReservation}
@@ -6338,11 +6553,17 @@ function CustomerPortal({
                   <div className="form-body narrow">
                     <p className="form-kicker">STEP 3</p>
                     <h2>日時と人数</h2>
+                    {policyError && <p role="alert" className="text-sm text-destructive">{policyError}</p>}
+                    {!policy && !policyError && <p role="status" className="text-sm text-muted-foreground">受付期限を確認しています…</p>}
+                    {policy && <p className="text-sm text-muted-foreground">利用日の{policy.days}日前までに申請してください。{policy.minimumDate}以降を選択できます。</p>}
+                    {form.date && policy && dateBlocked && <p role="alert" className="text-sm text-destructive">利用日は{policy.minimumDate}以降を指定してください。</p>}
                     <div className="form-fields reservation-date-fields">
                       <label>
                         利用日
                         <input
                           type="date"
+                          min={policy?.minimumDate}
+                          aria-invalid={Boolean(form.date && dateBlocked)}
                           value={form.date}
                           onChange={(event) =>
                             setForm({ ...form, date: event.target.value })
@@ -6395,7 +6616,7 @@ function CustomerPortal({
                       <button onClick={() => setStep(2)}>戻る</button>
                       <button
                         className="next"
-                        disabled={!form.date || !form.startTime || !form.people}
+                        disabled={dateBlocked || !form.date || !form.startTime || !form.people}
                         onClick={() => setStep(4)}
                       >
                         お客様情報へ <Icon name="arrow" />
@@ -6567,14 +6788,15 @@ function CustomerPortal({
                         {total.toLocaleString()}
                       </small>
                     </div>
+                    {requiresConfirmedPolicy && <CancellationPolicyAgreement checked={confirmedPolicyReady} disabled={isSubmittingReservation} onChange={checked => setForm(current => ({ ...current, cancellationPolicyAgreement: checked ? { accepted: true, version: cancellationPolicyVersion } : undefined }))} />}
                     <div className="form-nav">
                       <button onClick={() => setStep(3)}>戻る</button>
                       <button
                         className="next"
-                        disabled={!canSubmit || !customerUser}
+                        disabled={!canSubmit || !confirmedPolicyReady || !customerUser}
                         onClick={submit}
                       >
-                        この内容で申請する <Icon name="arrow" />
+                        {isSubmittingReservation ? "申請中…" : "この内容で申請する"} <Icon name="arrow" />
                       </button>
                     </div>
                   </div>
@@ -6586,7 +6808,9 @@ function CustomerPortal({
                     </span>
                     <p className="form-kicker">REQUEST RECEIVED</p>
                     <h2>予約申請を受け付けました</h2>
+                    {submittedReservation && <p className="font-semibold">予約ID：{submittedReservation.id}</p>}
                     <p>内容を確認後、予約可否をご連絡します。</p>
+                    {submittedReservation?.receiptEmailStatus === "failed" && <Alert className="border-warning/40 text-warning"><p>予約申請は保存されていますが、受付メールを送信できませんでした。予約確認画面で申請状況をご確認ください。再申請は不要です。</p></Alert>}
                     <button className="next" onClick={backToPortalHome}>
                       トップに戻る
                     </button>
@@ -6618,7 +6842,8 @@ function CustomerPortal({
                 mode={portalMode}
                 confirmedChangeForm={confirmedChangeForm}
                 changeRequestForm={changeRequestForm}
-                cancellationForm={cancellationForm}
+                changeReservation={accountReservations.find(reservation => reservation.id === changeRequestForm.reservationId.trim().toUpperCase())}
+                cancellationReservation={accountReservations.find((reservation) => reservation.id === cancellationForm.reservationId)}
                 confirmedChangeSubmitted={confirmedChangeSubmitted}
                 changeRequestSubmitted={changeRequestSubmitted}
                 cancellationSubmitted={cancellationSubmitted}
@@ -6632,7 +6857,6 @@ function CustomerPortal({
                 onBack={backToPortalHome}
                 onConfirmedChangeFormChange={setConfirmedChangeForm}
                 onChangeRequestFormChange={setChangeRequestForm}
-                onCancellationFormChange={setCancellationForm}
                 onSubmitConfirmedChange={submitConfirmedChange}
                 onSubmitChangeRequest={submitChangeRequest}
                 onSubmitCancellation={submitCancellation}
@@ -6643,6 +6867,7 @@ function CustomerPortal({
       </section>
       <Toaster />
     </main>
+    </GoogleCustomerAuthProvider>
   );
 }
 
@@ -6682,7 +6907,7 @@ function CustomerRequestLoginPanel({
   onAccountEmailChange: (value: string) => void;
   onAccountPasswordChange: (value: string) => void;
   onLogin: (email?: string, password?: string) => void;
-  onSubmitAccount: (email?: string, password?: string) => void;
+  onSubmitAccount: (email?: string, password?: string, profile?: RegisterAuthFields) => void;
   onResetPassword: (email: string) => void;
 }) {
   return (

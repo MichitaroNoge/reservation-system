@@ -9,7 +9,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     await requireAdmin(request);
     const { id } = await context.params;
-    const changeRequest = await getReservationRepository().rejectReservationChangeRequest(id);
+    const changeRequest = await (await getReservationRepository()).rejectReservationChangeRequest(id);
     return NextResponse.json({ request: changeRequest });
   } catch (error) {
     return apiErrorResponse(error);

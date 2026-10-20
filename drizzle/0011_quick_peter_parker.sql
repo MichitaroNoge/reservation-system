@@ -1,0 +1,1 @@
+CREATE INDEX "inquiry_reservation_created_idx" ON "inquiry" USING btree ("reservation_id","created_at","id");

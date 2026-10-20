@@ -80,7 +80,7 @@ export function MenuManagement({ menus, inactiveMenus, onSaveMenu, onDeleteMenu,
   };
 
   const remove = async (menu: Menu) => {
-    const ok = window.confirm(`${menu.name}を削除します。関連する予約の金額も再計算されます。よろしいですか？`);
+    const ok = window.confirm(`${menu.name}を新規選択肢から削除します。既存予約のメニューと金額は保持されます。よろしいですか？`);
     if (!ok) return;
     try {
       await onDeleteMenu(menu.name);

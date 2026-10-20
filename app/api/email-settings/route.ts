@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const repository = getReservationRepository();
+    const repository = (await getReservationRepository());
     const settings = (await repository.getEmailSettings()) ?? await repository.upsertEmailSettings(defaultEmailSettings());
     return NextResponse.json({ settings, allowedFromEmails: allowedFromEmails() });
   } catch (error) {
@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
       replyToEmail: body.replyToEnabled === true ? String(body.replyToEmail ?? "").trim() : null,
     };
     validateEmailSettings(settings);
-    return NextResponse.json({ settings: await getReservationRepository().upsertEmailSettings(settings) });
+    return NextResponse.json({ settings: await (await getReservationRepository()).upsertEmailSettings(settings) });
   } catch (error) {
     return apiErrorResponse(error);
   }

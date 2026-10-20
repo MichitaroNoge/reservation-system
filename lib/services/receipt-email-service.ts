@@ -4,6 +4,7 @@ import { reservationTemplateVariables } from "../email/email-template-catalog";
 import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
 import type { EmailClient } from "../email/resend-email-client";
 import { repositoryEmailClient } from "../email/email-sender-settings";
+import { deliveryRecipients, reservationNotificationRecipients } from "../email/reservation-recipients";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 
 export type ReceiptEmailRunResult = {
@@ -63,27 +64,31 @@ export async function sendReceiptEmailForReservation(repository: ReservationRepo
   const attemptedAt = now.toISOString();
   const retryCount = (reservation.receiptEmailRetryCount ?? 0) + 1;
   const deliveryKey = receiptEmailIdempotencyKey(reservation);
-  let delivery = await repository.getEmailDelivery(deliveryKey);
-  if (!delivery) {
-    const rendered = await renderRepositoryEmail(repository, "reservation_received", reservationTemplateVariables(reservation));
-    delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_received", recipient: reservation.email, subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: attemptedAt, sentAt: null, lastError: null });
-  }
-  const content = buildEmailContent(delivery.subject, delivery.body);
-  const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
-
+  const recipients = await reservationNotificationRecipients(repository, reservation);
+  if (!recipients.length) throw new Error(`Reservation email is required: ${reservation.id}`);
   try {
-    await emailClient.send({
-      to: reservation.email,
+    let delivery = await repository.getEmailDelivery(deliveryKey);
+    if (!delivery) {
+      const rendered = await renderRepositoryEmail(repository, "reservation_received", reservationTemplateVariables(reservation));
+      delivery = await getOrCreateEmailDelivery(repository, { deliveryKey, reservationId: reservation.id, templateKey: "reservation_received", recipient: recipients.join(","), subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: attemptedAt, sentAt: null, lastError: null });
+    }
+    const content = buildEmailContent(delivery.subject, delivery.body);
+    if (delivery.status !== "sent") {
+      const emailClient = options.emailClient ?? await repositoryEmailClient(repository);
+      await emailClient.send({
+      ...deliveryRecipients(delivery.recipient),
       subject: content.subject,
       text: content.text,
       html: content.html,
       idempotencyKey: deliveryKey,
-    });
+      });
+    }
     await repository.updateEmailDelivery(deliveryKey, { status: "sent", sentAt: attemptedAt, lastError: null });
     return repository.updateReceiptEmailDelivery(reservation.id, { sentAt: attemptedAt, lastAttemptAt: attemptedAt, retryCount, lastError: null });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown email error";
-    await repository.updateEmailDelivery(deliveryKey, { status: "failed", sentAt: null, lastError: message });
+    const delivery = await repository.getEmailDelivery(deliveryKey);
+    if (delivery && delivery.status !== "sent") await repository.updateEmailDelivery(deliveryKey, { status: "failed", sentAt: null, lastError: message });
     await repository.updateReceiptEmailDelivery(reservation.id, { sentAt: null, lastAttemptAt: attemptedAt, retryCount, lastError: message });
     throw error;
   }

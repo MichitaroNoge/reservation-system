@@ -56,6 +56,27 @@ function updateAccount(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.updateAccount = updateAccount;
 
+function createAccountContactEmail(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('CreateAccountContactEmail', inputVars, inputOpts);
+}
+exports.createAccountContactEmail = createAccountContactEmail;
+
+function verifyAccountContactEmail(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('VerifyAccountContactEmail', inputVars, inputOpts);
+}
+exports.verifyAccountContactEmail = verifyAccountContactEmail;
+
+function deleteAccountContactEmail(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation('DeleteAccountContactEmail', inputVars, inputOpts);
+}
+exports.deleteAccountContactEmail = deleteAccountContactEmail;
+
 function deactivateAccount(dcOrVarsOrOptions, varsOrOptions, options) {
   const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
@@ -363,6 +384,20 @@ function getAccountByFirebaseUid(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery('GetAccountByFirebaseUid', inputVars, inputOpts);
 }
 exports.getAccountByFirebaseUid = getAccountByFirebaseUid;
+
+function listAccountContactEmails(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('ListAccountContactEmails', inputVars, inputOpts);
+}
+exports.listAccountContactEmails = listAccountContactEmails;
+
+function getAccountContactEmailByToken(dcOrVarsOrOptions, varsOrOptions, options) {
+  const { dc: dcInstance, vars: inputVars, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery('GetAccountContactEmailByToken', inputVars, inputOpts);
+}
+exports.getAccountContactEmailByToken = getAccountContactEmailByToken;
 
 function listStores(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts} = validateAdminArgs(connectorConfig, dcOrOptions, options, undefined);

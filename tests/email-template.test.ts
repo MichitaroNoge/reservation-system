@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { renderTemplate, validateTemplate } from "../lib/email/template-renderer";
+import { defaultEmailTemplates } from "../lib/email/email-template-catalog";
+import { renderTemplatePreview } from "../lib/email/template-preview";
+import { apiErrorResponse } from "../lib/api-validation";
 
 test("email template expands variables in subject and body", () => {
   const result = renderTemplate("reservation_received", "受付 {{reservationId}}", "{{customerName}} 様 {{numberOfGuests}}名", {
@@ -10,6 +13,19 @@ test("email template expands variables in subject and body", () => {
   });
   assert.equal(result.subject, "受付 RSV-1001");
   assert.equal(result.body, "山田太郎 様 20名");
+});
+
+test("all default email templates render in the management preview", () => {
+  for (const template of defaultEmailTemplates()) {
+    const rendered = renderTemplatePreview(template.templateKey as Parameters<typeof renderTemplatePreview>[0], template.subject, template.body);
+    assert.ok(rendered.subject);
+    assert.doesNotMatch(rendered.body, /{{/);
+  }
+});
+
+test("template field validation returns 400 instead of an internal server error", async () => {
+  try { validateTemplate("reservation_received", "", "本文"); assert.fail("expected validation failure"); }
+  catch (error) { const response = apiErrorResponse(error); assert.equal(response.status, 400); assert.match((await response.json()).error, /件名/); }
 });
 
 test("email template rejects unknown and malformed variables", () => {

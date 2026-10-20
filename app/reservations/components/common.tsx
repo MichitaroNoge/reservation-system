@@ -26,7 +26,11 @@ export function InfoMetric({ icon, label, value, color }: { icon?: string; label
   return <div className="flex items-center gap-3 py-4">{icon && <span className="grid size-10 place-items-center rounded-md bg-primary/10 text-primary"><Icon name={icon}/></span>}<div><p className="text-xs text-muted-foreground">{label}</p><strong className="text-2xl">{value}<small className="ml-1 text-xs font-medium text-muted-foreground">件</small></strong></div></div>;
 }
 
+export function TaskGrid({ children }: { children: ReactNode }) {
+  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">{children}</div>;
+}
+
 export function Task({ color, title, count, text, onClick }: { color: string; title: string; count?: number; text: string; onClick?: () => void }) {
   const variant = color === "red" ? "destructive" : color === "amber" ? "warning" : color === "green" ? "success" : "default";
-  return <Button variant="outline" className="h-auto min-h-16 w-full justify-start whitespace-normal p-4 text-left" onClick={onClick}><span className={`h-8 w-1 shrink-0 rounded-full ${color === "red" ? "bg-destructive" : color === "amber" ? "bg-warning" : color === "green" ? "bg-success" : "bg-primary"}`}/><span className="min-w-0 flex-1"><strong className="flex items-center gap-2 text-sm">{title}{count !== undefined && <Badge variant={variant}>{count}件</Badge>}</strong><small className="mt-1 block font-normal text-muted-foreground">{text}</small></span><Icon name="arrow"/></Button>;
+  return <Button variant="outline" className="h-auto min-h-16 w-full justify-start min-w-0 whitespace-normal p-4 text-left" onClick={onClick}><span className={`h-8 w-1 shrink-0 rounded-full ${color === "red" ? "bg-destructive" : color === "amber" ? "bg-warning" : color === "green" ? "bg-success" : "bg-primary"}`}/><span className="min-w-0 flex-1"><strong className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">{title}{count !== undefined && <Badge variant={variant}>{count}件</Badge>}</strong><small className="mt-1 block font-normal text-muted-foreground">{text}</small></span><Icon name="arrow"/></Button>;
 }

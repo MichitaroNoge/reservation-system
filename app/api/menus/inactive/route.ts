@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     await requireAdmin(request);
-    const menus = await getReservationRepository().listInactiveMenus();
+    const menus = await (await getReservationRepository()).listInactiveMenus();
     return NextResponse.json({ menus });
   } catch (error) {
     return apiErrorResponse(error);

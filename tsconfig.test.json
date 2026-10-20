@@ -17,5 +17,6 @@
     "lib/repositories/in-memory-reservation-repository.ts",
     "lib/repositories/reservation-repository.ts",
     "tests/**/*.ts"
-  ]
+  ],
+  "exclude": ["tests/db/**"]
 }

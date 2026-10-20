@@ -8,6 +8,7 @@ export const emailTemplateKeys = [
   "reservation_change_approved",
   "cancellation_approved",
   "account_email_changed",
+  "additional_email_verification",
 ] as const;
 
 export type EmailTemplateKey = typeof emailTemplateKeys[number];
@@ -48,6 +49,12 @@ export const emailTemplateDefinitions: Record<EmailTemplateKey, {
     variables: { customerName: "顧客名", oldEmail: "変更前メールアドレス", newEmail: "変更後メールアドレス", changedAt: "変更日時" },
     subject: "メールアドレスが変更されました",
     body: "{{customerName}} 様\n\nアカウントのメールアドレスが変更されました。\n\n変更前: {{oldEmail}}\n変更後: {{newEmail}}\n変更日時: {{changedAt}}\n\nこの変更に心当たりがない場合は、店舗までお問い合わせください。",
+  },
+  additional_email_verification: {
+    name: "追加連絡先メール確認",
+    variables: { customerName: "顧客名", email: "追加メールアドレス", verificationUrl: "確認URL", expiresAt: "有効期限" },
+    subject: "追加連絡先メールアドレスの確認",
+    body: "{{customerName}} 様\n\n予約案内の追加送信先として {{email}} が登録されました。\n以下のリンクを開いて登録を完了してください。\n\n{{verificationUrl}}\n\n有効期限: {{expiresAt}}\n心当たりがない場合は、このメールを破棄してください。",
   },
 };
 

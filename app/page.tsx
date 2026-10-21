@@ -1,12 +1,15 @@
 "use client";
-import { cancellationPolicyVersion, policyConsentDetail, type CancellationPolicyAgreementInput } from "@/lib/cancellation-policy-consent";
+import { cancellationPolicyVersion, type CancellationPolicyAgreementInput } from "@/lib/cancellation-policy-consent";
 import { ReservationInquiryHistoryButton } from "@/components/inquiries/reservation-inquiry-history";
+import { ReservationChangeReviewDialog } from "./reservations/components/reservation-change-review-dialog";
 import { InquiryManagement } from "@/components/inquiries/inquiry-management";
 import Link from "next/link";
 import { PolicyConsentHistory } from "./reservations/components/policy-consent-history";
 import { CancellationPolicyAgreement } from "./reservations/components/cancellation-policy-agreement";
-import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange } from "@/lib/cancellation-policy";
+import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange, reservationChangeFeeContext } from "@/lib/cancellation-policy";
+import { matchesPendingReservationChange } from "@/lib/reservation-change";
 import { earliestReservationDate } from "@/lib/reservation-lead-time";
+import { ReservationFeeReconfirmation } from "./reservations/components/reservation-fee-reconfirmation";
 import { CustomerRequestSubmit } from "./reservations/components/customer-request-submit";
 import { CustomerAuthLink } from "./reservations/components/customer-auth-link";
 import { usePathname } from "next/navigation";
@@ -15,6 +18,7 @@ import { GoogleCustomerAuthProvider, GoogleCustomerButton, CustomerLoginMethods,
 import { ReservationCsvExport } from "./reservations/components/reservation-csv-export";
 import { matchesReservation, compareReservations, type ReservationSearch } from "@/lib/reservation-search";
 import { OtherSettingsManagement } from "./reservations/components/other-settings-management";
+import { ReservationNotificationManagement } from "./reservations/components/reservation-notification-management";
 
 import {
   Fragment,
@@ -48,7 +52,7 @@ import {
   duplicateAssignmentStores,
   reservationAssignments,
 } from "@/lib/domain";
-import { requestJson } from "./reservations/api-client";
+import { ApiRequestError, requestJson } from "./reservations/api-client";
 import { applyAccountToReservationForm } from "./reservations/customer-form";
 import { ReservationSubmission } from "./reservations/reservation-submission";
 import { AdminAuthShell, AdminLogin } from "./reservations/components/auth";
@@ -220,6 +224,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Reservation | null>(null);
   const [formStep, setFormStep] = useState(1);
   const [view, setView] = useState<View>("dashboard");
+  useEffect(() => { if (new URL(window.location.href).searchParams.has("googleCalendar")) setView("otherSettings"); }, []);
   const [reservationFilter, setReservationFilter] =
     useState<ReservationFilter>("すべて");
   const [reservationDateFromFilter, setReservationDateFromFilter] =
@@ -453,8 +458,8 @@ export default function Home() {
       if (approvalEmail?.status === "failed") { notify("予約の更新は完了しましたが、承認メールを送信できませんでした。通知の再試行が必要です。", "error"); return true; }
       notify(`予約を「${statusLabel(status)}」へ更新しました`);
       return true;
-    } catch {
-      notify("ステータス更新の保存に失敗しました");
+    } catch (error) {
+      notify(error instanceof ApiRequestError ? error.message : "ステータス更新の保存に失敗しました。", "error");
       return false;
     }
   };
@@ -489,8 +494,8 @@ export default function Home() {
           : "店舗割当を保存しました",
       );
       return true;
-    } catch {
-      notify("店舗割当の保存に失敗しました");
+    } catch (error) {
+      notify(error instanceof ApiRequestError ? error.message : "店舗割当の保存に失敗しました。", "error");
       return false;
     }
   };
@@ -575,6 +580,8 @@ export default function Home() {
       requestedMenuItems: string[];
       reason?: string;
       cancellationFeeAcknowledged?: boolean;
+      cancellationFeeContext?: string | null;
+      expectedRevision?: number;
     },
     options?: { authToken?: string },
   ) => {
@@ -607,8 +614,10 @@ export default function Home() {
       setSelected((s) => (s?.id === reservation.id ? reservation : s));
       if (approvalEmail?.status === "failed") { notify("予約変更の承認は完了しましたが、通知メールを送信できませんでした。通知の再試行が必要です。", "error"); return; }
       notify(`予約変更を承認しました（${reservation.id}）`);
-    } catch {
-      notify("予約変更承認の保存に失敗しました");
+    } catch (error) {
+      const message = error instanceof ApiRequestError ? error.message : "予約変更承認の保存に失敗しました。時間をおいて再度お試しください。";
+      notify(message, "error");
+      return message;
     }
   };
   const rejectReservationChangeRequest = async (id: string) => {
@@ -1168,7 +1177,7 @@ export default function Home() {
                 view === "customers" ||
                 view === "stores" ||
                 view === "menus" ||
-                view === "otherSettings" || view === "emailTemplates",
+                view === "otherSettings" || view === "emailTemplates" || view === "reservationNotifications",
             )}
             onClick={() => setView("masters")}
           >
@@ -1221,6 +1230,7 @@ export default function Home() {
                 reservationCalendar: "予約カレンダー",
                 storeAssignments: "店舗割当",
                 inquiries: "問い合わせ管理",
+                reservationNotifications: "予約通知メール",
                 bookingReminders: "本予約の催促",
                 menuReminders: "メニュー確定の催促",
                 masters: "マスタ管理",
@@ -1539,7 +1549,7 @@ function ManagementPage({
 }: {
   view: Exclude<View, "dashboard">;
   onSelectMasterView: (
-    view: "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings",
+    view: "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings" | "reservationNotifications",
   ) => void;
   getAdminToken: () => Promise<string>;
   reservations: Reservation[];
@@ -1582,7 +1592,7 @@ function ManagementPage({
   onDeleteStore: (name: string) => Promise<void>;
   onReactivateStore: (store: Store) => Promise<void>;
   onOpenNewReservation: () => void;
-  onApproveChangeRequest: (id: string) => Promise<void>;
+  onApproveChangeRequest: (id: string) => Promise<string | undefined>;
   onRejectChangeRequest: (id: string) => Promise<void>;
 }) {
   const [reservationSort, setReservationSort] = useState<{
@@ -1657,7 +1667,7 @@ function ManagementPage({
     );
   };
   const isMasterChildView =
-    view === "customers" || view === "stores" || view === "menus" || view === "otherSettings" || view === "emailTemplates";
+    view === "customers" || view === "stores" || view === "menus" || view === "otherSettings" || view === "emailTemplates" || view === "reservationNotifications";
   return (
     <main className="management">
       {isMasterChildView && (
@@ -1708,6 +1718,7 @@ function ManagementPage({
           onRejectChangeRequest={onRejectChangeRequest}
         />
       )}
+      {view === "reservationNotifications" && <ReservationNotificationManagement getAdminToken={getAdminToken} />}
       {view === "otherSettings" && <OtherSettingsManagement getAdminToken={getAdminToken} />}
       {view === "masters" && (
         <MasterManagementPage onSelectMasterView={onSelectMasterView} />
@@ -2726,6 +2737,7 @@ function CustomerReservationDashboard({
   onConfirmedChange,
   onChange,
   onCancellation,
+  onReconfirmChange,
 }: {
   getCustomerToken: () => Promise<string>;
   customerIdentity: string;
@@ -2757,6 +2769,7 @@ function CustomerReservationDashboard({
   onConfirmedChange: (reservation: Reservation) => void;
   onChange: (reservation: Reservation) => void;
   onCancellation: (reservation: Reservation) => void;
+  onReconfirmChange: (request: ReservationChangeRequest) => void;
 }) {
   return (
     <>
@@ -2850,6 +2863,7 @@ function CustomerReservationDashboard({
                       (request) => request.reservationId === reservation.id,
                     )}
                   />
+                  {canRequestChange(reservation) && changeRequests.filter(item => item.reservationId === reservation.id).map(item => <ReservationFeeReconfirmation key={item.id} reservation={reservation} request={item} onReconfirm={onReconfirmChange} />)}
                   <div className="col-span-full"><ReservationInquiryHistoryButton key={`${customerIdentity}:${reservation.id}`} reservationNumber={reservation.id} audience="customer" getToken={getCustomerToken} /></div>
                   <ReservationActionButtons
                     reservation={reservation}
@@ -2966,6 +2980,7 @@ function CustomerRequestForms({
   confirmedChangeForm,
   changeRequestForm,
   changeReservation,
+  changeRequests,
   cancellationReservation,
   confirmedChangeSubmitted,
   changeRequestSubmitted,
@@ -2988,6 +3003,7 @@ function CustomerRequestForms({
   confirmedChangeForm: CustomerContactRequestForm;
   changeRequestForm: CustomerReservationChangeRequestForm;
   changeReservation?: Reservation;
+  changeRequests: ReservationChangeRequest[];
   cancellationReservation?: Reservation;
   confirmedChangeSubmitted: boolean;
   changeRequestSubmitted: boolean;
@@ -3027,6 +3043,7 @@ function CustomerRequestForms({
       <CustomerChangeRequestForm
         form={changeRequestForm}
         reservation={changeReservation}
+        changeRequests={changeRequests}
         submitted={changeRequestSubmitted}
         isSubmitting={isSubmittingChangeRequest}
         canSubmit={canSubmitChangeRequest}
@@ -3108,6 +3125,7 @@ function CustomerConfirmedChangeForm({
 function CustomerChangeRequestForm({
   form,
   reservation,
+  changeRequests,
   submitted,
   isSubmitting,
   canSubmit,
@@ -3118,6 +3136,7 @@ function CustomerChangeRequestForm({
 }: {
   form: CustomerReservationChangeRequestForm;
   reservation?: Reservation;
+  changeRequests: ReservationChangeRequest[];
   submitted: boolean;
   isSubmitting: boolean;
   canSubmit: boolean;
@@ -3126,11 +3145,21 @@ function CustomerChangeRequestForm({
   onFormChange: Dispatch<SetStateAction<CustomerReservationChangeRequestForm>>;
   onSubmit: (acknowledged?: boolean) => void | Promise<void>;
 }) {
+  const versionBooking = useRef("");
+  const selectedBookingId = reservation?.id, selectedBookingRevision = reservation?.revision ?? 0;
+  useEffect(() => {
+    if (!selectedBookingId) { versionBooking.current = ""; return; }
+    if (versionBooking.current !== selectedBookingId) {
+      versionBooking.current = selectedBookingId;
+      onFormChange(current => ({ ...current, expectedRevision: selectedBookingRevision }));
+    }
+  }, [selectedBookingId, selectedBookingRevision, onFormChange]);
   const {policy,error:policyError}=useReservationPolicy();
   const notice = reservation ? cancellationFeeNotice(reservation, form.requestedPeople) : null;
   const peopleOnly = reservation ? isFeeExemptPeopleOnlyChange({ ...reservation, menuItems: reservation.menuItems ?? [] }, form) : false;
   const minimumDate = peopleOnly ? earliestReservationDate(1) : policy?.minimumDate;
-  const dateBlocked = !policy || !reservation || !minimumDate || !form.requestedDate || form.requestedDate < minimumDate || reservation.date < minimumDate;
+  const pendingRequest = changeRequests.find(item => matchesPendingReservationChange(item, form));
+  const dateBlocked = !policy || !reservation || !minimumDate || !form.requestedDate || (!pendingRequest && (form.requestedDate < minimumDate || reservation.date < minimumDate));
   return (
     <>
       <button className="portal-back-button" type="button" onClick={onBack}>
@@ -3159,7 +3188,7 @@ function CustomerChangeRequestForm({
               変更希望日
               <input
                 type="date"
-                min={minimumDate}
+                min={pendingRequest ? undefined : minimumDate}
                 aria-invalid={Boolean(form.requestedDate && dateBlocked)}
                 value={form.requestedDate}
                 onChange={(event) =>
@@ -3210,6 +3239,7 @@ function CustomerChangeRequestForm({
           <div className="form-nav">
             <button onClick={onBack}>戻る</button>
           </div>
+          {pendingRequest && notice && <p className="mt-3 text-sm text-muted-foreground">受付済みの変更内容です。案内を確認して申請すると、この申請の確認記録を更新します。</p>}
           <CustomerRequestSubmit key={JSON.stringify(form)} notice={notice} disabled={!canSubmit || dateBlocked || !Number.isInteger(form.requestedPeople) || form.requestedPeople < 1 || form.requestedPeople > 999} isSubmitting={isSubmitting} onSubmit={onSubmit} />
         </div>
       )}
@@ -3541,9 +3571,16 @@ function ReservationChangeRequestPage({
 }: {
   requests: ReservationChangeRequest[];
   reservations: Reservation[];
-  onApproveChangeRequest: (id: string) => Promise<void>;
+  onApproveChangeRequest: (id: string) => Promise<string | undefined>;
   onRejectChangeRequest: (id: string) => Promise<void>;
 }) {
+  const [actionError, setActionError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const busyRef = useRef(false);
+  const approve = async (id: string) => {
+    if (busyRef.current) return; busyRef.current = true; setBusyId(id); setActionError("");
+    try { setActionError((await onApproveChangeRequest(id)) ?? ""); } finally { busyRef.current = false; setBusyId(null); }
+  };
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const selectedRequest = requests.find((request) => request.id === selectedRequestId);
   const [search, setSearch] = useState("");
@@ -3552,6 +3589,7 @@ function ReservationChangeRequestPage({
   return (
     <section className="panel management-panel change-request-screen">
       <ReservationSearchToolbar count={filteredRows.length} search={search} onSearch={setSearch} />
+      {actionError && <p role="alert" className="border-b border-destructive/30 px-5 py-4 text-sm text-destructive">{actionError}</p>}
       {filteredRows.length > 0 ? (
         <div className="table-wrap">
           <table className="large-table change-request-table">
@@ -3630,12 +3668,13 @@ function ReservationChangeRequestPage({
                         <button
                           type="button"
                           className="primary"
+                          disabled={!!busyId}
                           onClick={(event) => {
                             event.stopPropagation();
-                            onApproveChangeRequest(request.id);
+                            void approve(request.id);
                           }}
                         >
-                          承認
+                          {busyId === request.id ? "処理中…" : "承認"}
                         </button>
                       </div>
                     </td>
@@ -3651,7 +3690,7 @@ function ReservationChangeRequestPage({
         </div>
       )}
       {selectedRequest && (
-        <ReservationChangeReviewDrawer
+        <ReservationChangeReviewDialog
           request={selectedRequest}
           reservation={reservations.find((item) => item.id === selectedRequest.reservationId)}
           onClose={() => setSelectedRequestId(null)}
@@ -3661,71 +3700,11 @@ function ReservationChangeRequestPage({
   );
 }
 
-function ReservationChangeReviewDrawer({ request, reservation: r, onClose }: {
-  request: ReservationChangeRequest;
-  reservation?: Reservation;
-  onClose: () => void;
-}) {
-  const menuLabel = (items: string[]) => items.length ? items.join("、") : "メニュー未選択";
-  const rows = [
-    { label: "利用日", before: request.currentDate.replaceAll("-", "/"), after: request.requestedDate.replaceAll("-", "/"), changed: request.currentDate !== request.requestedDate },
-    { label: "開始時間", before: request.currentStartTime, after: request.requestedStartTime, changed: request.currentStartTime !== request.requestedStartTime },
-    { label: "予定人数", before: `${request.currentPeople}名`, after: `${request.requestedPeople}名`, changed: request.currentPeople !== request.requestedPeople },
-    { label: "メニュー", before: menuLabel(request.currentMenuItems), after: menuLabel(request.requestedMenuItems), changed: JSON.stringify([...request.currentMenuItems].sort()) !== JSON.stringify([...request.requestedMenuItems].sort()) },
-  ];
-  const details = r ? [
-    ["予約区分", reservationBookingTypeLabel(r)], ["お客様 / 会社・支店名", r.customer],
-    ["電話番号", r.phone], ["メールアドレス", r.email], ["住所", r.address],
-    ["現在の利用日時", reservationDateTimeLabel(r)], ["支払条件", paymentConditionLabel(r.paymentCondition)],
-    ["担当店舗", assignmentLabel(r) || "未割当"], ["確認連絡", r.confirmationContactedAt ? "連絡済み" : "未連絡"],
-    ...(r.bookingType === "travel_agency_group" ? [
-      ["予約担当者名", r.bookingContactName], ["当日責任者名", r.dayContactName], ["当日責任者携帯番号", r.dayContactPhone],
-      ["団体名", r.groupName], ["団体ふりがな", r.groupNameKana], ["団体種別", r.groupType === "その他" ? r.groupTypeOther || r.groupType : r.groupType],
-      ["T/C", `${r.tcCount ?? 0}名`], ["D/G", `${r.dgCount ?? 0}名`],
-    ] : []), ["備考", r.remarks],
-    ...(r.policyConsents ?? []).map((consent, index) => [`キャンセルポリシー同意記録 ${index + 1}`, policyConsentDetail(consent)]),
-  ] : [["お客様名", request.customer], ["電話番号", request.phone], ["メールアドレス", request.email]];
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
-    const previousFocus = document.activeElement as HTMLElement | null;
-    document.getElementById("change-review-close")?.focus();
-    document.addEventListener("keydown", handleKey);
-    return () => { document.removeEventListener("keydown", handleKey); previousFocus?.focus(); };
-  }, [onClose]);
-  return (
-    <>
-      <div className="drawer-shade" onClick={onClose} />
-      <aside role="dialog" aria-label="予約変更内容の確認" className="fixed inset-y-0 right-0 z-[21] flex w-full max-w-[640px] flex-col border-l border-border bg-background text-foreground shadow-lg">
-        <header className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div><p className="text-sm text-muted-foreground">予約変更内容の確認 · 閲覧のみ</p><h2 className="text-xl font-semibold">{request.reservationId}</h2>{r && <p className="mt-1 text-sm">{reservationDisplayLabel(r)}</p>}</div>
-          <Button id="change-review-close" type="button" variant="ghost" size="icon" aria-label="閉じる" onClick={onClose}><Icon name="close" /></Button>
-        </header>
-        <div className="overflow-y-auto p-5">
-          <section aria-labelledby="change-review-heading">
-            <h3 id="change-review-heading" className="font-semibold">変更前・変更後 <span className="text-sm text-primary">{rows.filter((row) => row.changed).length}項目の変更</span></h3>
-            <p className="mt-1 text-sm text-muted-foreground">申請日時：{dateTimeMinuteLabel(request.requestedAt)}</p>
-            <div className="mt-4 overflow-x-auto rounded-md border border-border">
-              <table className="w-full table-fixed text-left text-sm">
-                <thead className="bg-muted"><tr><th className="w-24 p-3">項目</th><th className="p-3">変更前</th><th className="p-3">変更後（希望）</th></tr></thead>
-                <tbody>{rows.map((row) => <tr key={row.label} className={row.changed ? "border-t border-border bg-accent/40" : "border-t border-border"}><th className="p-3 align-top font-medium">{row.label}<span className={row.changed ? "mt-1 block text-xs text-primary" : "mt-1 block text-xs text-muted-foreground"}>{row.changed ? "変更あり" : "変更なし"}</span></th><td className="break-words p-3 align-top">{row.before}</td><td className={"break-words p-3 align-top " + (row.changed ? "font-semibold text-primary" : "")}>{row.after}</td></tr>)}</tbody>
-              </table>
-            </div>
-            <div className="mt-4"><h4 className="text-sm font-medium">変更理由</h4><p className="mt-1 whitespace-pre-wrap break-words text-sm">{request.reason || "記載なし"}</p></div>
-          </section>
-          <section className="mt-6 border-t border-border pt-5"><h3 className="font-semibold">予約の基本情報（現在）</h3>
-            {!r && <p role="status" className="mt-2 text-sm text-muted-foreground">予約の基本情報を取得できません。申請時の顧客情報を表示しています。</p>}
-            <dl className="mt-3">{details.map(([label, value]) => <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 border-b border-border py-3 text-sm"><dt className="text-muted-foreground">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || "-"}</dd></div>)}</dl>
-          </section>
-        </div>
-      </aside>
-    </>
-  );
-}
 
 function MasterManagementPage({
   onSelectMasterView,
 }: {
-  onSelectMasterView: (view: "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings") => void;
+  onSelectMasterView: (view: "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings" | "reservationNotifications") => void;
 }) {
   return (
     <section className="master-management-page">
@@ -3757,6 +3736,7 @@ function MasterManagementPage({
           <span><strong>メールテンプレート管理</strong></span>
           <Icon name="arrow" />
         </button>
+        <button type="button" onClick={() => onSelectMasterView("reservationNotifications")}><Mail /><span><strong>予約通知メール</strong></span><Icon name="arrow" /></button>
       </div>
     </section>
   );
@@ -5455,6 +5435,7 @@ type CustomerContactRequestForm = {
   phone: string;
 };
 type CustomerReservationChangeRequestForm = CustomerContactRequestForm & {
+  expectedRevision?: number;
   requestedDate: string;
   requestedStartTime: string;
   requestedPeople: number;
@@ -5506,6 +5487,8 @@ function CustomerPortal({
       requestedMenuItems: string[];
       reason?: string;
       cancellationFeeAcknowledged?: boolean;
+      cancellationFeeContext?: string | null;
+      expectedRevision?: number;
     },
     options?: { authToken?: string },
   ) => Promise<ReservationChangeRequest>;
@@ -5561,7 +5544,7 @@ function CustomerPortal({
     useState(false);
   const [confirmedChangeSubmitted, setConfirmedChangeSubmitted] =
     useState(false);
-  const [changeRequestForm, setChangeRequestForm] = useState({
+  const [changeRequestForm, setChangeRequestForm] = useState<CustomerReservationChangeRequestForm>({
     reservationId: "",
     email: "",
     phone: "",
@@ -6128,10 +6111,13 @@ function CustomerPortal({
         return;
       }
       const authToken = await customerUser.getIdToken();
+      const currentReservation = accountReservations.find(item => item.id === changeRequestForm.reservationId.trim().toUpperCase());
       const request = await onSubmitChangeRequest(
         {
           reservationId: changeRequestForm.reservationId.trim(),
           cancellationFeeAcknowledged,
+          expectedRevision: changeRequestForm.expectedRevision,
+          cancellationFeeContext: cancellationFeeAcknowledged && currentReservation ? reservationChangeFeeContext(currentReservation, changeRequestForm.requestedPeople) : null,
           email: changeRequestForm.email.trim() || undefined,
           phone: changeRequestForm.phone.trim() || undefined,
           requestedDate: changeRequestForm.requestedDate,
@@ -6168,6 +6154,7 @@ function CustomerPortal({
   const startReservationChangeFromReservation = (reservation: Reservation) => {
     setChangeRequestForm({
       reservationId: reservation.id,
+      expectedRevision: reservation.revision ?? 0,
       email: reservation.email ?? customerUser?.email ?? "",
       phone: reservation.phone,
       requestedDate: reservation.date,
@@ -6176,6 +6163,11 @@ function CustomerPortal({
       requestedMenuItems: reservation.menuItems ?? [],
       reason: "",
     });
+    setChangeRequestSubmitted(false);
+    setPortalMode("change");
+  };
+  const reconfirmReservationChange = (request: ReservationChangeRequest) => {
+    setChangeRequestForm({ reservationId: request.reservationId, expectedRevision: accountReservations.find(r => r.id === request.reservationId)?.revision ?? 0, email: request.email ?? customerUser?.email ?? "", phone: request.phone, requestedDate: request.requestedDate, requestedStartTime: request.requestedStartTime, requestedPeople: request.requestedPeople, requestedMenuItems: request.requestedMenuItems, reason: request.reason ?? "" });
     setChangeRequestSubmitted(false);
     setPortalMode("change");
   };
@@ -6375,6 +6367,7 @@ function CustomerPortal({
                 }}
                 onConfirmedChange={startConfirmedChangeFromReservation}
                 onChange={startReservationChangeFromReservation}
+                onReconfirmChange={reconfirmReservationChange}
                 onCancellation={startCancellationFromReservation}
               />
             )}
@@ -6842,6 +6835,7 @@ function CustomerPortal({
                 mode={portalMode}
                 confirmedChangeForm={confirmedChangeForm}
                 changeRequestForm={changeRequestForm}
+                changeRequests={accountChangeRequests}
                 changeReservation={accountReservations.find(reservation => reservation.id === changeRequestForm.reservationId.trim().toUpperCase())}
                 cancellationReservation={accountReservations.find((reservation) => reservation.id === cancellationForm.reservationId)}
                 confirmedChangeSubmitted={confirmedChangeSubmitted}

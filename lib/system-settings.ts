@@ -12,6 +12,7 @@ export const acceptanceBlockSchema = z.object({
   reason: z.string().trim().max(200, "理由は200文字以内で入力してください。"),
 }).strict().refine(value => value.start < value.end, { path: ["end"], message: "終了は開始より後の日時にしてください。" });
 export const systemSettingsSchema = z.object({
+  revision: z.number().int().nonnegative().optional(),
   acceptanceCapacity: z.number().int("整数で入力してください。").min(0, "0以上で入力してください。").max(99999, "99999以下で入力してください。").nullable(),
   reservationLeadDays: z.number().int("日数は整数で入力してください。").min(0, "0以上で入力してください。").max(365, "365以下で入力してください。").optional(),
   blockedPeriods: z.array(acceptanceBlockSchema).max(200, "受入不可期間は200件以内で設定してください。").optional(),

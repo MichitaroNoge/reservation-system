@@ -1,4 +1,5 @@
 import type { Reservation, ReservationStatus } from "./domain";
+import { cancellationPolicyVersion } from "./cancellation-policy-consent";
 
 export function isCompletedBooking(status: ReservationStatus) {
   return ["confirmed", "waiting_for_visit", "visited"].includes(status);
@@ -19,6 +20,12 @@ export function cancellationFeeNotice(reservation: PolicyReservation, requestedP
 }
 
 type PeopleChange = { requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[] };
+/** Bind the displayed notice to the exact fee conditions, on both client and server. */
+export function reservationChangeFeeContext(reservation: PolicyReservation, requestedPeople: number): string | null {
+  const notice = cancellationFeeNotice(reservation, requestedPeople);
+  return notice ? JSON.stringify([cancellationPolicyVersion, notice.kind, reservation.initialConfirmedPeople ?? null, reservation.people, requestedPeople]) : null;
+}
+
 export function isFeeExemptPeopleOnlyChange(reservation: PolicyReservation & Pick<Reservation, "date" | "startTime" | "menuItems">, input: PeopleChange) {
   const left = [...reservation.menuItems].sort();
   const right = [...input.requestedMenuItems].sort();

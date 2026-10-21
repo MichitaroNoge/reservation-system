@@ -76,17 +76,19 @@ export function InquiryManagement({ getAdminToken, onOpenReservation }: { getAdm
 const replyFormSchema = inquiryReplySchema.pick({ subject: true, body: true });
 function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation }: { number: string; getAdminToken: () => Promise<string>; onClose: () => void; onOpenReservation: (number: string) => void }) {
   const [detail, setDetail] = useState<InquiryDetail | null>(null), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(""), [success, setSuccess] = useState(""), [confirm, setConfirm] = useState(false);
+  const [resolution, setResolution] = useState<{ id: string; outcome: "sent" | "not_sent" } | null>(null);
+  const [checkedDelivery, setCheckedDelivery] = useState(false);
   const requestKey = useRef<string>(""), sending = useRef(false), tokenRef = useRef(getAdminToken); tokenRef.current = getAdminToken;
   const form = useForm<{ subject: string; body: string }>({ resolver: zodResolver(replyFormSchema), defaultValues: { subject: "", body: "" } });
   const load = useCallback(async () => { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}`, { authToken: await tokenRef.current() }); setDetail(result); return result; }, [number]);
   useEffect(() => { let cancelled = false; void (async () => { try { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}`, { authToken: await tokenRef.current() }); if (!cancelled) { setDetail(result); form.reset({ subject: `Re: ${result.inquiry.subject}`.slice(0, 200), body: "" }); } } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "取得できませんでした。"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [number, form]);
   const mutate = async (path: string, body: unknown, method = "POST") => {
     if (sending.current) return; sending.current = true; setBusy(true); setError(""); setSuccess("");
-    try { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}${path}`, { method, authToken: await tokenRef.current(), headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); setDetail(result); setSuccess(path.includes("replies") ? "回答メールを送信しました。" : path.includes("receipt") ? "受付メールを送信しました。" : "対応状況を変更しました。"); if (path.includes("/replies")) { requestKey.current = ""; form.reset({ subject: `Re: ${result.inquiry.subject}`.slice(0, 200), body: "" }); } }
+    try { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}${path}`, { method, authToken: await tokenRef.current(), headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); setDetail(result); setSuccess(path.endsWith("/resolve") ? "送信結果の確認を記録しました。回答の追加と対応状況の変更ができます。" : path.includes("replies") ? "回答メールを送信しました。" : path.includes("receipt") ? "受付メールを送信しました。" : "対応状況を変更しました。"); if (path === "/replies") { requestKey.current = ""; form.reset({ subject: `Re: ${result.inquiry.subject}`.slice(0, 200), body: "" }); } }
     catch (e) { setError(e instanceof Error ? e.message : "処理できませんでした。"); try { await load(); } catch {/* Keep the prior view and the original safe error. */ } }
-    finally { setBusy(false); sending.current = false; setConfirm(false); }
+    finally { setBusy(false); sending.current = false; setConfirm(false); setResolution(null); setCheckedDelivery(false); }
   };
-  const pending = detail?.replies.filter(r => r.emailStatus !== "sent") ?? [];
+  const pending = detail?.replies.filter(r => !["sent", "not_sent"].includes(r.emailStatus)) ?? [];
   const send = form.handleSubmit(values => { if (!detail) return; requestKey.current ||= crypto.randomUUID(); void mutate("/replies", { ...values, revision: detail.inquiry.revision, requestKey: requestKey.current }); });
   return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
     <DialogContent className="max-w-3xl p-5 sm:p-6" onInteractOutside={e => { if (busy) e.preventDefault(); }}>
@@ -106,10 +108,10 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation 
         </InquiryContent>
         {pending.length > 0 && <section className="mt-5 space-y-3 rounded-md border border-warning/40 p-4">
           <h2 className="text-sm font-semibold">送信が完了していない回答</h2>
-          <p className="text-xs text-muted-foreground">保存済みの内容・宛先で再試行します。送信中はしばらく待ってください。初回試行から23時間または5回を超えた場合はResendの履歴確認が必要です。</p>{pending.map(r =>
+          <p className="text-xs text-muted-foreground">保存済みの内容・宛先で再試行します。送信中はしばらく待ってください。初回試行から23時間または5回を超えた場合はResendの履歴を確認して「送信結果を確認・記録」から確定してください。回答はメールの結果にかかわらず履歴で公開されています。</p>{pending.map(r =>
             <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
               <span>{mailStatusLabels[r.emailStatus]}</span>
-              <Button variant="outline" disabled={busy} onClick={() => void mutate(`/replies/${r.id}/retry`, {})}>同じ回答を再試行</Button>
+              <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={() => void mutate(`/replies/${r.id}/retry`, {})}>同じ回答を再試行</Button><Button variant="outline" disabled={busy} onClick={() => { setCheckedDelivery(false); setResolution({ id: r.id, outcome: "not_sent" }); }}>送信結果を確認・記録</Button></div>
             </div>)}</section>}
         <div className="my-5 flex flex-wrap items-center gap-2 border-y border-border py-4">
           <span className="mr-2 text-sm">対応状況</span>
@@ -135,6 +137,15 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation 
             <Button type="submit" disabled={busy || pending.length > 0 || detail.inquiry.status === "closed"}>{busy ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <Mail className="mr-2 size-4" />}{busy ? "送信中…" : "回答を確認"}</Button>
           </div>
         </form>
+        <Dialog open={!!resolution} onOpenChange={open => { if (!open && !busy) setResolution(null); }}>
+          <DialogContent className="p-5">
+            <DialogTitle>メールの送信結果を記録</DialogTitle>
+            <DialogDescription>Resendの送信履歴を確認してください。この操作ではメールを再送しません。回答はお客様の履歴画面に残ります。</DialogDescription>
+            <label className="mt-4 grid gap-2 text-sm">確認した結果<select className={controlClass} value={resolution?.outcome ?? "not_sent"} disabled={busy} onChange={e => { if (resolution) setResolution({ ...resolution, outcome: e.target.value as "sent" | "not_sent" }); setCheckedDelivery(false); }}><option value="not_sent">メール送信を終了し、履歴での回答を継続する</option><option value="sent">Resendで送信済みであることを確認した</option></select></label>
+            <label className="mt-4 flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-4" checked={checkedDelivery} disabled={busy} onChange={e => setCheckedDelivery(e.target.checked)} />送信履歴を確認しました。メールを再送せず、この結果を記録します。</label>
+            <div className="mt-5 flex justify-end gap-3"><Button variant="outline" disabled={busy} onClick={() => setResolution(null)}>戻る</Button><Button disabled={busy || !checkedDelivery} onClick={() => { if (resolution) void mutate(`/replies/${resolution.id}/resolve`, { outcome: resolution.outcome, revision: detail.inquiry.revision, confirmed: true }); }}>結果を記録</Button></div>
+          </DialogContent>
+        </Dialog>
         <Dialog open={confirm} onOpenChange={open => { if (!busy) setConfirm(open); }}>
           <DialogContent className="p-5">
             <DialogTitle className="font-semibold">回答メールを送信しますか？</DialogTitle>

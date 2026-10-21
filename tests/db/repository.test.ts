@@ -583,7 +583,7 @@ test("availability API requires admin and returns fresh capacity plus the submit
     assert.equal((await PUT(req({acceptanceCapacity:500}))).status,403);
     admin=true;
     for(const value of [-1,1.5,100000,"200"]) assert.equal((await PUT(req({acceptanceCapacity:value}))).status,400);
-    for(const value of [0,200,null]) {assert.equal((await PUT(req({acceptanceCapacity:value}))).status,200); assert.equal((await repo.getSystemSettings()).acceptanceCapacity,value);}
+    for(const value of [0,200,null]) {assert.equal((await PUT(req({acceptanceCapacity:value,revision:(await repo.getSystemSettings()).revision}))).status,200); assert.equal((await repo.getSystemSettings()).acceptanceCapacity,value);}
   } finally {token.mock.restore();}
 });
 

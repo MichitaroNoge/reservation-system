@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { GoogleCalendarSettings } from "./google-calendar-settings";
 import { Input } from "@/components/ui/input";
 import { systemSettingsSchema } from "@/lib/system-settings";
 import type { SystemSettings } from "@/lib/domain";
@@ -70,5 +71,6 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
     </form>}
     {error && <div role="alert" className="mt-4 text-sm text-destructive"><p>{error}</p><Button type="button" variant="outline" className="mt-2 min-h-11" disabled={isSubmitting} onClick={() => setAttempt(value => value + 1)}>再読み込み</Button></div>}
     {success && <p role="status" className="mt-4 text-sm text-success">設定を保存しました。</p>}
+    <GoogleCalendarSettings getAdminToken={getAdminToken} />
   </section>;
 }

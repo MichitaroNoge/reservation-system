@@ -52,3 +52,11 @@
 - [39. 予約ごとの問い合わせ・回答履歴](39-reservation-inquiry-history-2026-10-20.md)
 
 - [40. メール未送信でも確認できる問い合わせ回答](40-inquiry-replies-without-email-2026-10-20.md)
+
+- [41. 管理者向けGoogleカレンダー連携](41-google-calendar-integration-2026-10-20.md)
+
+- [42. 全体レビューで指摘したP1の修正](42-p1-review-fixes-2026-10-20.md)
+
+- [43. 全体再レビューの8件の改善](43-eight-review-improvements-2026-10-21.md)
+
+- [44. 予約通知メールの専用画面への移設](44-reservation-notification-page-2026-10-21.md)

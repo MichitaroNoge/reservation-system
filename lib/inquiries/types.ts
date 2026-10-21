@@ -6,12 +6,13 @@ export const inquiryCategories = { reservation: "予約について", service: "
 export const inquiryStatuses = { unhandled: "未対応", in_progress: "対応中", answered: "回答済み", closed: "完了" } as const;
 export type InquiryStatus = keyof typeof inquiryStatuses;
 export type InquiryCategory = keyof typeof inquiryCategories;
-export type InquiryMailStatus = "pending" | "sending" | "sent" | "failed" | "unknown";
+export type InquiryMailStatus = "pending" | "sending" | "sent" | "failed" | "unknown" | "not_sent";
 const subject = z.string().trim().min(1, "件名を入力してください。").max(200, "件名は200文字以内です。").refine(v => !/[\r\n\u0000]/.test(v), "件名に改行は使用できません。");
 export const inquiryFormSchema = z.object({ name: z.string().trim().min(1, "氏名を入力してください。").max(100), email: z.string().trim().email("メールアドレスを確認してください。").max(255).transform(v => v.toLowerCase()), category: z.enum(["reservation", "service", "other"]), subject, body: z.string().trim().min(1, "問い合わせ内容を入力してください。").max(5000, "本文は5,000文字以内です。").refine(v => !v.includes("\u0000"), "使用できない文字があります。") });
 export type InquiryFormInput = z.input<typeof inquiryFormSchema>;
 export const inquirySubmissionSchema = inquiryFormSchema.extend({ requestKey: z.string().uuid(), formToken: z.string().max(2048).optional(), website: z.string().max(200).default("") }).strict();
 export const inquiryReplySchema = z.object({ subject, body: z.string().trim().min(1, "回答本文を入力してください。").max(10000).refine(v => !v.includes("\u0000"), "使用できない文字があります。"), requestKey: z.string().uuid(), revision: z.number().int().positive() }).strict();
+export const inquiryMailResolutionSchema = z.object({ outcome: z.enum(["sent", "not_sent"]), revision: z.number().int().positive(), confirmed: z.literal(true) }).strict();
 export const inquiryStatusSchema = z.object({ status: z.enum(["in_progress", "closed"]), revision: z.number().int().positive() }).strict();
 export type Inquiry = {
     number: string;
@@ -36,6 +37,7 @@ export type InquiryReply = {
     createdAt: string;
     adminLabel?: string | null;
     lastError?: string | null;
+    resolution?: { outcome: "sent" | "not_sent"; resolvedAt: string; adminUid: string } | null;
 };
 export type InquiryDetail = {
     inquiry: Inquiry;
@@ -61,7 +63,7 @@ export function parseInquiryQuery(url: URL) { const schema = z.object({ page: z.
     entries[key] = value;
 } return schema.parse(entries); }
 export type InquiryQuery = ReturnType<typeof parseInquiryQuery>;
-export const mailStatusLabels: Record<InquiryMailStatus, string> = { pending: "送信待ち", sending: "送信中", sent: "送信済み", failed: "送信できませんでした", unknown: "送信結果の確認が必要です" };
+export const mailStatusLabels: Record<InquiryMailStatus, string> = { pending: "送信待ち", sending: "送信中", sent: "送信済み", failed: "送信できませんでした", unknown: "送信結果の確認が必要です", not_sent: "メール送信を終了（履歴で回答を公開）" };
 
 /** Reservation history accepts paging only; ownership and reservation IDs are resolved on the server. */
 export function parseReservationInquiryQuery(url: URL): InquiryQuery {

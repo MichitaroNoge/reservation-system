@@ -27,7 +27,7 @@ test("global capacity supports unset and explicit zero independently of stores",
 });
 test("overnight reservations, cancellation requests and temporary-to-confirmed requests retain occupied capacity", () => {
   const target = row("request", "00:30", "01:30", 10);
-  const overnight = {...row("previous", "23:00", "01:00", 30, "cancellation_requested"), date:"2026-10-19"};
+  const overnight = {...row("previous", "23:00", "01:00", 30, "cancellation_requested"), date:"2026-10-19", cancellationPreviousStatus:"confirmed" as const};
   const pendingChange = {...row("change", "00:30", "01:30", 20, "confirmed_requested"), requestType:"confirmed_from_temporary" as const};
   const data = reservationAvailability(target, [overnight,pendingChange], capacity, []);
   assert.equal(data.combined, 60); assert.equal(data.bookedPeak,30); assert.equal(data.pendingPeak,0);

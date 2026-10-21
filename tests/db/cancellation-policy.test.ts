@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { sql } from "drizzle-orm";
 import { createCalendarFixture } from "./calendar-fixture";
+import { reservationChangeFeeContext } from "../../lib/cancellation-policy";
 import { earliestReservationDate } from "../../lib/reservation-lead-time";
 import { getDatabase } from "../../lib/db/client";
 
@@ -28,7 +29,8 @@ test("fee notices and one-day party-size changes are enforced by real APIs and S
     await fixture.repo.updateReservation(booking.id, { people: 40 });
     const cumulative = await change(send(data));
     assert.equal(cumulative.status, 409); assert.match((await cumulative.json()).error, /60名から30名/);
-    const accepted = await change(send({ ...data, cancellationFeeAcknowledged: true }));
+    const feeContext = reservationChangeFeeContext((await fixture.repo.listReservations()).find(r => r.id === booking.id)!, 30);
+    const accepted = await change(send({ ...data, cancellationFeeAcknowledged: true, cancellationFeeContext: feeContext }));
     assert.equal(accepted.status, 201);
     const requestId = (await accepted.json()).request.id;
     await fixture.repo.approveReservationChangeRequest(requestId);

@@ -5,7 +5,7 @@ import { requireAdmin, requireVerifiedFirebaseUser, verifyOptionalFirebaseUser }
 import { getReservationRepository } from "../repositories";
 import { deliverInquiryMail } from "./mail-service";
 import { inquiryRepository, InquiryError } from "./repository";
-import { inquirySubmissionSchema, inquiryReplySchema, inquiryStatusSchema, parseInquiryQuery, parseReservationInquiryQuery } from "./types";
+import { inquirySubmissionSchema, inquiryReplySchema, inquiryStatusSchema, inquiryMailResolutionSchema, parseInquiryQuery, parseReservationInquiryQuery } from "./types";
 import { inquiryError, issueChallenge, json, readBody, sameOrigin, submissionLimits, verifyChallenge } from "./http";
 export async function challenge(request: Request) { try {
     await consumeLimits([{ key: "inquiry:challenge", max: 100, seconds: 60 }]);
@@ -108,5 +108,18 @@ export async function reservationInquiryHistory(request: Request, number: string
         const user = admin ? await requireAdmin(request) : await requireVerifiedFirebaseUser(request);
         const query = parseReservationInquiryQuery(new URL(request.url));
         return json(await (await inquiryRepository()).reservationHistory(number, query, admin ? undefined : user.uid));
+    } catch (error) { return inquiryError(error); }
+}
+
+export async function resolveReplyMail(request: Request, number: string, replyId: string) {
+    try {
+        const admin = await requireAdmin(request);
+        sameOrigin(request);
+        z.string().uuid().parse(replyId);
+        const input = inquiryMailResolutionSchema.parse(await readBody(request));
+        const repo = await inquiryRepository();
+        await repo.resolveReplyMail(number, replyId, input.outcome, input.revision, admin.uid);
+        console.info(JSON.stringify({ event: "inquiry_mail_resolved", number, replyId, outcome: input.outcome, actor: admin.uid }));
+        return json(await repo.detail(number));
     } catch (error) { return inquiryError(error); }
 }

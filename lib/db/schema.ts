@@ -3,6 +3,41 @@
 import { relations } from "drizzle-orm";
 import { pgTable, pgEnum, uuid, jsonb, text, varchar, integer, boolean, date, timestamp, index, primaryKey } from "drizzle-orm/pg-core";
 
+// One administrator-owned calendar. Tokens never leave the server and are encrypted at rest.
+export const googleCalendarConnection = pgTable("google_calendar_connection", {
+  key: text("key").primaryKey(),
+  googleSub: text("google_sub").notNull(),
+  email: text("email").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  calendarId: text("calendar_id"),
+  enabled: boolean("enabled").notNull().default(true),
+  connectedBy: text("connected_by").notNull(),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true, mode: "string" }),
+  lastSuccessAt: timestamp("last_success_at", { withTimezone: true, mode: "string" }),
+  lastError: text("last_error"),
+});
+export const googleCalendarFlow = pgTable("google_calendar_flow", {
+  stateHash: text("state_hash").primaryKey(),
+  browserHash: text("browser_hash").notNull(),
+  uid: text("uid").notNull(),
+  verifier: text("verifier").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+});
+// Transactional outbox, populated by DB triggers even while the connection is paused/offline.
+export const googleCalendarSync = pgTable("google_calendar_sync", {
+  reservationId: uuid("reservation_id").primaryKey().references(() => reservation.id),
+  approvedKind: text("approved_kind"),
+  revision: integer("revision").notNull().default(1),
+  status: text("status").notNull().default("pending"),
+  eventId: uuid("event_id").notNull().defaultRandom(),
+  remotePresent: boolean("remote_present").notNull().default(false),
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  syncedAt: timestamp("synced_at", { withTimezone: true, mode: "string" }),
+  lastError: text("last_error"),
+}, table => [index("google_calendar_sync_due_idx").on(table.status, table.nextAttemptAt)]);
+
 export const abuseLimit = pgTable("abuse_limit", {
   bucketKey: varchar("bucket_key", { length: 64 }).primaryKey(),
   count: integer("count").notNull(),
@@ -114,6 +149,9 @@ export const reservation = pgTable("reservation", {
   remarks: text("remarks"),
   expectedPeople: integer("expected_people").notNull(),
   initialConfirmedPeople: integer("initial_confirmed_people"),
+  revision: integer("revision").notNull().default(0),
+  cancellationPreviousStatus: varchar("cancellation_previous_status", { length: 40 }),
+  receiptEmailNextAttemptAt: timestamp("receipt_email_next_attempt_at", { withTimezone: true, mode: "string" }),
   policyAgreementKind: varchar("policy_agreement_kind", { length: 20 }),
   policyAgreementAcceptedAt: timestamp("policy_agreement_accepted_at", { withTimezone: true, mode: "string" }),
   confirmationContactedAt: timestamp("confirmation_contacted_at", { withTimezone: true, mode: "string" }),
@@ -143,7 +181,9 @@ export const reservationChangeRequest = pgTable("reservation_change_request", {
   requestedDate: date("requested_date", { mode: "string" }).notNull(),
   requestedTime: varchar("requested_time", { length: 5 }).notNull(),
   requestedPeople: integer("requested_people").notNull(),
+  baseRevision: integer("base_revision").notNull().default(0),
   requestedMenuItemsJson: text("requested_menu_items_json").notNull(),
+  feeAcknowledgement: jsonb("fee_acknowledgement").$type<import("../domain").ReservationChangeFeeAcknowledgement>(),
   reason: text("reason"),
   status: reservationChangeRequestStatusEnum("status").notNull(),
   requestedAt: timestamp("requested_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
@@ -155,6 +195,9 @@ export const approvalEmailDelivery = pgTable("approval_email_delivery", {
   deliveryKey: varchar("delivery_key", { length: 180 }).notNull().unique(),
   reservationId: uuid("reservation_id").references(() => reservation.id).notNull(),
   emailType: varchar("email_type", { length: 50 }).notNull(),
+  snapshotKey: text("snapshot_key"),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true, mode: "string" }),
+  stoppedAt: timestamp("stopped_at", { withTimezone: true, mode: "string" }),
   referenceId: varchar("reference_id", { length: 100 }),
   requestedAt: timestamp("requested_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   sentAt: timestamp("sent_at", { withTimezone: true, mode: "string" }),
@@ -338,7 +381,7 @@ export const reservationSubmission = pgTable("reservation_submission", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 }, table => [primaryKey({ columns: [table.firebaseUid, table.requestKey] })]);
 
-export const systemSettings = pgTable("system_settings", { settingKey: text("setting_key").primaryKey(), acceptanceCapacity: integer("acceptance_capacity"), reservationLeadDays: integer("reservation_lead_days").notNull().default(3), blockedPeriods: jsonb("blocked_periods").$type<import("../domain").AcceptanceBlock[]>().notNull().default([]) });
+export const systemSettings = pgTable("system_settings", { settingKey: text("setting_key").primaryKey(), revision: integer("revision").notNull().default(0), acceptanceCapacity: integer("acceptance_capacity"), reservationLeadDays: integer("reservation_lead_days").notNull().default(3), blockedPeriods: jsonb("blocked_periods").$type<import("../domain").AcceptanceBlock[]>().notNull().default([]) });
 
 // Inquiries are independent of reservation workflows; contact snapshots never follow profile edits.
 export const inquiryCategoryEnum = pgEnum("inquiry_category", ["reservation", "service", "other"]);
@@ -368,5 +411,6 @@ export const inquiryReply = pgTable("inquiry_reply", {
   requestKey:uuid("request_key").notNull().unique(),requestHash:varchar("request_hash",{length:64}).notNull(),
   firstAttemptAt:timestamp("first_attempt_at",{withTimezone:true,mode:"string"}),lastAttemptAt:timestamp("last_attempt_at",{withTimezone:true,mode:"string"}),attempts:integer("attempts").notNull().default(0),
   leaseUntil:timestamp("lease_until",{withTimezone:true,mode:"string"}),leaseToken:uuid("lease_token"),lastError:varchar("last_error",{length:50}),
+  resolution: jsonb("resolution").$type<{ outcome: "sent" | "not_sent"; resolvedAt: string; adminUid: string }>(),
   sender:jsonb("sender").$type<import("../inquiries/types").SenderSnapshot>(),
 },t=>[index("inquiry_reply_inquiry_created_idx").on(t.inquiryId,t.createdAt)]);

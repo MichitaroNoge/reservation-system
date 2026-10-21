@@ -1,11 +1,15 @@
 import { policyConsentDetail } from "./cancellation-policy-consent";
 import { menuDurationMinutes, paymentConditionLabel, type AcceptanceBlock, type Menu, type Reservation, type ReservationStatus } from "./domain";
 
-export type AvailabilityReservation = Pick<Reservation, "id" | "date" | "startTime" | "endTime" | "menuItems" | "people" | "status" | "customer" | "requestType" | "tcCount">;
+export type AvailabilityReservation = Pick<Reservation, "id" | "date" | "startTime" | "endTime" | "menuItems" | "people" | "status" | "customer" | "requestType" | "tcCount" | "cancellationPreviousStatus" | "initialConfirmedPeople">;
 const seatedPeople = (r: Pick<Reservation, "people" | "tcCount">) => r.people;
 type Kind = "booked" | "temporary" | "pending";
 export const reservationOccupancyKind = (r: AvailabilityReservation): Kind | null => {
-  if (["confirmed", "waiting_for_visit", "visited", "cancellation_requested"].includes(r.status)) return "booked";
+  if (r.status === "cancellation_requested") {
+    if (r.cancellationPreviousStatus && r.cancellationPreviousStatus !== "cancellation_requested") return reservationOccupancyKind({ ...r, status: r.cancellationPreviousStatus });
+    return r.initialConfirmedPeople != null ? "booked" : "pending";
+  }
+  if (["confirmed", "waiting_for_visit", "visited"].includes(r.status)) return "booked";
   if (r.status === "temporary_confirmed" || (r.status === "confirmed_requested" && r.requestType === "confirmed_from_temporary")) return "temporary";
   return ["temporary_requested", "confirmed_requested"].includes(r.status) ? "pending" : null;
 };

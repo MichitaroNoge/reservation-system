@@ -16,6 +16,7 @@ export async function PUT(request: Request) {
     await requireAdmin(request);
     const result = systemSettingsSchema.safeParse(await readJsonObject(request));
     if (!result.success) throw new ApiValidationError(result.error.issues[0].message);
+    if (result.data.revision === undefined) throw Object.assign(new Error("設定画面を再読み込みしてから保存してください。"), { statusCode: 409 });
     return NextResponse.json({ settings: await (await getReservationRepository()).saveSystemSettings(result.data) });
   } catch (error) { return apiErrorResponse(error); }
 }

@@ -1,3 +1,4 @@
+import { RateLimitError } from "../abuse-limits";
 import type { Reservation } from "../domain";
 import { buildEmailContent } from "../email/email-layout";
 import { reservationTemplateVariables } from "../email/email-template-catalog";
@@ -26,7 +27,7 @@ const defaultMaxRetries = 5;
 
 export async function sendPendingReceiptEmails(repository: ReservationRepository, options: ReceiptEmailServiceOptions = {}): Promise<ReceiptEmailRunResult> {
   const reservations = await repository.listReservations();
-  const pending = reservations.filter((reservation) => isReceiptEmailPending(reservation, options.maxRetries));
+  const pending = reservations.filter((reservation) => isReceiptEmailPending(reservation, options.maxRetries, options.now));
   const result: ReceiptEmailRunResult = { checked: reservations.length, pending: pending.length, sent: 0, skipped: 0, failed: 0, errors: [] };
   if (pending.length === 0) return result;
 
@@ -56,7 +57,7 @@ export async function sendPendingReceiptEmails(repository: ReservationRepository
 export async function sendReceiptEmailForReservation(repository: ReservationRepository, reservationId: string, options: ReceiptEmailServiceOptions = {}) {
   const reservation = (await repository.listReservations()).find((item) => item.id === reservationId);
   if (!reservation) throw new Error(`Reservation not found: ${reservationId}`);
-  if (!reservation.receiptEmailRequestedAt || reservation.receiptEmailSentAt) return reservation;
+  if (!reservation.receiptEmailRequestedAt || reservation.receiptEmailSentAt || (reservation.receiptEmailNextAttemptAt && Date.parse(reservation.receiptEmailNextAttemptAt) > (options.now ?? new Date()).getTime())) return reservation;
   if ((reservation.receiptEmailRetryCount ?? 0) >= (options.maxRetries ?? defaultMaxRetries)) return reservation;
   if (!reservation.email) throw new Error(`Reservation email is required: ${reservation.id}`);
 
@@ -89,13 +90,14 @@ export async function sendReceiptEmailForReservation(repository: ReservationRepo
     const message = error instanceof Error ? error.message : "Unknown email error";
     const delivery = await repository.getEmailDelivery(deliveryKey);
     if (delivery && delivery.status !== "sent") await repository.updateEmailDelivery(deliveryKey, { status: "failed", sentAt: null, lastError: message });
-    await repository.updateReceiptEmailDelivery(reservation.id, { sentAt: null, lastAttemptAt: attemptedAt, retryCount, lastError: message });
+    await repository.updateReceiptEmailDelivery(reservation.id, { sentAt: null, lastAttemptAt: attemptedAt, retryCount: error instanceof RateLimitError ? reservation.receiptEmailRetryCount ?? 0 : retryCount, nextAttemptAt: error instanceof RateLimitError ? new Date(now.getTime() + error.retryAfter * 1000).toISOString() : null, lastError: message });
     throw error;
   }
 }
 
-export function isReceiptEmailPending(reservation: Reservation, maxRetries = defaultMaxRetries) {
+export function isReceiptEmailPending(reservation: Reservation, maxRetries = defaultMaxRetries, now = new Date()) {
   return Boolean(reservation.receiptEmailRequestedAt)
+    && (!reservation.receiptEmailNextAttemptAt || Date.parse(reservation.receiptEmailNextAttemptAt) <= now.getTime())
     && !reservation.receiptEmailSentAt
     && (reservation.receiptEmailRetryCount ?? 0) < maxRetries;
 }

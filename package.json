@@ -10,6 +10,8 @@
     "lint": "eslint app components lib scripts tests drizzle.config.ts next.config.ts",
     "typecheck": "tsc --noEmit --incremental false",
     "dev:local": "tsx scripts/dev.ts",
+    "approval-email:worker": "node --conditions=react-server --import tsx scripts/approval-email-worker.ts",
+    "calendar:worker": "node --conditions=react-server --import tsx scripts/google-calendar-worker.ts",
     "db:up": "tsx scripts/db.ts up",
     "db:stop": "tsx scripts/db.ts stop",
     "db:down": "tsx scripts/db.ts down",

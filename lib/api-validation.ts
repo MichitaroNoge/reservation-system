@@ -198,6 +198,7 @@ export function validateReservationChangeRequestInput(body: Record<string, unkno
   if (!options?.allowMissingContact && !email && !phone) throw new ApiValidationError("email or phone is required.");
   return {
     reservationId,
+    expectedRevision: body.expectedRevision === undefined ? undefined : requireInteger(body.expectedRevision, "expectedRevision", { min: 0, max: 2147483647 }),
     email,
     phone,
     requestedDate: requireIsoDate(body.requestedDate, "requestedDate"),

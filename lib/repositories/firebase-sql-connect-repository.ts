@@ -1,4 +1,5 @@
 import { assertReservationChangeAllowed } from "../domain";
+import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
 import { getDataConnect, type ConnectorConfig, type DataConnect } from "firebase-admin/data-connect";
 import * as generated from "@reservation-system/dataconnect-admin";
 import {
@@ -312,6 +313,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   async createReservationChangeRequest(input: CreateReservationChangeRequestInput) {
+    if (input.feeAcknowledgement) throw Object.assign(new Error("キャンセル料の確認記録を保存するにはDrizzle構成が必要です。"), { statusCode: 503 });
     const reservation = await this.getReservationWithInternalId(input.reservationId);
     if (!reservationMatchesContact(reservation, input)) throw new Error(`Reservation not found: ${input.reservationId}`);
     assertCanRequestReservationChange(reservation);
@@ -333,6 +335,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = await this.getReservationWithInternalId(request.reservationId);
     assertReservationChangeAllowed(reservation.status);
+    await assertReservationChangeApproval(this, reservation, request);
     const resetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? "10:00") !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     await this.updateReservation(reservation.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     if (resetAssignments) {

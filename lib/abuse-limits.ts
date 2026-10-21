@@ -57,7 +57,7 @@ export async function limitAuthenticatedMutation(request: Request, uid: string) 
   limitedRequests.add(request);
 }
 
-export async function limitEmailRecipients(recipients: string[]) {
+export async function limitEmailRecipients(recipients: string[], consume: (limits: Limit[]) => Promise<{ count: number }[]> = consumeLimits) {
   const unique = [...new Set(recipients.map((email) => email.trim().toLowerCase()))];
   if (unique.length > 10) throw Object.assign(new Error("メールの宛先は10件までです。"), { statusCode: 400 });
   const limits: Limit[] = unique.flatMap((email) => [
@@ -65,7 +65,7 @@ export async function limitEmailRecipients(recipients: string[]) {
     { key: `email:hour:${email}`, max: 10, seconds: 3600 },
     { key: `email:day:${email}`, max: 30, seconds: 86400 },
   ]);
-  const counters = await consumeLimits([...limits, { key: "email:global", max: 500, seconds: 3600 }]);
+  const counters = await consume([...limits, { key: "email:global", max: 500, seconds: 3600 }]);
   const count = counters[counters.length - 1].count;
   console.info(JSON.stringify({ event: "email_send_attempt", severity: count >= 400 ? "WARNING" : "INFO", hourlyCount: count, recipientCount: unique.length }));
 }

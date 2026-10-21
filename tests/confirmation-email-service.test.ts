@@ -386,7 +386,7 @@ class MemoryReservationRepository implements ReservationRepository {
 
   async listApprovalEmailDeliveries() { return this.approvalEmailDeliveries; }
 
-  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+  async createApprovalEmailDelivery(input: Parameters<ReservationRepository["createApprovalEmailDelivery"]>[0]) {
     const existing = this.approvalEmailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
     if (existing) return existing;
     const delivery: ApprovalEmailDelivery = { ...input, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
@@ -394,10 +394,10 @@ class MemoryReservationRepository implements ReservationRepository {
     return delivery;
   }
 
-  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+  async updateApprovalEmailDelivery(deliveryKey: string, input: Parameters<ReservationRepository["updateApprovalEmailDelivery"]>[1]) {
     const delivery = this.approvalEmailDeliveries.find((item) => item.deliveryKey === deliveryKey);
     if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
-    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    Object.assign(delivery, { ...input, sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
     return delivery;
   }
 

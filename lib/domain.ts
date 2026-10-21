@@ -18,6 +18,9 @@ export type ApprovalEmailDelivery = {
   reservationId: string;
   type: ApprovalEmailType;
   referenceId?: string | null;
+  snapshotKey?: string | null;
+  nextAttemptAt?: string | null;
+  stoppedAt?: string | null;
   requestedAt: string;
   sentAt?: string | null;
   lastAttemptAt?: string | null;
@@ -194,6 +197,9 @@ export type Reservation = {
   policyAgreement?: PolicyAgreement;
   policyConsents?: import("./cancellation-policy-consent").CancellationPolicyConsent[];
   confirmationContactedAt?: string | null;
+  receiptEmailNextAttemptAt?: string | null;
+  cancellationPreviousStatus?: ReservationStatus | null;
+  revision?: number;
   receiptEmailRequestedAt?: string | null;
   receiptEmailSentAt?: string | null;
   receiptEmailLastAttemptAt?: string | null;
@@ -205,8 +211,9 @@ export type Reservation = {
 
 export type ReservationChangeRequestStatus = "requested"|"approved"|"rejected";
 export const reservationChangeRequestStatuses = ["requested","approved","rejected"] as const satisfies readonly ReservationChangeRequestStatus[];
-export type ReservationChangeRequest = { id:string; reservationId:string; customer:string; email?:string; phone:string; currentDate:string; currentStartTime:string; currentPeople:number; currentMenuItems:string[]; requestedDate:string; requestedStartTime:string; requestedPeople:number; requestedMenuItems:string[]; reason?:string; status:ReservationChangeRequestStatus; requestedAt:string; reviewedAt?:string|null };
-export type CreateReservationChangeRequestInput = { reservationId:string; email?:string; phone?:string; requestedDate:string; requestedStartTime:string; requestedPeople:number; requestedMenuItems:string[]; reason?:string };
+export type ReservationChangeFeeAcknowledgement = { context: string; acceptedAt: string };
+export type ReservationChangeRequest = { id:string; reservationId:string; customer:string; email?:string; phone:string; currentDate:string; currentStartTime:string; currentPeople:number; currentMenuItems:string[]; requestedDate:string; requestedStartTime:string; requestedPeople:number; requestedMenuItems:string[]; reason?:string; status:ReservationChangeRequestStatus; requestedAt:string; reviewedAt?:string|null; baseRevision?:number; feeAcknowledgement?: ReservationChangeFeeAcknowledgement | null };
+export type CreateReservationChangeRequestInput = { expectedRevision?:number; reservationId:string; email?:string; phone?:string; requestedDate:string; requestedStartTime:string; requestedPeople:number; requestedMenuItems:string[]; reason?:string; /** Server-derived only; never copied from the request body. */ feeAcknowledgement?: ReservationChangeFeeAcknowledgement | null };
 export type PolicyAgreement = { kind:"temporary"|"confirmed"; acceptedAt:string };
 export type StoreAssignment = { store:string; people:number };
 export function duplicateAssignmentStores(assignments: readonly StoreAssignment[]) {
@@ -356,4 +363,4 @@ export function reservationDisplayStatusLabel(reservation: ReservationReadinessI
 }
 
 export type AcceptanceBlock = { start: string; end: string; reason: string };
-export type SystemSettings = { acceptanceCapacity: number | null; reservationLeadDays?: number; blockedPeriods?: AcceptanceBlock[] };
+export type SystemSettings = { revision?: number; acceptanceCapacity: number | null; reservationLeadDays?: number; blockedPeriods?: AcceptanceBlock[] };

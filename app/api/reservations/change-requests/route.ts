@@ -6,7 +6,8 @@ import { getReservationRepository } from "@/lib/repositories";
 
 import { assertReservationLeadTime } from "@/lib/reservation-lead-time";
 
-import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange } from "@/lib/cancellation-policy";
+import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange, reservationChangeFeeContext } from "@/lib/cancellation-policy";
+import { matchesPendingReservationChange } from "@/lib/reservation-change";
 import { repositoryTransaction } from "@/lib/repositories/transaction";
 
 export const runtime = "nodejs";
@@ -30,32 +31,23 @@ export async function POST(request: Request) {
     await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
     return await repositoryTransaction(repository, `reservation:${input.reservationId.trim().toUpperCase()}`, async repository => {
       const ownedReservation = await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
-      const existingRequest = (await repository.listReservationChangeRequests()).find((item) =>
-        item.status === "requested" &&
-        item.reservationId === ownedReservation.id &&
-        item.requestedDate === input.requestedDate &&
-        item.requestedStartTime === input.requestedStartTime &&
-        item.requestedPeople === input.requestedPeople &&
-        sameMenuItems(item.requestedMenuItems, input.requestedMenuItems) &&
-        (item.reason ?? "") === (input.reason ?? "")
-      );
-      if (existingRequest) return NextResponse.json({ request: existingRequest });
+      const existingRequest = (await repository.listReservationChangeRequests()).find(item => matchesPendingReservationChange(item, input));
       const settings = await repository.getSystemSettings();
       const days = isFeeExemptPeopleOnlyChange(ownedReservation, input) ? 1 : settings.reservationLeadDays;
-      assertReservationLeadTime(ownedReservation.date, days);
-      assertReservationLeadTime(input.requestedDate, days);
+      // Reconfirming the exact pending request is not a new change after the cutoff.
+      if (!existingRequest) {
+        assertReservationLeadTime(ownedReservation.date, days);
+        assertReservationLeadTime(input.requestedDate, days);
+      }
       const notice = cancellationFeeNotice(ownedReservation, input.requestedPeople);
       if (notice && !acknowledged) return NextResponse.json({ error: `${notice.message} 内容を確認してから申請してください。` }, { status: 409 });
-      const changeRequest = await repository.createReservationChangeRequest({ ...input, email: ownedReservation.email, phone: ownedReservation.phone });
-      return NextResponse.json({ request: changeRequest }, { status: 201 });
+      const context = reservationChangeFeeContext(ownedReservation, input.requestedPeople);
+      if (context && body.cancellationFeeContext !== context) return NextResponse.json({ error: "予約内容またはキャンセル料の条件が更新されています。予約一覧を再読み込みし、最新のキャンセル料の案内を確認して再申請してください。" }, { status: 409 });
+      const feeAcknowledgement = context && acknowledged ? { context, acceptedAt: new Date().toISOString() } : null;
+      const changeRequest = await repository.createReservationChangeRequest({ ...input, email: ownedReservation.email, phone: ownedReservation.phone, feeAcknowledgement });
+      return NextResponse.json({ request: changeRequest }, { status: existingRequest ? 200 : 201 });
     });
   } catch (error) {
     return apiErrorResponse(error);
   }
-}
-
-function sameMenuItems(left: string[], right: string[]) {
-  const sortedLeft = [...left].sort();
-  const sortedRight = [...right].sort();
-  return sortedLeft.length === sortedRight.length && sortedLeft.every((value, index) => value === sortedRight[index]);
 }

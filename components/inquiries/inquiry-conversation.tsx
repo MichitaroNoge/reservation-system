@@ -8,6 +8,7 @@ const customerEmailLabels: Record<InquiryMailStatus, string> = {
   sent: "メール送信済み",
   failed: "メールを送信できませんでした。回答はこちらでご確認いただけます。",
   unknown: "メールの送信結果を確認できません。回答はこちらでご確認いただけます。",
+  not_sent: "回答はこちらの履歴でご確認いただけます。",
 };
 export function InquiryConversation({ detail, admin = false }: { detail: InquiryDetail; admin?: boolean }) {
   const messages = [

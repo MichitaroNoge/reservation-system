@@ -13,7 +13,7 @@ async function main() {
   }
   const pool=new Pool({connectionString:url,connectionTimeoutMillis:5000,max:1});
   try { await pool.query("select 1"); } finally { await pool.end(); }
-  const result=spawnSync(process.execPath,["--conditions=react-server","--import","tsx","--test","--test-concurrency=1","tests/db/environment.test.ts","tests/db/repository.test.ts","tests/db/reservation-export.test.ts","tests/db/google-auth.test.ts","tests/db/cancellation-policy.test.ts","tests/db/policy-consent.test.ts","tests/db/inquiries.test.ts"],{
+  const result=spawnSync(process.execPath,["--conditions=react-server","--import","tsx","--test","--test-concurrency=1","tests/db/environment.test.ts","tests/db/repository.test.ts","tests/db/reservation-export.test.ts","tests/db/google-auth.test.ts","tests/db/cancellation-policy.test.ts","tests/db/change-approval-guards.test.ts","tests/db/change-approval-blocks.test.ts","tests/db/review-improvements.test.ts","tests/db/policy-consent.test.ts","tests/db/inquiries.test.ts","tests/db/google-calendar.test.ts"],{
     stdio:"inherit",env:{...process.env,DB_TEST_DRIVER:"postgres",DB_TEST_RESET_CONFIRM:"reservation_system_test",TEST_DATABASE_URL:url},
   });
   if(result.error)throw result.error;

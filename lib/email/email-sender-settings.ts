@@ -45,7 +45,7 @@ export async function repositoryEmailClient(repository: ReservationRepository, s
     testRecipient: sender.testRecipient,
   });
   return { async send(input: import("./resend-email-client").SendEmailInput) {
-    await limitEmailRecipients([input.to, ...(input.bcc ?? [])]);
+    await limitEmailRecipients([input.to, ...(input.bcc ?? [])], repository.consumeEmailLimits?.bind(repository));
     try { const result = await client.send(input); console.info(JSON.stringify({ event: "email_send_success" })); return result; }
     catch (error) { console.error(JSON.stringify({ event: "email_send_failure", severity: "ERROR" })); throw error; }
   } };

@@ -15,7 +15,7 @@ const dependencies: MailDependencies = { sender: async () => getEmailSenderSnaps
 export async function deliverInquiryMail(repo: InquiryRepository, target: MailTarget, deps = dependencies) {
     // A previously sent mail must remain a successful no-op even if sender settings are later removed.
     const detail = await repo.detail(target.number);
-    if (target.replyId ? detail.replies.some(r => r.id === target.replyId && r.emailStatus === "sent") : detail.inquiry.receiptEmailStatus === "sent")
+    if (target.replyId ? detail.replies.some(r => r.id === target.replyId && ["sent", "not_sent"].includes(r.emailStatus)) : detail.inquiry.receiptEmailStatus === "sent")
         return;
     const answerNotice = target.replyId ? "回答は保存され、お客様の履歴に公開されています。" : "";
     let sender: SenderSnapshot;

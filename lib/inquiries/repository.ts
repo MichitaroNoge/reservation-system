@@ -55,7 +55,7 @@ export class InquiryRepository {
         const { row, reservationNumber } = await this.row(number, uid);
         // Replies are saved only on explicit submission; email delivery does not control history visibility.
         const replies = await this.db.select().from(inquiryReply).where(eq(inquiryReply.inquiryId, row.id)).orderBy(inquiryReply.createdAt, inquiryReply.id);
-        return { inquiry: publicRow(row, reservationNumber), replies: replies.map(r => ({ id: r.id, subject: r.subject, body: r.body, emailStatus: r.emailStatus, sentAt: r.sentAt, createdAt: r.createdAt, ...(uid === undefined ? { adminLabel: r.adminLabel, lastError: r.lastError } : {}) })) };
+        return { inquiry: publicRow(row, reservationNumber), replies: replies.map(r => ({ id: r.id, subject: r.subject, body: r.body, emailStatus: r.emailStatus, sentAt: r.sentAt, createdAt: r.createdAt, ...(uid === undefined ? { adminLabel: r.adminLabel, lastError: r.lastError, resolution: r.resolution } : {}) })) };
     }
     async list(query: InquiryQuery, uid?: string, reservationId?: string) {
         const escaped = query.keyword.replace(/[\\%_]/g, "\\$&");
@@ -107,7 +107,7 @@ export class InquiryRepository {
                 throw conflict();
             if (row.status === "closed")
                 throw new InquiryError("完了した問い合わせです。対応中に戻してから回答してください。");
-            const pending = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} <> 'sent'`)).limit(1);
+            const pending = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} not in ('sent', 'not_sent')`)).limit(1);
             if (pending.length)
                 throw new InquiryError("未送信の回答があります。回答履歴から同じ回答を再試行してください。");
             const [reply] = await repo.db.insert(inquiryReply).values({ inquiryId: row.id, adminFirebaseUid: adminUid, adminLabel, subject: input.subject, body: input.body, requestKey: input.requestKey, requestHash }).returning();
@@ -122,10 +122,27 @@ export class InquiryRepository {
             const { row } = await repo.row(number);
             if (row.revision !== revision)
                 throw conflict();
-            const [active] = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} <> 'sent'`)).limit(1);
+            const [active] = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} not in ('sent', 'not_sent')`)).limit(1);
             if (active)
                 throw new InquiryError("送信結果が未確定の回答があります。回答履歴を確認してください。");
             await repo.db.update(inquiry).set({ status, revision: revision + 1, updatedAt: new Date().toISOString() }).where(eq(inquiry.id, row.id));
+        });
+    }
+    /** An explicit provider-history check closes an ambiguous delivery without sending again. */
+    async resolveReplyMail(number: string, replyId: string, outcome: "sent" | "not_sent", revision: number, adminUid: string, now = Date.now()) {
+        return this.locked(number, async repo => {
+            const { row } = await repo.row(number);
+            const [reply] = await repo.db.select().from(inquiryReply).where(and(eq(inquiryReply.id, replyId), eq(inquiryReply.inquiryId, row.id)));
+            if (!reply) throw new InquiryError("回答が見つかりません。", 404);
+            // Repeated confirmation is a no-op even after its response was lost.
+            if (reply.resolution?.outcome === outcome) return;
+            if (row.revision !== revision) throw conflict();
+            if (reply.emailStatus === "sent" || reply.emailStatus === "not_sent") throw conflict();
+            if (reply.leaseUntil && Date.parse(reply.leaseUntil) > now) throw new InquiryError("メールを送信中です。送信完了後に再読み込みしてください。");
+            const time = new Date(now).toISOString();
+            await repo.db.update(inquiryReply).set({ emailStatus: outcome, sentAt: outcome === "sent" ? time : null, leaseToken: null, leaseUntil: null, resolution: { outcome, resolvedAt: time, adminUid }, lastError: null }).where(eq(inquiryReply.id, replyId));
+            await repo.db.update(emailDelivery).set({ status: outcome === "sent" ? "sent" : "failed", sentAt: outcome === "sent" ? time : null, lastError: outcome === "not_sent" ? "delivery_closed_by_admin" : null }).where(eq(emailDelivery.deliveryKey, mailKey(row, reply)));
+            await repo.db.update(inquiry).set({ status: "answered", revision: row.revision + 1, updatedAt: time }).where(eq(inquiry.id, row.id));
         });
     }
     async frozenSender(target: MailTarget) {
@@ -144,7 +161,7 @@ export class InquiryRepository {
             if (target.replyId && !reply)
                 throw new InquiryError("回答が見つかりません。", 404);
             const status = reply?.emailStatus ?? row.receiptEmailStatus;
-            if (status === "sent")
+            if (status === "sent" || status === "not_sent")
                 return null;
             const first = reply ? reply.firstAttemptAt : row.receiptFirstAttemptAt;
             const lease = reply ? reply.leaseUntil : row.receiptLeaseUntil;

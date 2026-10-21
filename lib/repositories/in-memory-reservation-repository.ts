@@ -1,4 +1,6 @@
+import { reservationNotificationSnapshot } from "../services/reservation-notification-state";
 import { assertReservationChangeAllowed } from "../domain";
+import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
 import { isCompletedBooking } from "../cancellation-policy";
 import { calculateReservationEndTime, defaultReservationStatus, getAutomaticReservationStatus, normalizePaymentCondition, normalizeReservationRequestType, normalizeReservationStatus, reservationStatusCodes, shouldResetConfirmationContact, shouldResetConfirmationContactForAssignments, type Account, type AccountContactEmail, type ApprovalEmailDelivery, type ApprovalEmailType, type CreateReservationChangeRequestInput, type CreateReservationInput, type EmailDelivery, type EmailSettings, type EmailTemplate, type Menu, type Reservation, type ReservationChangeRequest, type ReservationStatus, type SaveAccountInput, type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput } from "../domain";
 import { defaultEmailTemplates } from "../email/email-template-catalog";
@@ -166,6 +168,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    reservation.revision = (reservation.revision ?? 0) + 1;
     const resetConfirmationContact = shouldResetConfirmationContact(reservation, input);
     if (input.date !== undefined) reservation.date = input.date;
     if (input.startTime !== undefined) reservation.startTime = input.startTime;
@@ -201,6 +204,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const previousStatus = reservation.status;
     const nextStatus = normalizeReservationStatus(status);
     if (!isCompletedBooking(previousStatus) && isCompletedBooking(nextStatus) && reservation.initialConfirmedPeople == null) reservation.initialConfirmedPeople = reservation.people;
+    if (nextStatus === "cancellation_requested" && previousStatus !== nextStatus) reservation.cancellationPreviousStatus = previousStatus === "confirmed_requested" && reservation.requestType === "confirmed_from_temporary" ? "temporary_confirmed" : previousStatus;
     reservation.status = nextStatus;
     if (options && "requestType" in options) reservation.requestType = options.requestType ?? null;
     else if (previousStatus === reservationStatusCodes.temporaryConfirmed && nextStatus === reservationStatusCodes.confirmedRequested) reservation.requestType = "confirmed_from_temporary";
@@ -218,7 +222,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return reservation;
   }
 
-  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null; nextAttemptAt?: string | null; stoppedAt?: string | null }) {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
@@ -226,28 +230,29 @@ export class InMemoryReservationRepository implements ReservationRepository {
     reservation.receiptEmailLastAttemptAt = input.lastAttemptAt;
     reservation.receiptEmailRetryCount = input.retryCount;
     reservation.receiptEmailLastError = input.lastError ?? null;
+    reservation.receiptEmailNextAttemptAt = input.nextAttemptAt ?? null;
     await this.writeDatabase(database);
     return reservation;
   }
 
   async listApprovalEmailDeliveries() { return (await this.readDatabase()).approvalEmailDeliveries ?? []; }
 
-  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string }) {
+  async createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string; snapshotKey?: string | null }) {
     const database = await this.readDatabase();
     database.approvalEmailDeliveries ??= [];
     const existing = database.approvalEmailDeliveries.find((item) => item.deliveryKey === input.deliveryKey);
     if (existing) return existing;
-    const delivery: ApprovalEmailDelivery = { ...input, id: `AED-${database.approvalEmailDeliveries.length + 1}`, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
+    const delivery: ApprovalEmailDelivery = { ...input, snapshotKey: input.snapshotKey ?? reservationNotificationSnapshot(database.reservations.find(r => r.id === input.reservationId)!), id: `AED-${database.approvalEmailDeliveries.length + 1}`, retryCount: 0, sentAt: null, lastAttemptAt: null, lastError: null };
     database.approvalEmailDeliveries.push(delivery);
     await this.writeDatabase(database);
     return delivery;
   }
 
-  async updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }) {
+  async updateApprovalEmailDelivery(deliveryKey: string, input: Parameters<ReservationRepository["updateApprovalEmailDelivery"]>[1]) {
     const database = await this.readDatabase();
     const delivery = (database.approvalEmailDeliveries ?? []).find((item) => item.deliveryKey === deliveryKey);
     if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
-    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null });
+    Object.assign(delivery, { sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null, nextAttemptAt: input.nextAttemptAt ?? null, stoppedAt: input.stoppedAt ?? null });
     await this.writeDatabase(database);
     return delivery;
   }
@@ -297,8 +302,8 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return delivery;
   }
 
-  async getSystemSettings() { const settings=(await this.readDatabase()).systemSettings; return {reservationLeadDays:settings?.reservationLeadDays ?? 3,acceptanceCapacity:settings?.acceptanceCapacity ?? null,blockedPeriods:settings?.blockedPeriods ?? []}; }
-  async saveSystemSettings(input: import("../domain").SystemSettings) { const database=await this.readDatabase(); database.systemSettings={...database.systemSettings,...input}; await this.writeDatabase(database); return database.systemSettings; }
+  async getSystemSettings() { const settings=(await this.readDatabase()).systemSettings; return {revision:settings?.revision ?? 0,reservationLeadDays:settings?.reservationLeadDays ?? 3,acceptanceCapacity:settings?.acceptanceCapacity ?? null,blockedPeriods:settings?.blockedPeriods ?? []}; }
+  async saveSystemSettings(input: import("../domain").SystemSettings) { const database=await this.readDatabase(); if (input.revision !== undefined && input.revision !== (database.systemSettings?.revision ?? 0)) throw Object.assign(new Error("他の画面で設定が更新されました。再読み込みしてから保存してください。"), { statusCode: 409 }); database.systemSettings={...database.systemSettings,...input, revision:(database.systemSettings?.revision ?? 0)+1}; await this.writeDatabase(database); return database.systemSettings; }
   async getEmailSettings() {
     return (await this.readDatabase()).emailSettings ?? null;
   }
@@ -333,11 +338,22 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const reservation = database.reservations.find((item) => item.id.toLowerCase() === input.reservationId.toLowerCase());
     if (!reservation || !reservationMatchesContact(reservation, input)) throw new Error(`Reservation not found: ${input.reservationId}`);
     assertCanRequestReservationChange(reservation);
+    if (input.expectedRevision !== undefined && input.expectedRevision !== (reservation.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから変更申請してください。"), { statusCode: 409 });
+    const existing = database.reservationChangeRequests.find(item => item.reservationId === reservation.id && item.status === "requested" && item.requestedDate === input.requestedDate && item.requestedStartTime === input.requestedStartTime && item.requestedPeople === input.requestedPeople && JSON.stringify([...item.requestedMenuItems].sort()) === JSON.stringify([...input.requestedMenuItems].sort()) && (item.reason ?? "") === (input.reason ?? ""));
+    if (existing) {
+      if (existing.baseRevision !== (reservation.revision ?? 0) && input.expectedRevision !== (reservation.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから再申請してください。"), { statusCode: 409 });
+      if (existing.baseRevision !== (reservation.revision ?? 0) || (input.feeAcknowledgement && existing.feeAcknowledgement?.context !== input.feeAcknowledgement.context)) {
+        existing.feeAcknowledgement = input.feeAcknowledgement ?? null;
+        existing.baseRevision = reservation.revision ?? 0;
+        await this.writeDatabase(database);
+      }
+      return existing;
+    }
     const request: ReservationChangeRequest = {
       id: nextChangeRequestId(database.reservationChangeRequests), reservationId: reservation.id, customer: reservation.customer, email: reservation.email, phone: reservation.phone,
       currentDate: reservation.date, currentStartTime: reservation.startTime ?? defaultStartTime, currentPeople: reservation.people, currentMenuItems: reservation.menuItems ?? [],
       requestedDate: input.requestedDate, requestedStartTime: input.requestedStartTime, requestedPeople: input.requestedPeople, requestedMenuItems: input.requestedMenuItems,
-      reason: input.reason, status: "requested", requestedAt: new Date().toISOString(), reviewedAt: null,
+      reason: input.reason, baseRevision: reservation.revision ?? 0, feeAcknowledgement: input.feeAcknowledgement ?? null, status: "requested", requestedAt: new Date().toISOString(), reviewedAt: null,
     };
     database.reservationChangeRequests = [request, ...database.reservationChangeRequests];
     await this.writeDatabase(database);
@@ -353,8 +369,10 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
     assertReservationChangeAllowed(reservation.status);
+    await assertReservationChangeApproval(this, reservation, request);
     const resetConfirmationContact = shouldResetConfirmationContact(reservation, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     const shouldResetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime || reservation.people !== request.requestedPeople;
+    reservation.revision = (reservation.revision ?? 0) + 1;
     reservation.date = request.requestedDate;
     reservation.startTime = request.requestedStartTime;
     reservation.people = request.requestedPeople;

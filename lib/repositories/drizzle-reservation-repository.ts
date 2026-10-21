@@ -1,4 +1,7 @@
+import { consumeDatabaseLimits } from "../db/abuse-limit-store";
+import { reservationNotificationSnapshot } from "../services/reservation-notification-state";
 import { assertReservationChangeAllowed } from "../domain";
+import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
 import { isCompletedBooking } from "../cancellation-policy";
 import "server-only";
 import { and, asc, desc, eq, sql, gte, lte, lt, gt, or, inArray } from "drizzle-orm";
@@ -31,17 +34,28 @@ function sorted<T extends { displayOrder: number; name: string }>(items: T[]) { 
 export class DrizzleReservationRepository implements ReservationRepository {
   constructor(private readonly db: ReservationDatabase, private readonly inTransaction = false) {}
 
+  consumeEmailLimits(limits: import("../abuse-limits").Limit[]) { return consumeDatabaseLimits(this.db, limits); }
+
   async getSystemSettings() {
     // The development pool survives hot reloads; its relational schema can predate new columns.
     // Select with the current table definition so saved periods cannot appear as an empty list.
     const [row] = await this.db.select({
+      revision: s.systemSettings.revision,
       acceptanceCapacity: s.systemSettings.acceptanceCapacity,
       reservationLeadDays: s.systemSettings.reservationLeadDays,
       blockedPeriods: s.systemSettings.blockedPeriods,
     }).from(s.systemSettings).where(eq(s.systemSettings.settingKey, "default")).limit(1);
-    return { reservationLeadDays: row?.reservationLeadDays ?? 3, acceptanceCapacity: row?.acceptanceCapacity ?? null, blockedPeriods: row?.blockedPeriods ?? [] };
+    return { revision: row?.revision ?? 0, reservationLeadDays: row?.reservationLeadDays ?? 3, acceptanceCapacity: row?.acceptanceCapacity ?? null, blockedPeriods: row?.blockedPeriods ?? [] };
   }
-  async saveSystemSettings(input: import("../domain").SystemSettings) { await this.db.insert(s.systemSettings).values({settingKey:"default",...input}).onConflictDoUpdate({target:s.systemSettings.settingKey,set:input}); return this.getSystemSettings(); }
+  async saveSystemSettings(input: import("../domain").SystemSettings) {
+    return this.atomic("system-settings", async repo => {
+      const current = await repo.getSystemSettings();
+      if (input.revision !== undefined && input.revision !== current.revision) throw Object.assign(new Error("他の画面で設定が更新されました。入力内容を確認し、再読み込みしてから保存してください。"), { statusCode: 409 });
+      const values = { ...input, revision: current.revision + 1 };
+      await repo.db.insert(s.systemSettings).values({ settingKey: "default", ...values }).onConflictDoUpdate({ target: s.systemSettings.settingKey, set: values });
+      return repo.getSystemSettings();
+    });
+  }
   async getAccountDeletion(firebaseUid: string) {
     return await this.db.query.accountDeletion.findFirst({ where: eq(s.accountDeletion.firebaseUid, firebaseUid), columns: { completedAt: true } }) ?? null;
   }
@@ -172,6 +186,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const current = reservationModel(raw);
     const calculateEnd = input.endTime === undefined && (input.startTime !== undefined || input.menuItems !== undefined || !current.endTime);
     await this.db.update(s.reservation).set({
+      revision: sql`${s.reservation.revision} + 1`,
       reserverName: input.customer ?? current.customer, reserverEmail: input.email ?? current.email ?? "", reserverPhone: input.phone ?? current.phone,
       reserverAddress: input.address ?? current.address ?? null, usageDate: input.date ?? current.date, usageTime: input.startTime ?? current.startTime ?? "10:00",
       usageEndTime: input.endTime ?? (calculateEnd ? calculateReservationEndTime(input.startTime ?? current.startTime, input.menuItems ?? current.menuItems, await this.listMenus()) : current.endTime ?? null),
@@ -189,7 +204,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     if (!this.inTransaction) return this.atomic(`reservation:${id}`, repo => repo.updateReservationStatus(id, status, options));
     const current = reservationModel(await this.rawReservation(id));
     const requestType = options && "requestType" in options ? options.requestType ?? null : current.status === reservationStatusCodes.temporaryConfirmed && status === reservationStatusCodes.confirmedRequested ? "confirmed_from_temporary" : status === reservationStatusCodes.confirmedRequested ? current.requestType ?? null : null;
-    await this.db.update(s.reservation).set({ status: toDataConnectReservationStatus(status), requestType, ...(!isCompletedBooking(current.status) && isCompletedBooking(status) && current.initialConfirmedPeople == null ? { initialConfirmedPeople: current.people } : {}), updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
+    await this.db.update(s.reservation).set({ status: toDataConnectReservationStatus(status), requestType, ...(status === "cancellation_requested" && current.status !== status ? { cancellationPreviousStatus: current.status === "confirmed_requested" && current.requestType === "confirmed_from_temporary" ? "temporary_confirmed" : current.status } : {}), ...(!isCompletedBooking(current.status) && isCompletedBooking(status) && current.initialConfirmedPeople == null ? { initialConfirmedPeople: current.people } : {}), updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
     return reservationModel(await this.rawReservation(id));
   }
 
@@ -199,9 +214,9 @@ export class DrizzleReservationRepository implements ReservationRepository {
     await this.db.update(s.reservation).set({ confirmationContactedAt: contactedAt, updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
     return reservationModel(await this.rawReservation(id));
   }
-  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null }): Promise<Reservation> {
+  async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null; nextAttemptAt?: string | null }): Promise<Reservation> {
     await this.rawReservation(id);
-    await this.db.update(s.reservation).set({ receiptEmailSentAt: input.sentAt ?? null, receiptEmailLastAttemptAt: input.lastAttemptAt, receiptEmailRetryCount: input.retryCount, receiptEmailLastError: input.lastError ?? null, updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
+    await this.db.update(s.reservation).set({ receiptEmailSentAt: input.sentAt ?? null, receiptEmailLastAttemptAt: input.lastAttemptAt, receiptEmailRetryCount: input.retryCount, receiptEmailLastError: input.lastError ?? null, receiptEmailNextAttemptAt: input.nextAttemptAt ?? null, updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
     return reservationModel(await this.rawReservation(id));
   }
   async assignStores(id: string, assignments: StoreAssignment[]): Promise<Reservation> {
@@ -225,7 +240,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
       const reservation = reservationModel(raw.reservation);
       let requestedMenuItems: string[] = [];
       try { const parsed: unknown = JSON.parse(raw.requestedMenuItemsJson); if (Array.isArray(parsed)) requestedMenuItems = parsed.filter((value): value is string => typeof value === "string"); } catch { /* Legacy invalid JSON is displayed as an empty selection. */ }
-      return { id: raw.id, reservationId: reservation.id, customer: reservation.customer, email: reservation.email, phone: reservation.phone, currentDate: reservation.date, currentStartTime: reservation.startTime ?? "10:00", currentPeople: reservation.people, currentMenuItems: reservation.menuItems, requestedDate: raw.requestedDate, requestedStartTime: raw.requestedTime, requestedPeople: raw.requestedPeople, requestedMenuItems, reason: raw.reason ?? undefined, status: raw.status.toLowerCase() as ReservationChangeRequest["status"], requestedAt: iso(raw.requestedAt)!, reviewedAt: iso(raw.reviewedAt) };
+      return { id: raw.id, reservationId: reservation.id, customer: reservation.customer, email: reservation.email, phone: reservation.phone, currentDate: reservation.date, currentStartTime: reservation.startTime ?? "10:00", currentPeople: reservation.people, currentMenuItems: reservation.menuItems, requestedDate: raw.requestedDate, requestedStartTime: raw.requestedTime, requestedPeople: raw.requestedPeople, requestedMenuItems, reason: raw.reason ?? undefined, baseRevision: raw.baseRevision, status: raw.status.toLowerCase() as ReservationChangeRequest["status"], requestedAt: iso(raw.requestedAt)!, reviewedAt: iso(raw.reviewedAt), feeAcknowledgement: raw.feeAcknowledgement };
     });
   }
   async createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest> {
@@ -236,9 +251,17 @@ export class DrizzleReservationRepository implements ReservationRepository {
     if (!((input.email && normalize(input.email) === normalize(current.email)) || (input.phone && normalize(input.phone) === normalize(current.phone)))) throw new Error(`Reservation not found: ${input.reservationId}`);
     const allowed: Reservation["status"][] = ["temporary_requested", "temporary_confirmed", "confirmed_requested", "confirmed", "waiting_for_visit"];
     if (!allowed.includes(current.status)) throw new Error(`Reservation change cannot be requested for status: ${current.status}`);
+    if (input.expectedRevision !== undefined && input.expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから変更申請してください。"), { statusCode: 409 });
     const existing = (await this.listReservationChangeRequests()).find(item => item.reservationId === input.reservationId && item.status === "requested" && item.requestedDate === input.requestedDate && item.requestedStartTime === input.requestedStartTime && item.requestedPeople === input.requestedPeople && JSON.stringify([...item.requestedMenuItems].sort()) === JSON.stringify([...input.requestedMenuItems].sort()) && (item.reason ?? "") === (input.reason ?? ""));
-    if (existing) return existing;
-    const [created] = await this.db.insert(s.reservationChangeRequest).values({ reservationId: raw.id, requestedDate: input.requestedDate, requestedTime: input.requestedStartTime, requestedPeople: input.requestedPeople, requestedMenuItemsJson: JSON.stringify(input.requestedMenuItems), reason: input.reason ?? null, status: "REQUESTED" }).returning();
+    if (existing) {
+      if (existing.baseRevision !== (current.revision ?? 0) && input.expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから再申請してください。"), { statusCode: 409 });
+      if (existing.baseRevision !== (current.revision ?? 0) || (input.feeAcknowledgement && existing.feeAcknowledgement?.context !== input.feeAcknowledgement.context)) {
+        await this.db.update(s.reservationChangeRequest).set({ feeAcknowledgement: input.feeAcknowledgement ?? null, baseRevision: current.revision ?? 0 }).where(eq(s.reservationChangeRequest.id, existing.id));
+        return { ...existing, feeAcknowledgement: input.feeAcknowledgement ?? null, baseRevision: current.revision ?? 0 };
+      }
+      return existing;
+    }
+    const [created] = await this.db.insert(s.reservationChangeRequest).values({ reservationId: raw.id, baseRevision: current.revision ?? 0, requestedDate: input.requestedDate, requestedTime: input.requestedStartTime, requestedPeople: input.requestedPeople, requestedMenuItemsJson: JSON.stringify(input.requestedMenuItems), reason: input.reason ?? null, feeAcknowledgement: input.feeAcknowledgement ?? null, status: "REQUESTED" }).returning();
     return (await this.listReservationChangeRequests()).find(item => item.id === created.id)!;
   }
   private async changeRequest(id: string) {
@@ -253,6 +276,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const current = reservationModel(await this.rawReservation(request.reservationId));
     assertReservationChangeAllowed(current.status);
+    await assertReservationChangeApproval(this, current, request);
     const resetAssignments = current.date !== request.requestedDate || (current.startTime ?? "10:00") !== request.requestedStartTime || current.people !== request.requestedPeople;
     await this.updateReservation(current.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     if (resetAssignments) await this.assignStores(current.id, []);
@@ -384,15 +408,15 @@ export class DrizzleReservationRepository implements ReservationRepository {
   }
 
   async listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]> {
-    return (await this.db.query.approvalEmailDelivery.findMany({ with: { reservation: true }, orderBy: asc(s.approvalEmailDelivery.requestedAt) })).map(raw => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
+    return (await this.db.query.approvalEmailDelivery.findMany({ with: { reservation: true }, orderBy: asc(s.approvalEmailDelivery.requestedAt) })).map(raw => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, snapshotKey: raw.snapshotKey, stoppedAt: iso(raw.stoppedAt), nextAttemptAt: iso(raw.nextAttemptAt), retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
   }
   async createApprovalEmailDelivery(input: Parameters<ReservationRepository["createApprovalEmailDelivery"]>[0]): Promise<ApprovalEmailDelivery> {
     const reservation = await this.rawReservation(input.reservationId);
-    await this.db.insert(s.approvalEmailDelivery).values({ deliveryKey: input.deliveryKey, reservationId: reservation.id, emailType: input.type, referenceId: input.referenceId ?? null, requestedAt: input.requestedAt }).onConflictDoNothing({ target: s.approvalEmailDelivery.deliveryKey });
+    await this.db.insert(s.approvalEmailDelivery).values({ deliveryKey: input.deliveryKey, reservationId: reservation.id, snapshotKey: input.snapshotKey ?? reservationNotificationSnapshot(reservationModel(reservation)), emailType: input.type, referenceId: input.referenceId ?? null, requestedAt: input.requestedAt }).onConflictDoNothing({ target: s.approvalEmailDelivery.deliveryKey });
     return (await this.listApprovalEmailDeliveries()).find(item => item.deliveryKey === input.deliveryKey)!;
   }
   async updateApprovalEmailDelivery(deliveryKey: string, input: Parameters<ReservationRepository["updateApprovalEmailDelivery"]>[1]): Promise<ApprovalEmailDelivery> {
-    const [raw] = await this.db.update(s.approvalEmailDelivery).set({ sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null }).where(eq(s.approvalEmailDelivery.deliveryKey, deliveryKey)).returning();
+    const [raw] = await this.db.update(s.approvalEmailDelivery).set({ sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null, nextAttemptAt: input.nextAttemptAt ?? null, stoppedAt: input.stoppedAt ?? null }).where(eq(s.approvalEmailDelivery.deliveryKey, deliveryKey)).returning();
     if (!raw) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
     return (await this.listApprovalEmailDeliveries()).find(item => item.deliveryKey === deliveryKey)!;
   }
@@ -439,6 +463,7 @@ function reservationModel(raw: RawReservation): Reservation {
   const assignments = raw.storeAssignments.map(item => ({ store: item.store.name, people: item.people }));
   return {
     id: raw.reservationCode, accountType: raw.reserverAccountType as Reservation["accountType"], companyBranchName: raw.reserverCompanyBranchName ?? undefined, contactPersonName: raw.reserverContactPersonName ?? undefined, accountId: raw.accountId, customer: raw.reserverName ?? "", email: raw.reserverEmail ?? "", phone: raw.reserverPhone ?? "", address: raw.reserverAddress ?? undefined,
+    revision: raw.revision, cancellationPreviousStatus: raw.cancellationPreviousStatus ? normalizeReservationStatus(raw.cancellationPreviousStatus) : null, receiptEmailNextAttemptAt: iso(raw.receiptEmailNextAttemptAt),
     date: raw.usageDate, startTime: raw.usageTime, endTime: raw.usageEndTime ?? undefined, people: raw.expectedPeople, initialConfirmedPeople: raw.initialConfirmedPeople,
     bookingType: raw.bookingType as Reservation["bookingType"], bookingContactName: raw.bookingContactName ?? undefined, dayContactName: raw.dayContactName ?? undefined, dayContactPhone: raw.dayContactPhone ?? undefined,
     groupName: raw.groupName ?? undefined, groupNameKana: raw.groupNameKana ?? undefined, groupType: raw.groupType ?? undefined, groupTypeOther: raw.groupTypeOther ?? undefined,

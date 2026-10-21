@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange } from "../lib/cancellation-policy";
+import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange, reservationChangeFeeContext } from "../lib/cancellation-policy";
 import { earliestReservationDate, assertReservationLeadTime } from "../lib/reservation-lead-time";
 import { InMemoryReservationRepository } from "../lib/repositories/in-memory-reservation-repository";
 import { validateFeeAcknowledgement } from "../lib/api-validation";
@@ -46,4 +46,14 @@ test("fee acknowledgement accepts booleans only", () => {
   assert.equal(validateFeeAcknowledgement(false), false);
   assert.equal(validateFeeAcknowledgement(true), true);
   for (const value of ["true", 1, {}, null]) assert.throws(() => validateFeeAcknowledgement(value));
+});
+
+
+test("change fee confirmation is bound to the policy, baseline and actual party sizes", () => {
+ const proof = reservationChangeFeeContext(booking, 30);
+ assert.ok(proof);
+ assert.equal(reservationChangeFeeContext({ ...booking, status: "waiting_for_visit" }, 30), proof);
+ for (const [current, people] of [[{ ...booking, people: 55 }, 30], [{ ...booking, initialConfirmedPeople: 62 }, 30], [booking, 29]] as const) assert.notEqual(reservationChangeFeeContext(current, people), proof);
+ assert.equal(reservationChangeFeeContext({ ...booking, status: "temporary_confirmed" }, 30), null);
+ assert.equal(reservationChangeFeeContext(booking, 40), null);
 });

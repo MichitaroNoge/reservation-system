@@ -118,12 +118,12 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /sortedReservations\.map\([\s\S]*onClick=\{\(\) => onSelect\(r\)\}/);
   assert.match(pageSource, /reservations\.map\([\s\S]*onClick=\{\(\) => onSelect\(reservation\)\}/);
   assert.match(pageSource, /requests\.map\([\s\S]*onClick=\{\(\) => setSelectedRequestId\(request\.id\)\}/);
-  const changeReviewSource = pageSource.split("function ReservationChangeReviewDrawer")[1].split("function MasterManagementPage")[0];
+  const changeReviewSource = await readFile(path.join(process.cwd(), "app/reservations/components/reservation-change-review-dialog.tsx"), "utf8");
   assert.match(changeReviewSource, /変更前・変更後/);
   assert.match(changeReviewSource, /予約の基本情報（現在）/);
   assert.doesNotMatch(changeReviewSource, /updateReservation|assignStores|updateStatus|updateConfirmationContact/);
   assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*updateStatus/);
-  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*onApproveChangeRequest/);
+  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*void approve\(request\.id\)/);
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const\s*\[\s*reservationStatusFilters,\s*setReservationStatusFilters\s*\]\s*=\s*useState<\s*Status\[\]\s*>/);

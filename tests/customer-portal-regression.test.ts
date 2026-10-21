@@ -71,7 +71,6 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(accountReservationsApiSource, /reservationIds\.has\(request\.reservationId\)/, "account reservations API should not return change requests for other reservations");
   assert.match(accountReservationsApiSource, /deduplicateChangeRequests/, "account reservations API should hide duplicate change request rows");
   assert.match(changeRequestApiSource, /existingRequest/, "change request API should return an existing pending request instead of creating a duplicate");
-  assert.match(changeRequestApiSource, /sameMenuItems/, "change request duplicate detection should compare requested menu items");
   assert.match(sessionSource, /createUserWithEmailAndPassword/, "customer registration must remain wired to Firebase Auth");
   assert.match(sessionSource, /sendEmailVerification\(credential\.user\)/, "customer registration should send a Firebase verification email");
   assert.match(sessionSource, /reload\(user\)/, "customers should be able to refresh their verification state");

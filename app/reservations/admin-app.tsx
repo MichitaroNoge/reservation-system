@@ -1272,6 +1272,7 @@ export default function Home() {
             <section>
               <div className="mb-3">
                 <h3 className="text-base font-semibold">タスク</h3>
+                <p className="mt-1 text-xs text-muted-foreground">「要対応」の項目から対応を進めてください。</p>
               </div>
               <div className="grid gap-5">
                 <div>
@@ -1280,30 +1281,34 @@ export default function Home() {
                   </h4>
                   <TaskGrid>
                     <Task
-                      color="amber"
                       title="予約の承認"
                       count={taskCounts.reservationApprovals}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="仮予約・本予約の申請を確認しましょう"
                       onClick={() => setView("reservationApprovals")}
                     />
                     <Task
-                      color="amber"
                       title="本予約変更承認"
                       count={taskCounts.confirmedReservationRequests}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="仮予約から本予約への変更依頼を確認しましょう"
                       onClick={() => setView("confirmedReservationRequests")}
                     />
                     <Task
-                      color="violet"
                       title="予約変更承認"
                       count={taskCounts.changeRequests}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="予約内容の変更依頼を確認しましょう"
                       onClick={() => setView("reservationChangeRequests")}
                     />
                     <Task
-                      color="red"
                       title="キャンセルの承認"
                       count={taskCounts.cancellationApprovals}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="キャンセル申請を確認しましょう"
                       onClick={() => setView("cancellationApprovals")}
                     />
@@ -1315,9 +1320,10 @@ export default function Home() {
                   </h4>
                   <TaskGrid>
                     <Task
-                      color="blue"
                       title="確認連絡"
                       count={taskCounts.preContactDue}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text={
                         "食事日まで" +
                         confirmationContactWindowDays +
@@ -1326,18 +1332,20 @@ export default function Home() {
                       onClick={() => setView("confirmationContacts")}
                     />
                     <Task
-                      color="violet"
                       title="店舗割当"
                       count={taskCounts.storeUnassigned}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="店舗割当を行いましょう"
                       onClick={() =>
                         setView("storeAssignments")
                       }
                     />
                     <Task
-                      color="blue"
                       title="問い合わせ対応"
                       count={taskCounts.unansweredInquiries}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="未回答の問い合わせを確認しましょう"
                       onClick={() => setView("inquiries")}
                     />
@@ -1349,16 +1357,18 @@ export default function Home() {
                   </h4>
                   <TaskGrid>
                     <Task
-                      color="amber"
                       title="本予約の催促"
                       count={taskCounts.temporaryExpired}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="本予約への変更が必要な仮予約を確認しましょう"
                       onClick={() => setView("bookingReminders")}
                     />
                     <Task
-                      color="green"
                       title="メニュー確定の催促"
                       count={taskCounts.menuUnselected}
+                      loading={adminDataLoading}
+                      error={Boolean(dataErrors["予約"])}
                       text="メニューが未確定のお客様を確認しましょう"
                       onClick={() =>
                         setView("menuReminders")

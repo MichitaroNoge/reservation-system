@@ -191,7 +191,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(resendClientSource, /遒ｺ隱|縺|繧|螟/);
   assert.match(pageSource, /予約変更承認[\s\S]*キャンセル承認[\s\S]*確認連絡/);
   assert.match(pageSource, /function ReservationApprovalPage/);
-  assert.match(commonSource, /count !== undefined && <Badge/);
-  assert.match(commonSource, /min-h-16 w-full justify-start/);
+  assert.match(commonSource, /loading \|\| error \? "—" : count/);
+  assert.match(commonSource, /h-auto w-full min-w-0/);
   assert.match(pageSource, /function CancellationApprovalPage/);
 });

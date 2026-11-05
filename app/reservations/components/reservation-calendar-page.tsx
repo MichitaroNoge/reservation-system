@@ -1,42 +1,40 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ManagementPage, ListPanel, ListToolbar } from "@/components/ui/management-layout";
 import { Button } from "@/components/ui/button";
+import { Dialog,DialogContent,DialogDescription,DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { reservationAssignments, type SystemSettings } from "@/lib/domain";
-import { addCalendarDays, calendarDates, calendarDay, calendarLanes, calendarWeek, calendarCapacityWarning } from "@/lib/reservation-calendar";
-import { todayIso, assignmentLabel } from "../formatters";
-import { requestJson } from "../api-client";
-import type { Menu, Reservation, Store } from "../types";
+import { reservationAssignments,type SystemSettings } from "@/lib/domain";
+import { addCalendarDays,calendarCapacityWarning,calendarDates,calendarDay,calendarLanes,calendarWeek } from "@/lib/reservation-calendar";
+import { ChevronLeft,ChevronRight,RefreshCw } from "lucide-react";
+import { useEffect,useMemo,useRef,useState } from "react";
+import { assignmentLabel,todayIso } from "../formatters";
+
+import type { Menu,Reservation,Store } from "../types";
 
 type Mode="month"|"week"|"stores";
-type Props={reservations:Reservation[];stores:Store[];menus:Menu[];loading?:boolean;error?:boolean;detailOpen?:boolean;getAdminToken:()=>Promise<string>;onReload:(signal:AbortSignal)=>Promise<void>;onSelect:(reservation:Reservation)=>void};
+type Props={reservations:Reservation[];stores:Store[];menus:Menu[];loading?:boolean;error?:boolean;detailOpen?:boolean;getAdminToken:()=>Promise<string>;onReload:(signal:AbortSignal,range:{from:string;to:string})=>Promise<SystemSettings>;onSelect:(reservation:Reservation)=>void};
 const labelFor=(kind:string)=>kind==="booked"?"本予約":kind==="temporary"?"仮予約":"承認待ち";
 const colorFor=(kind:string)=>kind==="booked"?"border-primary/40 bg-primary/10":kind==="temporary"?"border-warning/50 bg-warning/15":"border-dashed border-muted-foreground/50 bg-muted";
 const clock=(minute:number)=>`${String(Math.floor(minute/60)).padStart(2,"0")}:${String(Math.floor(minute%60)).padStart(2,"0")}`;
 export function ReservationCalendarPage({reservations,stores,menus,loading,error,detailOpen=false,getAdminToken,onReload,onSelect}:Props){
  const today=todayIso();const[mode,setMode]=useState<Mode>("month"),[anchor,setAnchor]=useState(today),[from,setFrom]=useState(today),[to,setTo]=useState(addCalendarDays(today,6)),[selectedDay,setSelectedDay]=useState<string|null>(null);
  const[settings,setSettings]=useState<SystemSettings|null>(null),[settingsError,setSettingsError]=useState(""),[settingsLoading,setSettingsLoading]=useState(true),[refreshing,setRefreshing]=useState(false),[updatedAt,setUpdatedAt]=useState<Date|null>(null);
- const source=useRef({getAdminToken,onReload,detailOpen,loading});source.current={getAdminToken,onReload,detailOpen,loading};
+ const monthStart=anchor.slice(0,7)+"-01";const nextMonth=new Date(`${monthStart}T00:00:00Z`);nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1);const monthEnd=addCalendarDays(nextMonth.toISOString().slice(0,10),-1);
+ const dates=mode==="month"?calendarDates(calendarWeek(monthStart),addCalendarDays(calendarWeek(monthEnd),6)):mode==="week"?calendarDates(calendarWeek(anchor),addCalendarDays(calendarWeek(anchor),6)):calendarDates(from,to);
+ const dateKey=dates.join(",");
+ const rangeStart=dates[0]??from,rangeEnd=dates.at(-1)??to;
+ const source=useRef({getAdminToken,onReload,detailOpen});source.current={getAdminToken,onReload,detailOpen};
  const refresh=useRef<()=>Promise<void>>(async()=>{});
  useEffect(()=>{
   let cancelled=false,inFlight=false;const controller=new AbortController();
   refresh.current=async()=>{
-   if(inFlight||cancelled||source.current.loading)return;
+   if(inFlight||cancelled)return;
    inFlight=true;setRefreshing(true);
    try{
-    // Wait for both requests even on failure so a retry never overlaps an older response.
-    const results=await Promise.allSettled([
-     source.current.onReload(controller.signal),
-     (async()=>requestJson<{settings:SystemSettings}>("/api/system-settings",{authToken:await source.current.getAdminToken(),cache:"no-store",signal:controller.signal}))(),
-    ]);
+    const settings=await source.current.onReload(controller.signal,{from:rangeStart,to:rangeEnd});
     if(cancelled)return;
-    if(results[1].status==="fulfilled")setSettings(results[1].value.settings);
-    else setSettings(null);
-    if(results.some(result=>result.status==="rejected")){
-     setSettingsError("最新情報を取得できませんでした。表示内容は最新ではない可能性があります。再読み込みしてください。" );
-    }else{setSettingsError("");setUpdatedAt(new Date());}
+    setSettings(settings);setSettingsError("");setUpdatedAt(new Date());
+   }catch{if(!cancelled)setSettingsError("最新情報を取得できませんでした。再読み込みしてください。");
    }finally{inFlight=false;if(!cancelled){setSettingsLoading(false);setRefreshing(false);}}
   };
   const revalidate=()=>{if(document.visibilityState==="visible"&&!source.current.detailOpen)void refresh.current();};
@@ -44,14 +42,11 @@ export function ReservationCalendarPage({reservations,stores,menus,loading,error
   const interval=window.setInterval(revalidate,60000);
   window.addEventListener("focus",revalidate);document.addEventListener("visibilitychange",revalidate);
   return()=>{cancelled=true;controller.abort();window.clearInterval(interval);window.removeEventListener("focus",revalidate);document.removeEventListener("visibilitychange",revalidate);};
- },[]);
+ },[rangeStart,rangeEnd]);
  useEffect(()=>{if(!loading)void refresh.current();},[loading]);
  const previousDetail=useRef(detailOpen);
  useEffect(()=>{if(previousDetail.current&&!detailOpen)void refresh.current();previousDetail.current=detailOpen;},[detailOpen]);
  const normalized=useMemo(()=>reservations.map(r=>({...r,menuItems:r.menuItems??(r.menu?[r.menu]:[])})),[reservations]);
- const monthStart=anchor.slice(0,7)+"-01";const nextMonth=new Date(`${monthStart}T00:00:00Z`);nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1);const monthEnd=addCalendarDays(nextMonth.toISOString().slice(0,10),-1);
- const dates=mode==="month"?calendarDates(calendarWeek(monthStart),addCalendarDays(calendarWeek(monthEnd),6)):mode==="week"?calendarDates(calendarWeek(anchor),addCalendarDays(calendarWeek(anchor),6)):calendarDates(from,to);
- const dateKey=dates.join(",");
  const days=useMemo(()=>dateKey?dateKey.split(",").map(date=>calendarDay(date,normalized,menus,settings??{})):[],[dateKey,normalized,menus,settings]);
  const dayDetail=selectedDay?calendarDay(selectedDay,normalized,menus,settings??{}):null;
  const byId=new Map(reservations.map(r=>[r.id,r]));
@@ -68,15 +63,15 @@ export function ReservationCalendarPage({reservations,stores,menus,loading,error
  useEffect(()=>{if(mode==="week"&&weekScroll.current){const position=weekFocus.current;weekScroll.current.scrollTop=Math.max(0,(position.focusMinute-position.hoursStart*60)*1.2);}},[mode,anchor,dateKey,loading,settingsLoading]);
  const storeNames=[...new Set([...stores.map(s=>s.name),...days.flatMap(day=>day.entries.flatMap(e=>reservationAssignments(byId.get(e.reservation.id)!).map(a=>a.store)))])];
  const blockedSummary=(day:typeof days[number])=>day.blocks.map(b=>`${b.start.replace("T"," ")}〜${b.end.replace("T"," ")} ${b.reason}`).join("\n");
- return <main className="w-full space-y-4 px-4 pb-12 pt-8 sm:px-6 lg:px-9">
-  <section className="overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
-   <div className="flex flex-wrap items-end gap-3 border-b border-border bg-background/40 p-4">
+ return <ManagementPage className="space-y-4">
+  <ListPanel>
+   <ListToolbar className="items-end">
     <div role="group" aria-label="カレンダー表示" className="flex overflow-hidden rounded-md border border-input">{([["month","月間"],["week","週間"],["stores","店舗別"]]as const).map(([value,label])=><Button key={value} type="button" variant={mode===value?"default":"ghost"} aria-pressed={mode===value} className="min-h-11 rounded-none" onClick={()=>setMode(value)}>{label}</Button>)}</div>
     {mode==="month"?<label className="grid gap-1 text-xs">表示月<Input type="month" className="h-11 bg-card" value={anchor.slice(0,7)} onChange={e=>{if(e.target.value)setAnchor(e.target.value+"-01");}}/></label>:mode==="week"?<label className="grid gap-1 text-xs">表示する週<Input type="date" className="h-11 bg-card" value={anchor} onChange={e=>{if(e.target.value)setAnchor(e.target.value);}}/></label>:<div className="flex max-w-full flex-wrap gap-2"><label className="grid gap-1 text-xs">開始日<Input type="date" className="h-11 bg-card" value={from} onChange={e=>setFrom(e.target.value)}/></label><label className="grid gap-1 text-xs">終了日<Input type="date" className="h-11 bg-card" value={to} min={from} onChange={e=>setTo(e.target.value)}/></label></div>}
     <div className="flex gap-1"><Button type="button" variant="outline" className="min-h-11" aria-label="前の期間" onClick={()=>shift(-1)} disabled={!dates.length}><ChevronLeft className="size-4"/></Button><Button type="button" variant="outline" className="min-h-11" aria-label="次の期間" onClick={()=>shift(1)} disabled={!dates.length}><ChevronRight className="size-4"/></Button></div>
     <Button type="button" variant="outline" className="min-h-11" onClick={()=>{setAnchor(today);setFrom(today);setTo(addCalendarDays(today,6));}}>今日</Button><Button type="button" variant="outline" className="min-h-11" onClick={()=>thisWeek(0)}>今週</Button><Button type="button" variant="outline" className="min-h-11" onClick={()=>thisWeek(1)}>来週</Button>
     <Button type="button" variant="ghost" aria-label="予約カレンダーを再読み込み" className="ml-auto min-h-11" disabled={loading||refreshing} onClick={()=>void refresh.current()}><RefreshCw className={`size-4 ${refreshing?"animate-spin":""}`}/></Button>
-   </div>
+   </ListToolbar>
    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border px-4 py-3 text-xs"><span className="font-medium">{mode==="month"?anchor.slice(0,7).replace("-","年")+"月":`${dates[0]??from} 〜 ${dates.at(-1)??to}`}</span>{["booked","temporary","pending"].map(kind=><span key={kind} className="inline-flex items-center gap-1"><i aria-hidden className={`size-3 rounded-sm border ${colorFor(kind)}`}/>{labelFor(kind)}</span>)}<span className="inline-flex items-center gap-1"><i aria-hidden className="size-3 rounded-sm border border-destructive/40 bg-destructive/10"/>受入不可</span><span className="ml-auto text-muted-foreground">全体受入上限 {settings===null?"未確認":settings.acceptanceCapacity==null?"未設定":`${settings.acceptanceCapacity}名`}</span></div>
    <p role="status" aria-live="polite" className="px-4 py-2 text-xs text-muted-foreground">{refreshing?"最新情報を取得中…":updatedAt?`最終更新 ${updatedAt.toLocaleString("ja-JP",{timeZone:"Asia/Tokyo"})}（60秒ごとに更新）`:"最新情報は未取得です"}</p>
    {settingsError&&<p role="alert" className="border-b border-border p-4 text-sm text-destructive">{settingsError}</p>}
@@ -86,7 +81,7 @@ export function ReservationCalendarPage({reservations,stores,menus,loading,error
    {mode==="stores"&&<><p className="px-4 py-2 text-xs text-muted-foreground">店舗の予定と割当人数を表示します。店舗ごとの上限による混雑判定は行いません。</p><div className="max-h-[72dvh] overflow-auto"><table className="w-full text-left text-xs"><thead className="sticky top-0 z-20 bg-card"><tr><th className="sticky left-0 z-30 min-w-32 border-b border-border bg-card p-3">店舗</th>{days.map(day=><th key={day.date} className="min-w-48 border-b border-l border-border p-3"><button type="button" onClick={()=>setSelectedDay(day.date)} className="min-h-8 font-medium">{day.date}</button>{calendarCapacityWarning(day)&&<span className="block font-semibold text-destructive">{calendarCapacityWarning(day)}</span>}{day.blocks.length>0&&<span title={blockedSummary(day)} className="ml-2 text-destructive">受入不可</span>}</th>)}</tr></thead><tbody>{[...storeNames,"未割当"].map(name=><tr key={name}><th className="sticky left-0 z-10 border-b border-border bg-card p-3 align-top font-medium">{name}</th>{days.map(day=>{const entries=day.entries.flatMap(entry=>{const r=byId.get(entry.reservation.id)!,assignments=reservationAssignments(r);const people=name==="未割当"?Math.max(0,r.people-assignments.reduce((sum,a)=>sum+a.people,0)):assignments.filter(a=>a.store===name).reduce((sum,a)=>sum+a.people,0);return people>0?[{...entry,people}]:[];});return <td key={day.date} className={`border-b border-l border-border p-2 align-top ${day.blocks.length?"bg-destructive/5":"bg-card"}`}>{entries.map(entry=><button type="button" key={entry.reservation.id} onClick={()=>openReservation(entry.reservation.id)} className={`mb-2 block min-h-11 w-full rounded-md border p-2 text-left ${colorFor(entry.kind)}`}><span className="block font-medium">{entry.uncertain?"時間要確認":`${clock(entry.start)}〜${clock(entry.end)}`}</span><span className="block break-words">{entry.reservation.customer}</span><span>{entry.people}名・{labelFor(entry.kind)}</span></button>)}{!entries.length&&<span className="text-muted-foreground">—</span>}</td>;})}</tr>)}</tbody></table></div></>}
    {!days.some(day=>day.entries.length)&&<p className="border-t border-border p-4 text-sm text-muted-foreground">この期間の予約はありません。</p>}
    </>}
-  </section>
+  </ListPanel>
   {dayDetail&&<Dialog open onOpenChange={open=>{if(!open)setSelectedDay(null);}}><DialogContent><header className="border-b border-border p-5"><DialogTitle className="text-lg font-semibold">{dayDetail.date} の予約</DialogTitle><DialogDescription className="mt-1 text-sm text-muted-foreground">本予約最大{dayDetail.peak}名 ／ 仮予約込{dayDetail.combinedPeak}名</DialogDescription></header><div className="space-y-3 p-5">{calendarCapacityWarning(dayDetail)&&<p role="alert" className="font-semibold text-destructive">{calendarCapacityWarning(dayDetail)}（仮予約込みで{dayDetail.combinedPeak-dayDetail.capacity!}名超過）</p>}{dayDetail.blocks.map((block,i)=><p key={i} className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">受入不可：{clock(block.startMinute)}〜{clock(block.endMinute)} {block.reason}</p>)}{dayDetail.entries.map(entry=><button key={entry.reservation.id} type="button" onClick={()=>openReservation(entry.reservation.id)} className={`block min-h-11 w-full rounded-md border p-3 text-left text-sm ${colorFor(entry.kind)}`}><span className="block font-medium">{entry.reservation.customer} ／ {entry.reservation.people}名</span><span className="block text-xs">{clock(entry.start)}〜{clock(entry.end)}・{labelFor(entry.kind)}・{assignmentLabel(byId.get(entry.reservation.id)!)||"未割当"}</span>{entry.uncertain&&<span className="text-xs text-warning">利用時間を確認してください</span>}</button>)}{!dayDetail.entries.length&&<p className="text-sm text-muted-foreground">予約はありません。</p>}</div><footer className="flex justify-end border-t border-border p-4"><Button type="button" variant="outline" className="min-h-11" onClick={()=>setSelectedDay(null)}>閉じる</Button></footer></DialogContent></Dialog>}
- </main>;
+ </ManagementPage>;
 }

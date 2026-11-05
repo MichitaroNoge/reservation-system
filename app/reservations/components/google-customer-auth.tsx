@@ -1,15 +1,10 @@
 "use client";
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { signInWithCustomToken, type User } from "firebase/auth";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { ChevronDown, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { firebaseAuth } from "../firebase-client";
-import { requestJson } from "../api-client";
+import { ApiRequestError, requestJson } from "../api-client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -83,15 +78,20 @@ export function GoogleCustomerAuthProvider({ children, ...value }: AuthContext &
     </Dialog>
   </GoogleContext.Provider>;
 }
-export function GoogleCustomerButton({ mode = "login", registration = false, onComplete, onBusyChange }: { mode?: "login" | "link" | "reauth"; registration?: boolean; onComplete?: () => void; onBusyChange?: (busy: boolean) => void }) {
-  const context = useContext(GoogleContext), host = useRef<HTMLDivElement>(null), callback = useRef({ context, onComplete });
-  callback.current = { context, onComplete };
+export function GoogleCustomerButton({ mode = "login", registration = false, onComplete, onBusyChange, onLinkAuthenticationRequired }: { mode?: "login" | "link" | "reauth"; registration?: boolean; onComplete?: () => void; onBusyChange?: (busy: boolean) => void; onLinkAuthenticationRequired?: (message: string) => void }) {
+  const context = useContext(GoogleContext), host = useRef<HTMLDivElement>(null), callback = useRef({ context, onComplete, onLinkAuthenticationRequired });
+  callback.current = { context, onComplete, onLinkAuthenticationRequired };
   const enabled = Boolean(context), uid = context?.user?.uid;
   const [retry, setRetry] = useState(0), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState("");
   useEffect(() => { onBusyChange?.(busy); return () => onBusyChange?.(false); }, [busy, onBusyChange]);
   useEffect(() => {
     if (!enabled) return;
     let active = true, working = false;
+    const fail = (e: unknown) => {
+      if (!active) return;
+      if (mode === "link" && e instanceof ApiRequestError && e.status === 403 && callback.current.onLinkAuthenticationRequired) callback.current.onLinkAuthenticationRequired(e.message);
+      else setError(e instanceof Error ? e.message : "Googleログインを準備できませんでした。");
+    };
     let observer: ResizeObserver | undefined;
     setLoading(true); setError("");
     host.current?.replaceChildren();
@@ -113,7 +113,7 @@ export function GoogleCustomerButton({ mode = "login", registration = false, onC
           if (firebaseAuth.currentUser?.uid !== credential.user.uid) return;
           continuation.context?.onAuthenticated(credential.user, mode, result.notification);
           if (active) continuation.onComplete?.();
-        })().catch(e => { if (active) setError(e instanceof Error ? e.message : "Googleログインに失敗しました。"); }).finally(() => { working = false; if (active) setBusy(false); });
+        })().catch(fail).finally(() => { working = false; if (active) setBusy(false); });
       } });
       let renderedWidth = 0;
       const render = () => {
@@ -129,7 +129,7 @@ export function GoogleCustomerButton({ mode = "login", registration = false, onC
       observer = new ResizeObserver(render);
       observer.observe(host.current);
       setLoading(false);
-    })().catch(e => { if (active) { setError(e instanceof Error ? e.message : "Googleログインを準備できませんでした。"); setLoading(false); } });
+    })().catch(e => { fail(e); if (active) setLoading(false); });
     return () => { active = false; observer?.disconnect(); };
   }, [mode, registration, retry, uid, enabled]);
   if (!context) return null;
@@ -138,49 +138,4 @@ export function GoogleCustomerButton({ mode = "login", registration = false, onC
     {(loading || busy) && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />{busy ? "本人確認中…" : "Googleログインを準備中…"}</p>}
     {error && <Alert className="border-destructive/40 text-destructive"><p>{error}</p><Button type="button" variant="outline" className="mt-2" disabled={busy} onClick={() => setRetry(v => v + 1)}>再試行</Button></Alert>}
   </div>;
-}
-
-const passwordSchema = z.object({ currentPassword: z.string(), password: z.string().min(8, "8文字以上で入力してください。").max(128), confirmPassword: z.string() }).refine(v => v.password === v.confirmPassword, { path: ["confirmPassword"], message: "パスワードが一致しません。" });
-export function CustomerLoginMethods() {
-  const context = useContext(GoogleContext);
-  const [methods, setMethods] = useState<LoginMethods | null>(null), [error, setError] = useState(""), [message, setMessage] = useState(""), [reload, setReload] = useState(0), [link, setLink] = useState(false), [busy, setBusy] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [linkBusy, setLinkBusy] = useState(false);
-  const panelId = useId();
-  const [confirmUnlink, setConfirmUnlink] = useState(false);
-  const form = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { currentPassword: "", password: "", confirmPassword: "" } });
-  const uid = context?.user?.uid;
-  useEffect(() => { let active = true; setMethods(null); setError(""); if (uid && expanded) void (async () => {
-    const authToken = await firebaseAuth.currentUser?.getIdToken();
-    const data = await requestJson<LoginMethods>("/api/accounts/me/login-methods", { authToken, cache: "no-store" }); if (active) setMethods(data);
-  })().catch(e => { if (active) setError(e instanceof Error ? e.message : "ログイン方法を取得できませんでした。"); }); return () => { active = false; }; }, [uid, reload, expanded]);
-  if (!context?.user) return null;
-  const finishChange = async (data: { notification?: string }, text: string) => { const message = `${text}${data.notification === "failed" ? " 変更通知を送信できませんでした。" : ""} 再度ログインしてください。`; setMessage(message); context.notify?.(message); await context.signOut(); };
-  return <section className="grid gap-4 rounded-lg border bg-card p-5" aria-labelledby="customer-login-methods-title">
-    <h3 id="customer-login-methods-title"><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 text-left font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-expanded={expanded} aria-controls={panelId} disabled={busy} onClick={() => { setExpanded(v => !v); setMessage(""); form.reset(); }}>ログイン方法の設定<ChevronDown aria-hidden="true" className={`size-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} /></button></h3>
-    {expanded && <div id={panelId} className="grid min-w-0 gap-4">
-    {!methods && !error && <p role="status" className="text-sm text-muted-foreground">読み込み中…</p>}
-    {methods && <>
-      <dl className="grid gap-2 text-sm"><div className="flex flex-wrap gap-x-3"><dt className="text-muted-foreground">パスワード</dt><dd>{methods.password ? "設定済み" : "未設定"}</dd></div><div className="grid gap-1"><dt className="text-muted-foreground">Google連携</dt><dd className="break-all">{methods.google ? methods.googleEmail ?? "連携済み（メールアドレスを取得できませんでした）" : "未連携"}</dd></div></dl>
-      {methods.password && !methods.google && <div className="grid gap-2"><Label htmlFor="security-current-password">現在のパスワード</Label><Input id="security-current-password" type="password" autoComplete="current-password" {...form.register("currentPassword")} /></div>}
-      {!methods.google && !link && <Button type="button" variant="outline" className="justify-self-start" disabled={busy} onClick={async () => { setBusy(true); setError(""); try { await context.reauthenticate(form.getValues("currentPassword")); setLink(true); } catch (e) { setError(e instanceof Error ? e.message : "本人確認に失敗しました。"); } finally { setBusy(false); } }}>Googleアカウントを連携</Button>}
-      <Dialog open={link} onOpenChange={open => { if (!linkBusy) setLink(open); }}><DialogContent className="grid max-w-md gap-4 p-5"><DialogTitle className="font-semibold">Googleアカウントを連携</DialogTitle><DialogDescription className="text-sm text-muted-foreground">予約サイトへのログインに使用するGoogleアカウントを選択してください。</DialogDescription>{link && <GoogleCustomerButton mode="link" onBusyChange={setLinkBusy} onComplete={() => { setLink(false); setMessage("Googleアカウントを連携しました。"); setReload(v => v + 1); }} />}<Button type="button" variant="outline" disabled={linkBusy} className="justify-self-end" onClick={() => setLink(false)}>キャンセル</Button></DialogContent></Dialog>
-      <form className="grid gap-3 border-t pt-4" onSubmit={form.handleSubmit(async values => { setBusy(true); setError(""); try {
-        const authToken = await context.reauthenticate(values.currentPassword);
-        const data = await requestJson<{ notification?: string }>("/api/accounts/me/login-methods", { method: "POST", authToken, body: JSON.stringify({ password: values.password }) });
-        form.reset(); await finishChange(data, "パスワードを設定・変更しました。");
-      } catch (e) { setError(e instanceof Error ? e.message : "パスワードを設定できませんでした。"); } finally { setBusy(false); } })}>
-        <div className="grid gap-2"><Label htmlFor="security-new-password">{methods.password ? "新しいパスワード" : "追加するパスワード"}</Label><Input id="security-new-password" type="password" autoComplete="new-password" aria-invalid={!!form.formState.errors.password} {...form.register("password")} />{form.formState.errors.password && <p role="alert" className="text-sm text-destructive">{form.formState.errors.password.message}</p>}</div>
-        <div className="grid gap-2"><Label htmlFor="security-confirm-password">パスワード（確認）</Label><Input id="security-confirm-password" type="password" autoComplete="new-password" aria-invalid={!!form.formState.errors.confirmPassword} {...form.register("confirmPassword")} />{form.formState.errors.confirmPassword && <p role="alert" className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>}</div>
-        <Button type="submit" className="justify-self-start" disabled={busy}>{busy ? "処理中…" : methods.password ? "パスワードを変更" : "パスワードを追加"}</Button>
-      </form>
-      {methods.google && <div className="grid gap-2 border-t pt-4"><Button type="button" variant="outline" className="justify-self-start" disabled={busy || !methods.password} onClick={() => setConfirmUnlink(true)}>Google連携を解除</Button>{!methods.password && <p className="text-sm text-muted-foreground">解除するには、先にパスワードを設定してください。</p>}</div>}
-      <Dialog open={confirmUnlink} onOpenChange={value => { if (!busy) setConfirmUnlink(value); }}><DialogContent className="grid max-w-md gap-4 p-5"><DialogTitle className="font-semibold">Google連携を解除しますか？</DialogTitle><DialogDescription className="text-sm text-muted-foreground">解除後はメールアドレスとパスワードでログインしてください。お客様情報と予約はそのまま残ります。</DialogDescription><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmUnlink(false)}>キャンセル</Button><Button type="button" variant="destructive" disabled={busy} onClick={async () => {
-        setConfirmUnlink(false); setBusy(true); setError(""); try { const authToken = await context.reauthenticate(""); const data = await requestJson<{ notification?: string }>("/api/accounts/me/login-methods", { method: "DELETE", authToken }); await finishChange(data, "Google連携を解除しました。"); } catch (e) { setError(e instanceof Error ? e.message : "連携を解除できませんでした。"); } finally { setBusy(false); }
-      }}>{busy ? "解除中…" : "解除する"}</Button></div></DialogContent></Dialog>
-    </>}
-    {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
-    {error && <Alert className="border-destructive/40 text-destructive"><p>{error}</p>{!methods && <Button type="button" variant="outline" className="mt-2" onClick={() => setReload(v => v + 1)}>再読み込み</Button>}</Alert>}
-    </div>}
-  </section>;
 }

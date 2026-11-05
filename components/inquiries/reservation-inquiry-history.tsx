@@ -8,11 +8,11 @@ import { requestJson } from "@/app/reservations/api-client";
 import { inquiryDate, inquiryStatuses, type InquiryDetail, type InquiryList } from "@/lib/inquiries/types";
 import { InquiryConversation } from "./inquiry-conversation";
 
-type Props = { reservationNumber: string; audience: "customer" | "admin"; getToken: () => Promise<string> };
+type Props = { reservationNumber: string; audience: "customer" | "admin"; getToken: () => Promise<string>; disabled?: boolean; disabledReason?: string; className?: string };
 export function ReservationInquiryHistoryButton(props: Props) {
   const [open, setOpen] = useState(false);
   return <>
-    <Button type="button" variant="outline" className="min-h-11" onClick={() => setOpen(true)}><MessageSquare className="size-4" />問い合わせ・回答履歴</Button>
+    <Button type="button" variant="outline" className={props.className ?? "min-h-11"} disabled={props.disabled} title={props.disabledReason} onClick={() => setOpen(true)}>{props.audience === "admin" && <MessageSquare className="size-4" />}{props.audience === "customer" ? "問い合わせ履歴" : "問い合わせ・回答履歴"}</Button>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-3xl p-5 sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-3">

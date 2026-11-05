@@ -12,7 +12,7 @@ export type Reservation = {
   accountType?: AccountType;
   companyBranchName?: string;
   contactPersonName?: string;
-  receiptEmailStatus?: "not_requested" | "sent" | "failed";
+  receiptEmailStatus?: "not_requested" | "pending" | "sent" | "failed";
   accountId?: string | null;
   customer: string;
   email?: string;
@@ -75,7 +75,7 @@ export type StoreForm = Store;
 export type AdminSession = { user: User; email: string | null };
 export type ApiRequestInit = RequestInit & { authToken?: string };
 export type ReservationSubmitOptions = { authToken?: string; forceAdmin?: boolean; customerAccountMode?: "account" };
-export type View = "reservationNotifications" | "inquiries" | "dashboard" | "reservations" | "reservationApprovals" | "cancellationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings" | "storeAssignments" | "bookingReminders" | "menuReminders" | "reservationCalendar";
+export type View = "inquiryReplyTemplates" | "reservationNotifications" | "inquiries" | "dashboard" | "reservations" | "reservationApprovals" | "cancellationApprovals" | "confirmedReservationRequests" | "reservationChangeRequests" | "confirmationContacts" | "masters" | "customers" | "stores" | "menus" | "emailTemplates" | "otherSettings" | "googleCalendarSettings" | "storeAssignments" | "bookingReminders" | "menuReminders" | "reservationCalendar";
 export type ReservationFilter = "すべて" | "承認待ち" | "仮予約確定" | "仮予約確定（期限切れ）" | "本予約確定" | "本予約確定（メニュー未確定）" | "本予約確定（店舗未割当）" | "本予約確定（未確認連絡）" | "本予約確定（来店待ち）";
 export type ReservationSortKey = "status" | "id" | "customer" | "date" | "menu" | "store" | "contact";
 export type SortDirection = "asc" | "desc";

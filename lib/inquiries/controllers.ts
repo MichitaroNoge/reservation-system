@@ -3,13 +3,17 @@ import { z } from "zod";
 import { consumeLimits } from "../abuse-limits";
 import { requireAdmin, requireVerifiedFirebaseUser, verifyOptionalFirebaseUser } from "../auth";
 import { getReservationRepository } from "../repositories";
-import { deliverInquiryMail } from "./mail-service";
+import { inquiryAvailabilitySchema } from "./availability";
+import { enqueueMail } from "../mail-dispatch";
 import { inquiryRepository, InquiryError } from "./repository";
-import { inquirySubmissionSchema, inquiryReplySchema, inquiryStatusSchema, inquiryMailResolutionSchema, parseInquiryQuery, parseReservationInquiryQuery } from "./types";
+import { generalInquirySubmissionSchema, inquirySubmissionSchema, inquiryReplySchema, inquiryMailResolutionSchema, parseInquiryQuery, parseReservationInquiryQuery } from "./types";
 import { inquiryError, issueChallenge, json, readBody, sameOrigin, submissionLimits, verifyChallenge } from "./http";
 export async function challenge(request: Request) { try {
     await consumeLimits([{ key: "inquiry:challenge", max: 100, seconds: 60 }]);
-    return issueChallenge(request);
+    const params = new URL(request.url).searchParams;
+    if ([...params.keys()].some(key => key !== "requestKey") || params.getAll("requestKey").length > 1) return json({ error: "フォームの準備条件を確認してください。" }, 400);
+    const requestKey = z.string().uuid().optional().parse(params.get("requestKey") ?? undefined);
+    return issueChallenge(request, Date.now(), requestKey);
 }
 catch (error) {
     return inquiryError(error);
@@ -21,7 +25,7 @@ export async function submit(request: Request, reservationNumber?: string) {
             throw new InquiryError("ログイン状態を確認してください。", 401);
         const optional = await verifyOptionalFirebaseUser(request);
         const user = optional ? await requireVerifiedFirebaseUser(request) : null;
-        const input = inquirySubmissionSchema.parse(await readBody(request));
+        const input = (reservationNumber ? inquirySubmissionSchema : generalInquirySubmissionSchema).parse(await readBody(request));
         if (input.website)
             throw new InquiryError("送信内容を確認してください。", 400);
         const actor = user ? `user:${user.uid}` : verifyChallenge(request, input.formToken, input.requestKey);
@@ -29,15 +33,9 @@ export async function submit(request: Request, reservationNumber?: string) {
         const reservation = reservationNumber ? (user ? await repo.ownedReservation(reservationNumber, user.uid) : null) : null;
         if (reservationNumber && !reservation)
             throw new InquiryError("予約のお問い合わせにはログインが必要です。", 401);
-        const number = await repo.create({ name: input.name, email: input.email, category: reservation ? "reservation" : input.category, subject: input.subject, body: input.body, requestKey: input.requestKey }, actor, user?.uid ?? null, reservation?.id ?? null, submissionLimits(request, input.email, user?.uid ?? null));
-        let receiptEmailSent = true;
-        try {
-            await deliverInquiryMail(repo, { number });
-        }
-        catch {
-            receiptEmailSent = false;
-        }
-        return json({ number, receiptEmailSent, message: receiptEmailSent ? "お問い合わせを受け付けました。" : "お問い合わせは保存されました。受付メールを送信できませんでした。問い合わせ番号をお控えください。" }, 201);
+        const availability = !reservation && input.category === "availability" ? inquiryAvailabilitySchema.parse(input) : null;
+        const number = await repo.create({ name: input.name, email: input.email, category: reservation ? "reservation" : input.category, subject: availability ? "空き状況について" : input.subject, body: input.body, requestKey: input.requestKey, ...(availability ?? {}) }, actor, user?.uid ?? null, reservation?.id ?? null, submissionLimits(request, input.email, user?.uid ?? null));
+        return json({ number, receiptEmailSent: false, receiptEmailQueued: true, message: "お問い合わせを受け付けました。" }, 201);
     }
     catch (error) {
         return inquiryError(error);
@@ -64,17 +62,10 @@ export async function myInquiries(request: Request, number?: string) {
 }
 export async function adminInquiries(request: Request, number?: string) {
     try {
-        const admin = await requireAdmin(request);
+        await requireAdmin(request);
+        if (request.method !== "GET") { const response = json({ error: "対応状況は回答に合わせて自動更新されます。" }, 405); response.headers.set("Allow", "GET"); return response; }
         const repo = await inquiryRepository();
-        if (request.method === "GET")
-            return json(number ? await repo.detail(number) : await repo.list(parseInquiryQuery(new URL(request.url))));
-        sameOrigin(request);
-        if (!number)
-            throw new InquiryError("問い合わせ番号が必要です。", 400);
-        const input = inquiryStatusSchema.parse(await readBody(request));
-        await repo.setStatus(number, input.status, input.revision);
-        console.info(JSON.stringify({event:"inquiry_status_changed",number,status:input.status,actor:admin.uid}));
-        return json(await repo.detail(number));
+        return json(number ? await repo.detail(number) : await repo.list(parseInquiryQuery(new URL(request.url))));
     }
     catch (error) {
         return inquiryError(error);
@@ -94,7 +85,10 @@ export async function reply(request: Request, number: string, replyId?: string, 
             const input = inquiryReplySchema.parse(await readBody(request));
             replyId = await repo.prepareReply(number, input, admin.uid, typeof admin.name === "string" ? admin.name : admin.email ?? null);
         }
-        await deliverInquiryMail(repo, { number, replyId });
+        const detail = await repo.detail(number);
+        if (replyId && !detail.replies.some(item => item.id === replyId)) throw new InquiryError("回答が見つかりません。", 404);
+        // New replies are queued atomically by prepareReply. Explicit retries reuse the same provider key.
+        await enqueueMail(repo.db, { kind: "inquiry", number, replyId }, true);
         console.info(JSON.stringify({event:"inquiry_mail_admin_action",number,kind:receipt?"receipt":"reply",actor:admin.uid}));
         return json(await repo.detail(number));
     }

@@ -1,4 +1,11 @@
-import type { CreateReservationChangeRequestInput, ReservationChangeRequest } from "./domain";
+import { calculateReservationEndTime, type CreateReservationChangeRequestInput, type ReservationChangeRequest, type Reservation, type Menu } from "./domain";
+
+/** Preserve an explicitly scheduled end when the time and menu selection are unchanged. */
+export function reservationChangeEndTime(current: Pick<Reservation, "startTime" | "endTime" | "menuItems">, request: Pick<ReservationChangeRequest, "requestedStartTime" | "requestedMenuItems">, menus: Pick<Menu, "name" | "duration">[]) {
+  const left = [...current.menuItems].sort(), right = [...request.requestedMenuItems].sort();
+  const unchanged = (current.startTime ?? "10:00") === request.requestedStartTime && left.length === right.length && left.every((name, index) => name === right[index]);
+  return unchanged && current.endTime ? current.endTime : calculateReservationEndTime(request.requestedStartTime, request.requestedMenuItems, menus);
+}
 
 type ChangeDetails = Pick<CreateReservationChangeRequestInput, "reservationId" | "requestedDate" | "requestedStartTime" | "requestedPeople" | "requestedMenuItems" | "reason">;
 /** Used by the server and UI so reconfirmation cannot reopen a different change after its cutoff. */

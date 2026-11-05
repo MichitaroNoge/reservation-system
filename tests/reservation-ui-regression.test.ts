@@ -1,10 +1,11 @@
+import {reservationPageSource} from "./reservation-page-source";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 
 test("customer pages expose direct entry links for the official website", async () => {
-  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const pageSource = await reservationPageSource();
   const directPages = [
     [["app", "reserve", "page.tsx"], "customerMode=reservation"],
     [["app", "customer", "page.tsx"], "customerMode=home"],
@@ -29,7 +30,7 @@ test("customer pages expose direct entry links for the official website", async 
 });
 
 test("reservation drawer rejects confirmed change requests back to temporary confirmation", async () => {
-  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const pageSource = await reservationPageSource();
 
   assert.match(
     pageSource,
@@ -40,10 +41,10 @@ test("reservation drawer rejects confirmed change requests back to temporary con
 });
 
 test("confirmed reservation request screen uses explicit request type", async () => {
-  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const pageSource = await reservationPageSource();
   const helperSource = pageSource.slice(
     pageSource.indexOf("const isConfirmedReservationChangeRequest"),
-    pageSource.indexOf("export default function Home"),
+    pageSource.indexOf("const",pageSource.indexOf("const isConfirmedReservationChangeRequest")+6),
   );
 
   assert.match(helperSource, /reservation\.requestType\s*===\s*"confirmed_from_temporary"/);
@@ -79,7 +80,7 @@ test("customer reservation creation sends a retryable receipt email", async () =
 });
 
 test("reservation and cancellation approval screens stay separated", async () => {
-  const pageSource = (await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8")).replace(/\s+/g, " ");
+  const pageSource = (await reservationPageSource()).replace(/\s+/g, " ");
   const commonSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "common.tsx"), "utf8");
   const formatterSource = await readFile(path.join(process.cwd(), "app", "reservations", "formatters.ts"), "utf8");
   const styleSource = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
@@ -115,9 +116,9 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(pageSource, /<Icon name="settings"\s*\/>[\s\S]*マスタ管理/);
   assert.match(pageSource, /view === "masters"[\s\S]*view === "customers"[\s\S]*view === "stores"[\s\S]*view === "menus"/);
   assert.doesNotMatch(pageSource, /<Icon name="users"\/>顧客管理<\/button><button className=\{view === "stores"/);
-  assert.match(pageSource, /sortedReservations\.map\([\s\S]*onClick=\{\(\) => onSelect\(r\)\}/);
+  assert.match(pageSource, /sortedReservations\.map\([\s\S]*onClick=\{[\s\S]*onSelect\(r\)/);
   assert.match(pageSource, /reservations\.map\([\s\S]*onClick=\{\(\) => onSelect\(reservation\)\}/);
-  assert.match(pageSource, /requests\.map\([\s\S]*onClick=\{\(\) => setSelectedRequestId\(request\.id\)\}/);
+  assert.match(pageSource, /requests\.map\([\s\S]*onClick=\{\(\) => void openChange\(request\)\}/);
   const changeReviewSource = await readFile(path.join(process.cwd(), "app/reservations/components/reservation-change-review-dialog.tsx"), "utf8");
   assert.match(changeReviewSource, /変更前・変更後/);
   assert.match(changeReviewSource, /予約の基本情報（現在）/);
@@ -127,15 +128,15 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const\s*\[\s*reservationStatusFilters,\s*setReservationStatusFilters\s*\]\s*=\s*useState<\s*Status\[\]\s*>/);
-  assert.match(pageSource, /useState<[\s\S]*Status\[\][\s\S]*statusOptions\.filter[\s\S]*STATUS\.cancelled[\s\S]*STATUS\.visited/);
-  assert.match(pageSource, /matchesReservation\(reservation, reservationQuery, todayIso\(\)\)/);
+  assert.match(pageSource, /useState<[\s\S]*Status\[\][\s\S]*activeReservationStatuses/);
+  assert.match(pageSource, /useReservationPage\(view==="reservations",reservationQuery/);
   const searchSource = await readFile(path.join(process.cwd(), "lib", "reservation-search.ts"), "utf8");
   assert.match(searchSource, /query\.statuses\.length && !query\.statuses\.includes\(r\.status\)/);
   assert.match(pageSource, /className="reservation-status-dropdown"/);
   assert.match(pageSource, /className="panel management-panel reservation-list-panel"/);
   assert.match(pageSource, /有効分のみ/);
   assert.match(pageSource, /removeAttribute\("open"\)[\s\S]*閉じる/);
-  assert.match(pageSource, /status !== STATUS\.cancelled && status !== STATUS\.visited/);
+  assert.match(pageSource, /setReservationStatusFilters\([\s\S]*activeReservationStatuses/);
   assert.doesNotMatch(pageSource, /すべて選択/);
   assert.doesNotMatch(pageSource, /className="visited-filter"/);
   assert.match(pageSource, /function MasterManagementPage/);
@@ -155,16 +156,16 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.equal((pageSource.match(/<ReservationSearchToolbar count=\{filteredRows\.length\}/g) ?? []).length, 4);
   assert.match(pageSource, /requests\.filter\(row => \[row\.reservationId, row\.customer\]/);
   assert.match(styleSource, /\.change-request-head \.result-count strong\s*\{\s*font-size:\s*23px/);
-  assert.match(styleSource, /\.change-request-head\s*\{[\s\S]*justify-content:\s*flex-end[\s\S]*background:\s*#fbfcfe/);
-  assert.match(styleSource, /\.management-panel table thead th,\s*\.change-request-screen table thead th\s*\{\s*background:\s*#fafbfc/);
-  assert.match(styleSource, /\.management table td small\s*\{\s*font-size:\s*12px;\s*color:\s*#263149/);
+  assert.match(styleSource, /\.change-request-head\s*\{[\s\S]*justify-content:\s*flex-end[\s\S]*background:\s*var\(--background\)/);
+  assert.match(styleSource, /\.management-panel table thead th,\s*\.change-request-screen table thead th\s*\{\s*background:\s*var\(--background\)/);
+  assert.match(styleSource, /\.management table td small\s*\{\s*font-size:\s*12px;\s*color:\s*var\(--foreground\)/);
   assert.match(styleSource, /\.reservation-status-dropdown/);
   assert.match(styleSource, /\.reservation-list-panel\s*\{\s*overflow:\s*visible/);
   assert.match(styleSource, /\.reservation-status-menu\s*\{[\s\S]*max-height:\s*min\(440px,\s*calc\(100vh - 170px\)\);\s*overflow-y:\s*auto/);
   assert.match(styleSource, /\.status-menu-actions\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*1fr 1fr 1fr/);
   assert.match(confirmationContactRouteSource, /sendConfirmationEmailForReservation/);
   assert.match(confirmationContactRouteSource, /sendEmail !== false/);
-  assert.match(confirmationContactRouteSource, /idempotencyKeyScope: `manual\/\$\{nextContactedAt\}`/);
+  assert.doesNotMatch(confirmationContactRouteSource, /idempotencyKeyScope/);
   assert.doesNotMatch(confirmationContactRouteSource, /getAutomaticReservationStatus/);
   assert.doesNotMatch(confirmationContactRouteSource, /updateReservationStatus\(id, automaticStatus\)/);
   assert.match(dataConnectRepositorySource, /contactedAt === null[\s\S]*clearConfirmationContact/);

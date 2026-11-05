@@ -16,7 +16,9 @@ export async function GET(request: Request) {
     if (!account && (await (await getReservationRepository()).listInactiveAccounts()).some(item => item.firebaseUid === user.uid)) {
       throw new ApiAuthError("このアカウントは無効化されています。管理者にお問い合わせください。", 403);
     }
-    return NextResponse.json({ account });
+    const contacts = new URL(request.url).searchParams.get("contacts") === "1" && account?.id
+      ? (await (await getReservationRepository()).listAccountContactEmails(account.id)).map(contact=>({id:contact.id,accountId:contact.accountId,email:contact.email,verifiedAt:contact.verifiedAt,verificationExpiresAt:contact.verificationExpiresAt,createdAt:contact.createdAt})) : undefined;
+    return NextResponse.json({ account, ...(contacts ? {contactEmails:contacts} : {}) });
   } catch (error) {
     return apiErrorResponse(error);
   }

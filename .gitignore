@@ -1,5 +1,6 @@
 .next/
 .next-dev/
+.next-check/
 node_modules/
 .env*
 !.env.example
@@ -15,3 +16,6 @@ dataconnect/.dataconnect/
 
 # Local review capture contains the signed-in administrator identity.
 /docs/review-artifacts/email-preview.png
+
+# New local captures may contain account identities; keep them out of the public repository.
+/docs/review-artifacts/

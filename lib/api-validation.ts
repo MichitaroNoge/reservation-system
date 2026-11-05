@@ -148,6 +148,10 @@ function validateCustomerAccountMode(value: unknown) {
   throw new ApiValidationError("customerAccountMode must be account or admin.");
 }
 
+export function validateReservationRevision(value: unknown) {
+  return requireInteger(value, "expectedRevision", { min: 0, max: 2147483647 });
+}
+
 export function validateUpdateReservationInput(body: Record<string, unknown>): UpdateReservationInput {
   const input: UpdateReservationInput = {};
   if (body.date !== undefined) input.date = requireIsoDate(body.date, "date");

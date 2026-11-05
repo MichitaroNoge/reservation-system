@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 function AuthBrand() {
-  return <div className="mb-6 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">R</span><div><strong className="block text-base">Reserve</strong><small className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Operations</small></div></div>;
+  return <div className="mb-6 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-lg bg-primary text-lg font-bold text-primary-foreground">R</span><div><strong className="block text-base">Reserve</strong><small className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Operations</small></div></div>;
 }
 
 export function AdminAuthShell({ title, text }: { title: string; text: string }) {

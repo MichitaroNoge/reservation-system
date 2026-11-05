@@ -44,8 +44,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     });
     if (!updated) return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
     const { reservation, approvalEmailType } = updated;
-    let approvalEmail: { status: "not_requested" | "sent" | "failed"; error?: string } = { status: "not_requested" };
-    if (approvalEmailType) {
+    let approvalEmail: { status: "not_requested" | "pending" | "sent" | "failed"; error?: string } = { status: "not_requested" };
+    if (approvalEmailType && repository.queueTransactionalEmail) approvalEmail = { status: "pending" };
+    else if (approvalEmailType) {
       try {
         await requestAndSendApprovalEmail(repository, reservation.id, approvalEmailType, nextStatus);
         approvalEmail = { status: "sent" };

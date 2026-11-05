@@ -3,11 +3,17 @@ import { test } from "node:test";
 import { initializeApp, deleteApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { isGoogleCustomerSessionCurrent } from "../../lib/google-auth";
+import { assertRecentPasswordAuthentication } from "../../lib/auth";
+import { initializeApp as initializeClientApp, deleteApp as deleteClientApp } from "firebase/app";
+import { getAuth as getClientAuth, connectAuthEmulator, signInWithCustomToken, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 
 test("Firebase Auth emulator supports explicit Google provider linking, custom sessions, password addition and unlinking with one UID", async () => {
   assert.equal(process.env.FIREBASE_AUTH_EMULATOR_HOST, "127.0.0.1:9099", "This contract test requires the isolated local Auth emulator.");
   const app = initializeApp({ projectId: "demo-reservation-google" }, "google-contract");
   const auth = getAuth(app), nonce = String(Date.now()), email = `google-contract-${nonce}@example.test`;
+  const clientApp = initializeClientApp({ projectId: "demo-reservation-google", apiKey: "demo-key" }, `google-client-contract-${nonce}`);
+  const clientAuth = getClientAuth(clientApp);
+  connectAuthEmulator(clientAuth, "http://127.0.0.1:9099", { disableWarnings: true });
   const rest = async (operation: string, body: object) => {
     const response = await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:${operation}?key=demo-key`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     return { status: response.status, data: await response.json() };
@@ -35,6 +41,13 @@ test("Firebase Auth emulator supports explicit Google provider linking, custom s
     await auth.updateUser(created.uid, { password: "contract-password-123" });
     const password = await rest("signInWithPassword", { email, password: "contract-password-123", returnSecureToken: true });
     assert.equal(password.status, 200); assert.equal(password.data.localId, created.uid);
+    const clientGoogle = await signInWithCustomToken(clientAuth, customToken);
+    const reauthenticated = await reauthenticateWithCredential(clientGoogle.user, EmailAuthProvider.credential(email, "contract-password-123"));
+    const passwordProof = await auth.verifyIdToken(await reauthenticated.user.getIdToken(true));
+    assert.equal(passwordProof.uid, created.uid);
+    assert.equal(passwordProof.firebase.sign_in_provider, "password");
+    assert.equal(passwordProof.customerGoogleSub, undefined, "password proof must not retain custom Google session claims");
+    assert.doesNotThrow(() => assertRecentPasswordAuthentication(passwordProof));
     // Admin provider linking is privileged and is not our uniqueness boundary.
     // The application's precheck plus PostgreSQL lock is covered by the SQL concurrency test.
     await auth.updateUser(created.uid, { providersToUnlink: ["google.com"] });
@@ -44,5 +57,5 @@ test("Firebase Auth emulator supports explicit Google provider linking, custom s
     const replay = await rest("signInWithCustomToken", { token: customToken, returnSecureToken: true });
     assert.equal(replay.status, 200); // Firebase custom tokens alone are not a revocation boundary.
     assert.equal(isGoogleCustomerSessionCurrent(await auth.verifyIdToken(replay.data.idToken), await auth.getUser(created.uid)), false);
-  } finally { await deleteApp(app); }
+  } finally { await deleteClientApp(clientApp); await deleteApp(app); }
 });

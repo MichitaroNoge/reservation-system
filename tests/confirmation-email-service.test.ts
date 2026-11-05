@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reservationStatusCodes, type ApprovalEmailDelivery, type ApprovalEmailType, type EmailDelivery, type EmailSettings, type EmailTemplate, type Reservation } from "../lib/domain";
+import { reservationStatusCodes, type ApprovalEmailDelivery, type EmailDelivery, type EmailSettings, type EmailTemplate, type Reservation } from "../lib/domain";
 import { defaultEmailTemplates } from "../lib/email/email-template-catalog";
 import { EmailDeliveryError, type EmailClient, type SendEmailInput } from "../lib/email/resend-email-client";
 import { confirmationEmailIdempotencyKey, isConfirmationEmailDue, sendConfirmationEmailForReservation, sendDueConfirmationEmails } from "../lib/services/confirmation-email-service";
@@ -147,6 +147,7 @@ test("manual confirmation contact can use a scoped idempotency key for resend af
     emailClient,
     idempotencyKeyScope: `manual/${now.toISOString()}`,
   });
+  const firstKey = confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!);
   await repository.updateConfirmationContact("RSV-MANUAL-RESEND", null);
   await sendConfirmationEmailForReservation(repository, "RSV-MANUAL-RESEND", {
     now: later,
@@ -155,8 +156,9 @@ test("manual confirmation contact can use a scoped idempotency key for resend af
   });
 
   assert.equal(emailClient.sent.length, 2);
-  assert.equal(emailClient.sent[0].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!, `manual/${now.toISOString()}`));
-  assert.equal(emailClient.sent[1].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!, `manual/${later.toISOString()}`));
+  assert.equal(emailClient.sent[0].idempotencyKey, firstKey);
+  assert.equal(emailClient.sent[1].idempotencyKey, confirmationEmailIdempotencyKey(repository.get("RSV-MANUAL-RESEND")!));
+  assert.notEqual(emailClient.sent[0].idempotencyKey, emailClient.sent[1].idempotencyKey);
 });
 
 test("manual confirmation contact does not update contacted when email send fails", async () => {
@@ -219,6 +221,54 @@ test("receipt email failure is recorded and remains retryable", async () => {
   assert.equal(failed?.receiptEmailSentAt, null);
   assert.equal(failed?.receiptEmailRetryCount, 1);
   assert.equal(failed?.receiptEmailLastError, "Resend unavailable");
+});
+
+test("receipt batch stops ambiguous retries after the safe provider-key window", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-OLD-RECEIPT", receiptEmailRequestedAt: now.toISOString() })]);
+  await assert.rejects(sendReceiptEmailForReservation(repository, "RSV-OLD-RECEIPT", { now, emailClient: new RecordingEmailClient(new Error("unknown delivery")) }));
+  const retry = new RecordingEmailClient();
+  const result = await sendPendingReceiptEmails(repository, { now: new Date(now.getTime() + 23 * 3600000 + 1), emailClient: retry });
+  assert.equal(result.failed, 1);
+  assert.equal(result.sent, 0);
+  assert.equal(retry.sent.length, 0, "the cron path must not send again after provider deduplication can expire");
+  assert.match(repository.get("RSV-OLD-RECEIPT")?.receiptEmailLastError ?? "", /再送期限/);
+  assert.equal((await sendPendingReceiptEmails(repository, { now: new Date(now.getTime() + 24 * 3600000), emailClient: retry })).pending, 0, "expired ambiguous receipts must stop automatic retries");
+});
+
+test("receipt retry at the safe-window boundary keeps the same payload and key", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-BOUNDARY-RECEIPT", receiptEmailRequestedAt: now.toISOString() })]);
+  const failed = new RecordingEmailClient(new Error("unknown delivery"));
+  await assert.rejects(sendReceiptEmailForReservation(repository, "RSV-BOUNDARY-RECEIPT", { now, emailClient: failed }));
+  const retry = new RecordingEmailClient();
+  await sendReceiptEmailForReservation(repository, "RSV-BOUNDARY-RECEIPT", { now: new Date(now.getTime() + 23 * 3600000), emailClient: retry });
+  assert.equal(retry.sent[0].idempotencyKey, failed.sent[0].idempotencyKey);
+  assert.equal(retry.sent[0].text, failed.sent[0].text);
+});
+
+test("an old sent receipt reconciles bookkeeping without resending or replacing its sent time", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-SENT-AUDIT", receiptEmailRequestedAt: now.toISOString() })]);
+  const client = new RecordingEmailClient();
+  const update = repository.updateReceiptEmailDelivery.bind(repository);
+  let fail = true;
+  repository.updateReceiptEmailDelivery = async (id, input) => {
+    if (input.sentAt && fail) { fail = false; throw new Error("lost finalization"); }
+    return update(id, input);
+  };
+  await assert.rejects(sendReceiptEmailForReservation(repository, "RSV-SENT-AUDIT", { now, emailClient: client }));
+  await sendReceiptEmailForReservation(repository, "RSV-SENT-AUDIT", { now: new Date(now.getTime() + 24 * 3600000), emailClient: client });
+  assert.equal(client.sent.length, 1);
+  assert.equal(repository.get("RSV-SENT-AUDIT")?.receiptEmailSentAt, now.toISOString());
+  assert.equal((await repository.getEmailDelivery(receiptEmailIdempotencyKey({ id: "RSV-SENT-AUDIT" })))?.sentAt, now.toISOString());
+});
+
+test("confirmation batches forward the configured send timeout", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-BATCH-TIMEOUT", date: "2026-08-19" })]);
+  const started = performance.now();
+  const result = await sendDueConfirmationEmails(repository, { now, timeoutMs: 5, emailClient: { send: async () => new Promise<{ id: string }>(() => {}) } });
+  assert.equal(result.failed, 1);
+  assert.equal(result.sent, 0);
+  assert.equal(repository.get("RSV-BATCH-TIMEOUT")?.confirmationContactedAt, null);
+  assert.ok(performance.now() - started < 1000, "the explicit timeout must replace the 20-second default");
 });
 
 test("receipt email safely stops retrying when an address is missing", async () => {
@@ -370,6 +420,7 @@ class MemoryReservationRepository implements ReservationRepository {
   async updateConfirmationContact(id: string, contactedAt: string | null) {
     const target = this.get(id);
     if (!target) throw new Error(`Reservation not found: ${id}`);
+    if (contactedAt === null && target.confirmationContactedAt) target.confirmationEmailGeneration = (target.confirmationEmailGeneration ?? 0) + 1;
     target.confirmationContactedAt = contactedAt;
     return target;
   }
@@ -476,3 +527,18 @@ function reservation(overrides: Partial<Reservation>): Reservation {
 async function unsupported(): Promise<never> {
   throw new Error("Unsupported in this test.");
 }
+
+test("receipt delivery times out without blocking the worker and retries the same immutable provider key", async () => {
+  const repository = new MemoryReservationRepository([reservation({ id: "RSV-TIMEOUT", receiptEmailRequestedAt: now.toISOString() })]);
+  const keys: string[] = [];
+  await assert.rejects(sendReceiptEmailForReservation(repository, "RSV-TIMEOUT", {
+    now, timeoutMs: 5,
+    emailClient: { send: async input => { keys.push(input.idempotencyKey); return new Promise<{ id: string }>(() => {}); } },
+  }), /送信結果/);
+  assert.equal(repository.get("RSV-TIMEOUT")?.receiptEmailSentAt, null);
+  assert.equal(repository.get("RSV-TIMEOUT")?.receiptEmailRetryCount, 1);
+  const successful = new RecordingEmailClient();
+  await sendReceiptEmailForReservation(repository, "RSV-TIMEOUT", { now, emailClient: successful });
+  assert.equal(successful.sent[0].idempotencyKey, keys[0]);
+  assert.equal(repository.get("RSV-TIMEOUT")?.receiptEmailSentAt, now.toISOString());
+});

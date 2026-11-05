@@ -11,6 +11,9 @@ export type ReservationRepository = {
   getReservationSubmission?(firebaseUid: string, requestKey: string): Promise<{ requestHash: string; reservationCode: string } | null>;
   recordReservationSubmission?(input: { firebaseUid: string; requestKey: string; requestHash: string; reservationCode: string }): Promise<void>;
   recordCancellationPolicyConsent?(id: string, input: Omit<import("../cancellation-policy-consent").CancellationPolicyConsent, "people"> & { firebaseUid: string }): Promise<Reservation>;
+  queueTransactionalEmail?(target: import("../mail-dispatch").MailJobTarget): Promise<void>;
+  getReservation?(id: string): Promise<Reservation | null>;
+  listReservationChangeRequestsForAccount?(firebaseUid: string): Promise<ReservationChangeRequest[]>;
   listReservations(): Promise<Reservation[]>;
   scanReservationsForExport?(query: import("../reservation-search").ReservationSearch, consume: (rows: Reservation[]) => void, signal: AbortSignal, deadline: number): Promise<void>;
   listReservationsForReservationAccount(firebaseUid: string): Promise<Reservation[]>;
@@ -25,6 +28,7 @@ export type ReservationRepository = {
   listEmailTemplates(): Promise<EmailTemplate[]>;
   getEmailTemplate(templateKey: string): Promise<EmailTemplate | null>;
   upsertEmailTemplate(input: EmailTemplate): Promise<EmailTemplate>;
+  findLegacyConfirmationEmailDelivery?(baseKey: string): Promise<EmailDelivery | null>;
   getEmailDelivery(deliveryKey: string): Promise<EmailDelivery | null>;
   createEmailDelivery(input: EmailDelivery): Promise<EmailDelivery>;
   updateEmailDelivery(deliveryKey: string, input: Pick<EmailDelivery, "status" | "sentAt" | "lastError">): Promise<EmailDelivery>;

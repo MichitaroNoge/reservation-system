@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarDays, ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -40,9 +40,8 @@ export function GoogleCalendarSettings({ getAdminToken }: { getAdminToken: () =>
     finally { sending.current = false; if (mounted.current) setBusy(false); }
   }
   const c = data?.connection;
-  return <section className="mt-6 min-w-0 border-t border-border pt-5 text-sm">
-    <h3 className="flex items-center gap-2 font-semibold"><CalendarDays className="size-4" />Googleカレンダー連携</h3>
-    <p className="mt-2 text-muted-foreground">承認済みの仮予約・本予約を、管理者用の「団体予約」カレンダーへ自動反映します。変更申請中は承認済みの内容を維持し、キャンセル確定後は予定を削除します。</p>
+  return <section aria-label="Googleカレンダー連携" className="min-w-0 rounded-lg border border-border bg-card p-5 text-sm text-card-foreground">
+    <p className="text-muted-foreground">承認済みの仮予約・本予約を、管理者用の「団体予約」カレンダーへ自動反映します。変更申請中は承認済みの内容を維持し、キャンセル確定後は予定を削除します。</p>
     {loading ? <p role="status" className="mt-4">連携状態を読み込み中…</p> : data?.supported === false ? <p className="mt-4 text-muted-foreground">この機能はPostgreSQL / Drizzle構成で利用できます。</p> : data && <>
       {!data.configured && <div className="mt-4 space-y-2 text-muted-foreground"><p>Google連携の初期設定が必要です。</p><details><summary className="cursor-pointer text-foreground">設定手順</summary><ol className="mt-2 list-decimal space-y-2 pl-5"><li>Google CloudでCalendar APIを有効にし、管理者連携用のOAuthクライアントを作成します。</li><li>リダイレクト先に <code className="break-all">http://localhost:3000/api/admin/google-calendar/callback</code> を登録します。本番ではサイトのHTTPS URLを使用します。</li><li>サーバーの環境設定にGOOGLE_CALENDAR_CLIENT_ID、GOOGLE_CALENDAR_CLIENT_SECRET、GOOGLE_CALENDAR_REDIRECT_URI、GOOGLE_CALENDAR_ENCRYPTION_KEYを設定して再起動します。暗号化キーは32バイトのランダム値をBase64にしたものです。</li></ol></details></div>}
       <dl className="mt-4 grid min-w-0 gap-2 sm:grid-cols-[9rem_1fr]"><dt className="text-muted-foreground">接続アカウント</dt><dd className="break-all">{c?.connected ? c.email : "未接続"}</dd><dt className="text-muted-foreground">連携状態</dt><dd>{!c?.connected ? "未接続" : !c.calendarId ? "カレンダー未設定" : c.enabled ? "連携中" : "停止中"}</dd><dt className="text-muted-foreground">最終連携成功</dt><dd>{at(c?.lastSuccessAt)}</dd><dt className="text-muted-foreground">連携処理の最終実行</dt><dd>{at(c?.lastRunAt)}</dd></dl>

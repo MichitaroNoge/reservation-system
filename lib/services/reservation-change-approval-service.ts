@@ -1,6 +1,7 @@
 import { ApiValidationError } from "../api-validation";
 import { cancellationFeeNotice, reservationChangeFeeContext } from "../cancellation-policy";
-import { calculateReservationEndTime, type Reservation, type ReservationChangeRequest } from "../domain";
+import { type Reservation, type ReservationChangeRequest } from "../domain";
+import { reservationChangeEndTime } from "../reservation-change";
 import { reservationAvailability } from "../reservation-availability";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 
@@ -13,8 +14,9 @@ export async function assertReservationChangeApproval(repository: ReservationRep
   }
   if (request.baseRevision !== undefined && request.baseRevision !== (current.revision ?? 0)) throw Object.assign(new Error("この申請の後に予約内容が更新されています。古い内容で上書きしないため承認を停止しました。現在の予約内容を確認し、お客様に変更内容の再申請を依頼してください。"), { statusCode: 409 });
   const [settings, menus] = await Promise.all([repository.getSystemSettings(), repository.listMenus()]);
-  const target = { ...current, date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems, endTime: calculateReservationEndTime(request.requestedStartTime, request.requestedMenuItems, menus) };
+  const target = { ...current, date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems, endTime: reservationChangeEndTime(current, request, menus) };
   if (reservationAvailability(target, [], settings.acceptanceCapacity, menus, settings.blockedPeriods).blockedPeriods.length) {
     throw new ApiValidationError("変更後の利用時間が受入不可の日時と重なるため承認できません。");
   }
+  return target;
 }

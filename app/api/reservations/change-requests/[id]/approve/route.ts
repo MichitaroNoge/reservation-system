@@ -19,8 +19,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       await repo.createApprovalEmailDelivery({ deliveryKey: approvalEmailDeliveryKey(updated.reservation.id, "reservation_change_approved", id), reservationId: updated.reservation.id, type: "reservation_change_approved", referenceId: id, requestedAt: new Date().toISOString() });
       return updated;
     });
-    let approvalEmail: { status: "sent" | "failed"; error?: string } = { status: "sent" };
-    try {
+    let approvalEmail: { status: "pending" | "sent" | "failed"; error?: string } = { status: "sent" };
+    if (repository.queueTransactionalEmail) approvalEmail = { status: "pending" };
+    else try {
       await requestAndSendApprovalEmail(repository, result.reservation.id, "reservation_change_approved", id);
     } catch (error) {
       approvalEmail = { status: "failed", error: error instanceof Error ? error.message : "Unknown email error" };

@@ -1,6 +1,8 @@
 import "server-only";
+import { availabilityDateError, inquiryMessageText } from "./availability";
+import { ZodError } from "zod";
 import { createHash, randomUUID } from "node:crypto";
-import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { repositoryProvider } from "../db/environment";
 import { getDatabase } from "../db/client";
 import { account, emailDelivery, inquiry, inquiryReply, reservation } from "../db/schema";
@@ -18,8 +20,11 @@ export type MailTarget = {
     replyId?: string;
 };
 const mailKey = (row: Row, reply?: ReplyRow) => reply ? `inquiry-reply:${reply.id}` : `inquiry-receipt:${row.id}`;
+function availabilityDetails(row: Row) {
+    return row.mealDate && row.mealStartTime && row.people !== null ? { mealDate: row.mealDate, mealStartTime: row.mealStartTime, people: row.people } : null;
+}
 function publicRow(row: Row, reservationNumber: string | null): Inquiry {
-    return { number: `INQ-${row.inquiryNumber}`, reservationNumber, name: row.name, email: row.email, category: row.category, subject: row.subject, body: row.body, status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt, revision: row.revision, receiptEmailStatus: row.receiptEmailStatus };
+    return { number: `INQ-${row.inquiryNumber}`, reservationNumber, name: row.name, email: row.email, category: row.category, subject: row.subject, body: row.body, availability: availabilityDetails(row), status: row.status, createdAt: row.createdAt, updatedAt: row.updatedAt, revision: row.revision, receiptEmailStatus: row.receiptEmailStatus };
 }
 export class InquiryRepository {
     constructor(public db: ReservationDatabase) { }
@@ -28,6 +33,12 @@ export class InquiryRepository {
             await tx.execute(sql `select pg_advisory_xact_lock(hashtextextended(${`inquiry:${key}`},0))`);
             return work(new InquiryRepository(tx as unknown as ReservationDatabase));
         });
+    }
+    /** Public history is sufficient for members; anonymous recipients need delivery or explicit resolution. */
+    private async syncAnswerStatus(row: Row, time = new Date().toISOString()) {
+        const [replies] = await this.db.select({ total: count(), unresolved: sql<number>`count(*) filter (where ${inquiryReply.emailStatus} not in ('sent', 'not_sent'))::int` }).from(inquiryReply).where(eq(inquiryReply.inquiryId, row.id));
+        const status = replies.total > 0 && (row.firebaseUid !== null || replies.unresolved === 0) ? "answered" : "unhandled";
+        await this.db.update(inquiry).set({ status, revision: row.revision + 1, updatedAt: time }).where(eq(inquiry.id, row.id));
     }
     async ownedReservation(code: string, uid: string) {
         if (!/^RSV-[0-9]{1,25}$/.test(code))
@@ -44,6 +55,16 @@ export class InquiryRepository {
             : await this.ownedReservation(code, uid);
         if (!booking) throw new InquiryError("予約が見つかりません。", 404);
         return this.list(query, uid, booking.id);
+    }
+    async reservationInquiryCounts(uid: string, codes: string[]) {
+        if (!codes.length) return {};
+        const rows = await this.db.select({ code: reservation.reservationCode, total: count() }).from(inquiry)
+            .innerJoin(reservation, eq(reservation.id, inquiry.reservationId))
+            .innerJoin(account, eq(account.id, reservation.accountId))
+            .where(and(eq(account.firebaseUid, uid), eq(account.active, true), eq(inquiry.firebaseUid, uid), inArray(reservation.reservationCode, codes)))
+            .groupBy(reservation.reservationCode);
+        const totals = new Map(rows.map(row => [row.code, row.total]));
+        return Object.fromEntries(codes.map(code => [code, totals.get(code) ?? 0]));
     }
     async row(number: string, uid?: string) {
         const [result] = await this.db.select({ row: inquiry, reservationNumber: reservation.reservationCode }).from(inquiry).leftJoin(reservation, eq(reservation.id, inquiry.reservationId)).where(and(eq(inquiry.inquiryNumber, inquiryNumber(number)), uid === undefined ? undefined : eq(inquiry.firebaseUid, uid)));
@@ -68,6 +89,7 @@ export class InquiryRepository {
         name: string;
         email: string;
         category: Row["category"];
+        mealDate?: string; mealStartTime?: string; people?: number;
         subject: string;
         body: string;
         requestKey: string;
@@ -80,11 +102,14 @@ export class InquiryRepository {
                     throw new InquiryError("同じ送信識別子で内容を変更できません。", 409);
                 return `INQ-${existing.inquiryNumber}`;
             }
+            const dateError = input.category === "availability" ? availabilityDateError(input.mealDate) : undefined;
+            if (dateError) throw new ZodError([{ code: "custom", path: ["mealDate"], message: dateError }]);
             await consumeDatabaseLimits(repo.db, limits);
             const [row] = await repo.db.insert(inquiry).values({ ...input, requestHash, firebaseUid: uid, reservationId }).returning();
             const { reservationNumber } = await repo.row(`INQ-${row.inquiryNumber}`);
-            const body = [`お問い合わせを受け付けました。`, `問い合わせ番号: INQ-${row.inquiryNumber}`, `受付日時: ${inquiryDate(row.createdAt)}`, reservationNumber ? `予約番号: ${reservationNumber}` : "", `件名: ${row.subject}`, "", row.body].filter(v => v !== "").join("\n");
+            const body = [`お問い合わせを受け付けました。`, `問い合わせ番号: INQ-${row.inquiryNumber}`, `受付日時: ${inquiryDate(row.createdAt)}`, reservationNumber ? `予約番号: ${reservationNumber}` : "", `件名: ${row.subject}`, "", inquiryMessageText({ ...row, availability: availabilityDetails(row) })].filter(v => v !== "").join("\n");
             await repo.db.insert(emailDelivery).values({ deliveryKey: mailKey(row), templateKey: "inquiry_receipt", recipient: row.email, subject: `[INQ-${row.inquiryNumber}] お問い合わせ受付`, body, status: "pending" });
+            await (await import("../mail-dispatch")).enqueueMail(repo.db, { kind: "inquiry", number: `INQ-${row.inquiryNumber}` });
             return `INQ-${row.inquiryNumber}`;
         });
     }
@@ -105,27 +130,15 @@ export class InquiryRepository {
             }
             if (row.revision !== input.revision)
                 throw conflict();
-            if (row.status === "closed")
-                throw new InquiryError("完了した問い合わせです。対応中に戻してから回答してください。");
             const pending = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} not in ('sent', 'not_sent')`)).limit(1);
             if (pending.length)
                 throw new InquiryError("未送信の回答があります。回答履歴から同じ回答を再試行してください。");
             const [reply] = await repo.db.insert(inquiryReply).values({ inquiryId: row.id, adminFirebaseUid: adminUid, adminLabel, subject: input.subject, body: input.body, requestKey: input.requestKey, requestHash }).returning();
-            const body = [`問い合わせ番号: ${number}`, reservationNumber ? `予約番号: ${reservationNumber}` : "", "", reply.body].join("\n");
+            const body = [`問い合わせ番号: ${number}`, reservationNumber ? `予約番号: ${reservationNumber}` : "", ...(availabilityDetails(row) ? ["", "【お問い合わせの内容】", inquiryMessageText({ ...row, availability: availabilityDetails(row) }), "", "【回答】"] : []), "", reply.body].join("\n");
             await repo.db.insert(emailDelivery).values({ deliveryKey: mailKey(row, reply), templateKey: "inquiry_reply", recipient: row.email, subject: reply.subject, body, status: "pending" });
-            await repo.db.update(inquiry).set({ revision: row.revision + 1, updatedAt: new Date().toISOString() }).where(eq(inquiry.id, row.id));
+            await repo.syncAnswerStatus(row);
+            await (await import("../mail-dispatch")).enqueueMail(repo.db, { kind: "inquiry", number, replyId: reply.id });
             return reply.id;
-        });
-    }
-    async setStatus(number: string, status: "in_progress" | "closed", revision: number) {
-        return this.locked(number, async (repo) => {
-            const { row } = await repo.row(number);
-            if (row.revision !== revision)
-                throw conflict();
-            const [active] = await repo.db.select({ id: inquiryReply.id }).from(inquiryReply).where(and(eq(inquiryReply.inquiryId, row.id), sql `${inquiryReply.emailStatus} not in ('sent', 'not_sent')`)).limit(1);
-            if (active)
-                throw new InquiryError("送信結果が未確定の回答があります。回答履歴を確認してください。");
-            await repo.db.update(inquiry).set({ status, revision: revision + 1, updatedAt: new Date().toISOString() }).where(eq(inquiry.id, row.id));
         });
     }
     /** An explicit provider-history check closes an ambiguous delivery without sending again. */
@@ -142,7 +155,7 @@ export class InquiryRepository {
             const time = new Date(now).toISOString();
             await repo.db.update(inquiryReply).set({ emailStatus: outcome, sentAt: outcome === "sent" ? time : null, leaseToken: null, leaseUntil: null, resolution: { outcome, resolvedAt: time, adminUid }, lastError: null }).where(eq(inquiryReply.id, replyId));
             await repo.db.update(emailDelivery).set({ status: outcome === "sent" ? "sent" : "failed", sentAt: outcome === "sent" ? time : null, lastError: outcome === "not_sent" ? "delivery_closed_by_admin" : null }).where(eq(emailDelivery.deliveryKey, mailKey(row, reply)));
-            await repo.db.update(inquiry).set({ status: "answered", revision: row.revision + 1, updatedAt: time }).where(eq(inquiry.id, row.id));
+            await repo.syncAnswerStatus(row, time);
         });
     }
     async frozenSender(target: MailTarget) {
@@ -198,7 +211,7 @@ export class InquiryRepository {
             if (reply) {
                 await repo.db.update(inquiryReply).set({ emailStatus: status, resendMessageId: sent ? result.id : null, sentAt: sent ? time : null, leaseUntil: null, leaseToken: null, lastError: sent ? null : status }).where(eq(inquiryReply.id, reply.id));
                 if (sent)
-                    await repo.db.update(inquiry).set({ status: "answered", revision: row.revision + 1, updatedAt: time }).where(eq(inquiry.id, row.id));
+                    await repo.syncAnswerStatus(row, time);
             }
             else
                 await repo.db.update(inquiry).set({ receiptEmailStatus: status, receiptMessageId: sent ? result.id : null, receiptLeaseUntil: null, receiptLeaseToken: null }).where(eq(inquiry.id, row.id));

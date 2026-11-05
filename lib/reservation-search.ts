@@ -1,4 +1,8 @@
-import { isConfirmedReservation, isTemporaryReservationExpired, isVisitReadyReservation, reservationAssignments, reservationStatusLabel, type Reservation, type ReservationStatus } from "./domain";
+import { reservationStatuses, isConfirmedReservation, isTemporaryReservationExpired, isVisitReadyReservation, reservationAssignments, reservationStatusLabel, type Reservation, type ReservationStatus } from "./domain";
+
+export const activeReservationStatuses: ReservationStatus[] = reservationStatuses.filter(status =>
+  !["cancelled", "visited", "temporary_rejected", "confirmed_rejected"].includes(status),
+);
 
 export const reservationFilters = ["すべて", "承認待ち", "仮予約確定", "仮予約確定（期限切れ）", "本予約確定", "本予約確定（メニュー未確定）", "本予約確定（店舗未割当）", "本予約確定（未確認連絡）", "本予約確定（来店待ち）"] as const;
 export const reservationSortKeys = ["status", "id", "customer", "date", "menu", "store", "contact"] as const;

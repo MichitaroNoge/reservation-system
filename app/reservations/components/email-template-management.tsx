@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, LoaderCircle, Mail, Save } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ListToolbar, ResultCount } from "@/components/ui/management-layout";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,10 +48,12 @@ export function EmailTemplateManagement({
   const [error, setError] = useState("");
 
   const auth = async () => ({ authToken: await getAdminToken() });
+  const tokenProvider = useRef(getAdminToken);
+  tokenProvider.current = getAdminToken;
   useEffect(() => {
     void (async () => {
       try {
-        const options = await auth();
+        const options = { authToken: await tokenProvider.current() };
         const [templateResult, settingsResult] = await Promise.all([
           requestJson<{ templates: EmailTemplate[] }>("/api/email-templates", options),
           requestJson<{ settings: EmailSettings; allowedFromEmails: string[] }>("/api/email-settings", options),
@@ -141,10 +145,10 @@ export function EmailTemplateManagement({
 
   if (loading)
     return (
-      <div className="grid min-h-56 place-items-center text-sm text-muted-foreground">
+      <Card role="status" className="grid min-h-56 place-items-center text-sm text-muted-foreground">
         <LoaderCircle className="mr-2 size-4 animate-spin" />
         読み込み中
-      </div>
+      </Card>
     );
   if (!selected || !draft)
     return (
@@ -157,7 +161,7 @@ export function EmailTemplateManagement({
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div><Label htmlFor="sender-name">送信者名</Label><Input id="sender-name" value={settings.senderName} onChange={(event) => setSettings({ ...settings, senderName: event.target.value })} /></div>
-            <div><Label htmlFor="from-email">送信元メールアドレス</Label><select id="from-email" className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={settings.fromEmail} onChange={(event) => setSettings({ ...settings, fromEmail: event.target.value })}>{allowedFromEmails.map((email) => <option key={email} value={email}>{email}</option>)}</select></div>
+            <div><Label htmlFor="from-email">送信元メールアドレス</Label><Select id="from-email" className="mt-2" value={settings.fromEmail} onChange={(event) => setSettings({ ...settings, fromEmail: event.target.value })}>{allowedFromEmails.map((email) => <option key={email} value={email}>{email}</option>)}</Select></div>
           </div>
           <div className="mt-4 grid gap-3 rounded-md border p-4">
             <label className="flex items-center gap-3 text-sm font-medium"><input type="checkbox" checked={settings.replyToEnabled} onChange={(event) => setSettings({ ...settings, replyToEnabled: event.target.checked })} />指定したアドレスで返信を受け付ける</label>
@@ -168,28 +172,28 @@ export function EmailTemplateManagement({
         </Card>
       )}
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b p-5">
+        <ListToolbar>
           <div>
-            <h2 className="font-semibold">メールテンプレート</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               送信メールの件名と本文を管理します。
             </p>
           </div>
-          <Mail className="size-5 text-muted-foreground" />
-        </div>
+          <ResultCount count={templates.length} loading={loading} />
+        </ListToolbar>
         {error && (
           <div className="p-5">
             <Alert className="border-destructive/40 text-destructive">{error}</Alert>
           </div>
         )}
         {templates.length ? (
-          <Table>
+          <Table className="min-w-[760px]">
             <TableHeader>
               <TableRow>
                 <TableHead>テンプレート名</TableHead>
                 <TableHead>templateKey</TableHead>
                 <TableHead>状態</TableHead>
                 <TableHead>最終更新日時</TableHead>
+                <TableHead className="sticky right-0 bg-background">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,9 +201,9 @@ export function EmailTemplateManagement({
                 <TableRow
                   key={template.templateKey}
                   className="cursor-pointer"
-                  onClick={() => openEditor(template)}
+                  onClick={() => { if (!window.getSelection()?.toString()) openEditor(template); }}
                 >
-                  <TableCell className="font-medium">{template.name}</TableCell>
+                  <TableCell className="font-medium"><button type="button" className="min-h-8 rounded-sm text-left font-semibold focus-visible:ring-2 focus-visible:ring-ring" onClick={event=>{event.stopPropagation();openEditor(template);}}>{template.name}</button></TableCell>
                   <TableCell className="font-mono text-xs">
                     {template.templateKey}
                   </TableCell>
@@ -215,6 +219,7 @@ export function EmailTemplateManagement({
                       ? new Date(template.updatedAt).toLocaleString("ja-JP")
                       : "-"}
                   </TableCell>
+                  <TableCell className="sticky right-0 bg-card"><Button type="button" variant="outline" size="sm" onClick={event=>{event.stopPropagation();openEditor(template);}}>編集</Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>

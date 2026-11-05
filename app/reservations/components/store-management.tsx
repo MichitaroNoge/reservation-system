@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Icon } from "./common";
@@ -109,33 +110,30 @@ export function StoreManagement({
     const isSaving = savingName === target;
     return (
       <>
-        <td>
+        <TableCell>
           <Input className="w-20" aria-label="表示順" type="number" min={0} value={form.displayOrder} onChange={(event) => setForm({ ...form, displayOrder: Number(event.target.value) })} />
-        </td>
-        <td>
+        </TableCell>
+        <TableCell>
           <Input aria-label="店舗名" placeholder="店舗名" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-        </td>
-        <td>
+        </TableCell>
+        <TableCell>
           <Badge variant="success">有効</Badge>
-        </td>
-        <td>
-          <div className="flex justify-end gap-2">
+        </TableCell>
+        <TableCell className="sticky right-0 bg-card"><div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" disabled={isSaving} onClick={cancel}>キャンセル</Button>
             <Button type="button" size="sm" disabled={!form.name || isSaving} onClick={mode === "create" ? saveNew : save}>
               {isSaving ? (mode === "create" ? "登録中" : "保存中") : (mode === "create" ? "登録" : "保存")}
             </Button>
           </div>
-        </td>
+        </TableCell>
       </>
     );
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Badge variant="secondary">{stores.length}件</Badge>
-        </div>
+    <ListPanel>
+      <ListToolbar>
+        <ResultCount count={stores.length} />
         <div className="flex gap-2">
           {inactiveStores.length ? (
             <Button type="button" variant="outline" size="sm" onClick={() => setShowInactive((current) => !current)}>
@@ -147,40 +145,39 @@ export function StoreManagement({
             新規登録
           </Button>
         </div>
-      </div>
+      </ListToolbar>
 
       <div className="table-wrap">
-        <table className="large-table store-table">
-          <thead>
-            <tr>
-              <th>表示順</th>
-              <th>店舗名</th>
+        <Table className="min-w-[640px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>表示順</TableHead>
+              <TableHead>店舗名</TableHead>
 
-              <th>状態</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {isCreating ? <tr className="editing-row new-store-row">{renderFormCells("create")}</tr> : null}
+              <TableHead>状態</TableHead>
+              <TableHead className="sticky right-0 bg-background">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isCreating ? <TableRow className="editing-row new-store-row">{renderFormCells("create")}</TableRow> : null}
             {stores.map((store) =>
               editingName === store.name ? (
-                <tr key={`${store.name}-edit`} className="editing-row">{renderFormCells("edit", store)}</tr>
+                <TableRow key={`${store.name}-edit`} className="editing-row">{renderFormCells("edit", store)}</TableRow>
               ) : (
-                <tr key={store.id ?? store.name}>
-                  <td>{store.displayOrder ?? 0}</td>
-                  <td><strong>{store.name}</strong></td>
-                  <td><span className="badge green"><i />有効</span></td>
-                  <td>
-                    <div className="row-actions">
-                      <button type="button" onClick={() => startEdit(store)}>編集</button>
-                      <button type="button" className="danger" onClick={() => remove(store)}>削除</button>
+                <TableRow key={store.id ?? store.name}>
+                  <TableCell>{store.displayOrder ?? 0}</TableCell>
+                  <TableCell><strong>{store.name}</strong></TableCell>
+                  <TableCell><Badge variant="success">有効</Badge></TableCell>
+                  <TableCell className="sticky right-0 bg-card"><div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => startEdit(store)}>編集</Button>
+                      <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(store)}>削除</Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ),
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {!stores.length && !isCreating ? <EmptyState title="有効な店舗はありません" /> : null}
       </div>
 
@@ -193,36 +190,35 @@ export function StoreManagement({
             <span>{inactiveStores.length}件</span>
           </div>
           <div className="table-wrap">
-            <table className="large-table store-table inactive-table">
-              <thead>
-                <tr>
-                  <th>表示順</th>
-                  <th>店舗名</th>
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>表示順</TableHead>
+                  <TableHead>店舗名</TableHead>
 
-                  <th>状態</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead>状態</TableHead>
+                  <TableHead className="sticky right-0 bg-background">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {inactiveStores.map((store) => (
-                  <tr key={store.id ?? `${store.name}-inactive`}>
-                    <td>{store.displayOrder ?? 0}</td>
-                    <td><strong>{store.name}</strong></td>
-                    <td><span className="badge gray"><i />削除済み</span></td>
-                    <td>
-                      <div className="row-actions">
-                        <button type="button" className="save" disabled={!store.id || reactivatingId === store.id} onClick={() => reactivate(store)}>
+                  <TableRow key={store.id ?? `${store.name}-inactive`}>
+                    <TableCell>{store.displayOrder ?? 0}</TableCell>
+                    <TableCell><strong>{store.name}</strong></TableCell>
+                    <TableCell><Badge variant="secondary">削除済み</Badge></TableCell>
+                    <TableCell className="sticky right-0 bg-card"><div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" size="sm" disabled={!store.id || reactivatingId === store.id} onClick={() => reactivate(store)}>
                           {reactivatingId === store.id ? "有効化中" : "有効にする"}
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       ) : null}
-    </Card>
+    </ListPanel>
   );
 }

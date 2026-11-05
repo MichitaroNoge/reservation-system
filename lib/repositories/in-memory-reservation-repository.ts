@@ -217,6 +217,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const database = await this.readDatabase();
     const reservation = database.reservations.find((item) => item.id === id);
     if (!reservation) throw new Error(`Reservation not found: ${id}`);
+    if (contactedAt === null && reservation.confirmationContactedAt) reservation.confirmationEmailGeneration = (reservation.confirmationEmailGeneration ?? 0) + 1;
     reservation.confirmationContactedAt = contactedAt;
     await this.writeDatabase(database);
     return reservation;
@@ -278,6 +279,9 @@ export class InMemoryReservationRepository implements ReservationRepository {
     return saved;
   }
 
+  async findLegacyConfirmationEmailDelivery(baseKey: string) {
+    return [...this.database.emailDeliveries ?? []].filter(item => item.templateKey === "reservation_reminder" && (item.deliveryKey === baseKey || item.deliveryKey.startsWith(baseKey + "/manual/"))).sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))[0] ?? null;
+  }
   async getEmailDelivery(deliveryKey: string) {
     return (await this.readDatabase()).emailDeliveries?.find((item) => item.deliveryKey === deliveryKey) ?? null;
   }
@@ -369,7 +373,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
     assertReservationChangeAllowed(reservation.status);
-    await assertReservationChangeApproval(this, reservation, request);
+    const target = await assertReservationChangeApproval(this, reservation, request);
     const resetConfirmationContact = shouldResetConfirmationContact(reservation, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
     const shouldResetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? defaultStartTime) !== request.requestedStartTime || reservation.people !== request.requestedPeople;
     reservation.revision = (reservation.revision ?? 0) + 1;
@@ -377,7 +381,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     reservation.startTime = request.requestedStartTime;
     reservation.people = request.requestedPeople;
     reservation.menuItems = request.requestedMenuItems;
-    reservation.endTime = calculateReservationEndTime(reservation.startTime, reservation.menuItems, database.menus);
+    reservation.endTime = target.endTime;
     reservation.totalAmount = calculateTotalAmount(request.requestedMenuItems, database.menus);
     if (resetConfirmationContact) reservation.confirmationContactedAt = null;
     if (shouldResetAssignments) { reservation.store = null; reservation.storeAssignments = []; }

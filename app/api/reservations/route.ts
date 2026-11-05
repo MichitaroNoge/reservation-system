@@ -61,8 +61,9 @@ export async function POST(request: Request) {
       const created = await repository.createReservation(input);
       return needsPolicyConsent ? recordPolicyConsent(repository, created.id, user.uid, "confirmed_request") : created;
     });
-    let receiptEmail: { status: "not_requested" | "sent" | "failed"; error?: string } = { status: "not_requested" };
-    if (reservation.receiptEmailRequestedAt) {
+    let receiptEmail: { status: "not_requested" | "pending" | "sent" | "failed"; error?: string } = { status: "not_requested" };
+    if (reservation.receiptEmailRequestedAt && repository.queueTransactionalEmail) receiptEmail = { status: reservation.receiptEmailSentAt ? "sent" : (reservation.receiptEmailRetryCount ?? 0) >= 5 ? "failed" : "pending" };
+    else if (reservation.receiptEmailRequestedAt) {
       try {
         reservation = await sendReceiptEmailForReservation(repository, reservation.id);
         receiptEmail = reservation.receiptEmailSentAt

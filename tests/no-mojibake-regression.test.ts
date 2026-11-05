@@ -5,6 +5,9 @@ import { test } from "node:test";
 
 const checkedFiles = [
   "app/page.tsx",
+  "app/reservations/admin-app.tsx",
+  "app/reservations/customer-portal.tsx",
+  "app/reservations/reservation-shared.tsx",
   "app/reservations/hooks/use-admin-session.ts",
   "app/reservations/hooks/use-customer-session.ts",
   "lib/domain.ts",

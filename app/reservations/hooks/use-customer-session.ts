@@ -1,36 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { browserLocalPersistence, createUserWithEmailAndPassword, EmailAuthProvider, onAuthStateChanged, reauthenticateWithCredential, reload, sendEmailVerification, sendPasswordResetEmail, setPersistence, signInWithEmailAndPassword, signOut, verifyBeforeUpdateEmail, type User } from "firebase/auth";
 import { firebaseAuth } from "../firebase-client";
 import { completeCustomerRegistration } from "@/lib/customer-registration";
+import { createCustomerAuthState } from "@/lib/customer-auth-state";
 
 const customerAuthPersistence = setPersistence(firebaseAuth, browserLocalPersistence);
+const customerAuthState = createCustomerAuthState<User>(({ setUser, setError }) => {
+  void customerAuthPersistence.catch(() => {
+    setError("ログイン状態を保存できませんでした。ブラウザの保存設定を確認してください。");
+  }).then(() => {
+    onAuthStateChanged(firebaseAuth, setUser);
+  });
+});
 
 export function useCustomerSession() {
-  const [customerUser, setCustomerUser] = useState<User | null>(null);
-  const [customerAuthLoading, setCustomerAuthLoading] = useState(true);
+  const { user: customerUser, loading: customerAuthLoading, error: persistenceError } = useSyncExternalStore(customerAuthState.subscribe, customerAuthState.getSnapshot, customerAuthState.getServerSnapshot);
   const [customerAuthError, setCustomerAuthError] = useState("");
-
-  useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-    let cancelled = false;
-
-    void customerAuthPersistence.catch(() => {
-      if (!cancelled) setCustomerAuthError("ログイン状態を保存できませんでした。ブラウザの保存設定を確認してください。");
-    }).then(() => {
-      if (cancelled) return;
-      unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-        setCustomerUser(user);
-        setCustomerAuthLoading(false);
-      });
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe?.();
-    };
-  }, []);
 
   const loginCustomer = async (email: string, password: string) => {
     setCustomerAuthError("");
@@ -70,7 +57,7 @@ export function useCustomerSession() {
     const user = firebaseAuth.currentUser;
     if (!user) return null;
     await reload(user);
-    setCustomerUser(firebaseAuth.currentUser);
+    customerAuthState.setUser(firebaseAuth.currentUser);
     return firebaseAuth.currentUser;
   };
 
@@ -89,7 +76,7 @@ export function useCustomerSession() {
     const user = firebaseAuth.currentUser;
     if (!user) throw new Error("ログイン状態を確認できませんでした。もう一度ログインしてください。");
     await verifyBeforeUpdateEmail(user, newEmail, {
-      url: `${window.location.origin}/?customerMode=home&emailChange=complete`,
+      url: `${window.location.origin}/?customerMode=emailChange&emailChange=complete`,
       handleCodeInApp: false,
     });
   };
@@ -110,7 +97,7 @@ export function useCustomerSession() {
   return {
     customerUser,
     customerAuthLoading,
-    customerAuthError,
+    customerAuthError: customerAuthError || persistenceError,
     loginCustomer,
     registerCustomer,
     resendVerificationEmail,

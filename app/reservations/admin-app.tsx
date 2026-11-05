@@ -805,7 +805,7 @@ export default function Home() {
     setCustomerList((items) => {
       if (deleted) {
         setInactiveCustomerList((inactive) => [
-          deleted,
+          { ...deleted, active: false, lifecycleStatus: "disabled", reactivationBlockedReason: undefined },
           ...inactive.filter((item) => item.id !== deleted.id),
         ]);
       }

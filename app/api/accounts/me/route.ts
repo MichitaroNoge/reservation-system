@@ -7,12 +7,16 @@ import { getReservationRepository } from "@/lib/repositories";
 import { repositoryTransaction } from "@/lib/repositories/transaction";
 import { saveAuthenticatedAccountProfile, updateAuthenticatedAccountProfile } from "@/lib/services/account-profile-service";
 
+import { assertAccountNotDeleting } from "@/lib/services/account-lifecycle-service";
+
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
     const user = await requireVerifiedFirebaseUser(request);
-    const account = await (await getReservationRepository()).findAccountByFirebaseUid(user.uid);
+    const repository = await getReservationRepository();
+    await assertAccountNotDeleting(repository, user.uid);
+    const account = await repository.findAccountByFirebaseUid(user.uid);
     if (!account && (await (await getReservationRepository()).listInactiveAccounts()).some(item => item.firebaseUid === user.uid)) {
       throw new ApiAuthError("このアカウントは無効化されています。管理者にお問い合わせください。", 403);
     }
@@ -54,6 +58,9 @@ export async function DELETE(request: Request) {
   try {
     const user = await requireRecentlyAuthenticatedFirebaseUser(request);
     const repository = (await getReservationRepository());
+    if (!repository.withTransaction || !repository.getAccountDeletion || !repository.recordAccountDeletion || !repository.clearAccountDeletion) {
+      throw Object.assign(new Error("アカウントを安全に削除できる状態ではありません。管理者にお問い合わせください。"), { statusCode: 503 });
+    }
     const account = await repositoryTransaction(repository, `account:${user.uid}`, async (repository) => {
       const deletion = await repository.getAccountDeletion?.(user.uid);
       if (deletion?.completedAt) return NextResponse.json({ deleted: true });

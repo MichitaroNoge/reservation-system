@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -43,6 +43,8 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
     })),
   });
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const reactivationPending = useRef(false);
+  const [reactivationResult, setReactivationResult] = useState<{ id: string; error?: string; success?: string } | null>(null);
   const [showInactive, setShowInactive] = useState(false);
 
   const startEdit = (customer: Customer) => {
@@ -92,13 +94,17 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
   };
 
   const reactivate = async (customer: Customer) => {
-    if (!customer.id || reactivatingId) return;
+    if (!customer.id || reactivationPending.current || customer.lifecycleStatus !== "disabled" || customer.reactivationBlockedReason) return;
+    reactivationPending.current = true;
+    setReactivationResult(null);
     setReactivatingId(customer.id);
     try {
       await onReactivateCustomer(customer);
+      setReactivationResult({ id: customer.id, success: `${customer.name}様を有効にしました。` });
     } catch (error) {
-      notify(error instanceof Error ? error.message : "アカウントの有効化に失敗しました");
+      setReactivationResult({ id: customer.id, error: error instanceof Error ? error.message : "アカウントの有効化に失敗しました" });
     } finally {
+      reactivationPending.current = false;
       setReactivatingId(null);
     }
   };
@@ -151,22 +157,27 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
         {!customers.length ? <EmptyState title="有効なログインアカウントはありません" /> : null}
       </div>
 
+      {reactivationResult?.success && <p role="status" className="border-t p-5 text-sm text-success">{reactivationResult.success}</p>}
       {showInactive && inactiveCustomers.length ? (
         <div className="border-t bg-muted/20 p-5">
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">無効アカウント</h3><Badge variant="secondary">{inactiveCustomers.length}件</Badge></div>
-          <div className="table-wrap">
-            <Table className="min-w-[960px]">
-              <TableHeader><TableRow><TableHead>アカウント名</TableHead><TableHead>メールアドレス</TableHead><TableHead>電話番号</TableHead><TableHead>住所</TableHead><TableHead>種別</TableHead><TableHead className="sticky right-0 bg-background">操作</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {inactiveCustomers.map((customer) => (
-                  <TableRow key={customer.id ?? customer.name + "-inactive"}>
-                    <TableCell><strong>{customer.name}</strong></TableCell><TableCell>{customer.contact}</TableCell><TableCell>{customer.phone || "-"}</TableCell><TableCell>{customer.address || "-"}</TableCell><TableCell>{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</TableCell>
-                    <TableCell className="sticky right-0 bg-card"><div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" disabled={!customer.id || reactivatingId === customer.id} onClick={() => reactivate(customer)}>{reactivatingId === customer.id ? "有効化中" : "有効にする"}</Button></div></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Table className="min-w-[760px]">
+            <TableHeader><TableRow><TableHead>アカウント名</TableHead><TableHead>ログイン用メールアドレス</TableHead><TableHead>状態</TableHead><TableHead className="sticky right-0 w-44 min-w-44 bg-card sm:w-72 sm:min-w-72">操作</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {inactiveCustomers.map(customer => (
+                <TableRow key={customer.id ?? customer.name + "-inactive"}>
+                  <TableCell><strong>{customer.name}</strong></TableCell>
+                  <TableCell>{customer.contact}</TableCell>
+                  <TableCell><Badge variant="secondary">{customer.lifecycleStatus === "deleted" ? "本人による削除済み" : customer.lifecycleStatus === "deleting" ? "削除処理中" : customer.lifecycleStatus === "disabled" ? "管理者による無効化" : "状態確認が必要"}</Badge></TableCell>
+                  <TableCell className="sticky right-0 w-44 min-w-44 max-w-44 border-l bg-card whitespace-normal sm:w-72 sm:min-w-72 sm:max-w-72">
+                    {customer.lifecycleStatus === "disabled" && <Button type="button" size="sm" variant="outline" disabled={!customer.id || Boolean(reactivatingId) || Boolean(customer.reactivationBlockedReason)} onClick={() => void reactivate(customer)}>{reactivatingId === customer.id ? "有効化中…" : "有効にする"}</Button>}
+                    {customer.reactivationBlockedReason && <p className="mt-2 text-xs text-muted-foreground">{customer.reactivationBlockedReason}</p>}
+                    {reactivationResult && reactivationResult.id === customer.id && reactivationResult.error && <p role="alert" className="mt-2 text-sm text-destructive">{reactivationResult.error}</p>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </ListPanel>

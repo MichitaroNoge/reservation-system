@@ -1,6 +1,7 @@
 ﻿import { duplicateAssignmentStores, normalizeReservationStatus, paymentConditions, reservationStatuses, type CreateReservationInput, type PaymentCondition, type ReservationStatus, type SaveCustomerInput, type SaveMenuInput, type SaveStoreInput, type StoreAssignment, type UpdateReservationInput } from "./domain";
 
 import type { CreateReservationChangeRequestInput, CustomerAccountType, ReservationBookingType } from "./domain";
+import { isLoginEmailConstraintError, loginEmailConflictMessage } from "./login-email";
 import { ZodError } from "zod";
 
 export class ApiValidationError extends Error {
@@ -11,6 +12,7 @@ export class ApiValidationError extends Error {
 }
 
 export function apiErrorResponse(error: unknown) {
+  if (isLoginEmailConstraintError(error)) return Response.json({ error: loginEmailConflictMessage }, { status: 409 });
   const message = error instanceof Error ? error.message : "Unexpected error";
   if (error instanceof Error && "statusCode" in error && typeof error.statusCode === "number") {
     return Response.json({ error: message }, { status: error.statusCode, headers: "retryAfter" in error ? { "Retry-After": String(error.retryAfter) } : undefined });

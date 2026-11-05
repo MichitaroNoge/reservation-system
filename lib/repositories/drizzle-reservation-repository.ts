@@ -17,13 +17,14 @@ import {
   type SaveMenuInput, type SaveStoreInput, type Store, type StoreAssignment, type UpdateReservationInput,
 } from "../domain";
 import type { ReservationRepository } from "./reservation-repository";
+import { normalizeLoginEmail, loginEmailConflict } from "../login-email";
 import { planReservationDetails } from "../reservation-details";
 
 export type ReservationDatabase = NodePgDatabase<typeof s>;
 const reservationRelations = { policyConsents: { columns: { acceptedByFirebaseUid: false } }, account: true, reservationDetails: { with: { menu: true } }, storeAssignments: { with: { store: true } } } as const;
 const now = () => new Date().toISOString();
 const iso = (value: string | null) => value ? new Date(value).toISOString() : null;
-const profile = (input: SaveAccountInput) => ({ name: input.name, email: input.contact, phone: input.phone ?? null, address: input.address ?? null, accountType: input.accountType ?? "individual", companyBranchName: input.companyBranchName ?? null, contactPersonName: input.contactPersonName ?? null });
+const profile = (input: SaveAccountInput) => ({ name: input.name, email: normalizeLoginEmail(input.contact), phone: input.phone ?? null, address: input.address ?? null, accountType: input.accountType ?? "individual", companyBranchName: input.companyBranchName ?? null, contactPersonName: input.contactPersonName ?? null });
 const accountModel = (raw: typeof s.account.$inferSelect): Account => ({ id: raw.id, firebaseUid: raw.firebaseUid, name: raw.name, contact: raw.email, phone: raw.phone ?? undefined, address: raw.address ?? undefined, accountType: raw.accountType as Account["accountType"], companyBranchName: raw.companyBranchName ?? undefined, contactPersonName: raw.contactPersonName ?? undefined, active: raw.active });
 const contactModel = (raw: typeof s.accountContactEmail.$inferSelect): AccountContactEmail => ({ ...raw, verifiedAt: iso(raw.verifiedAt), verificationExpiresAt: iso(raw.verificationExpiresAt)!, createdAt: iso(raw.createdAt)!, verificationTokenHash: raw.verificationTokenHash });
 const menuModel = (raw: typeof s.menu.$inferSelect): Menu => ({ id: raw.id, name: raw.name, description: raw.description ?? "", price: raw.standardPrice, duration: raw.durationMinutes === 0 ? "来店後" : `${raw.durationMinutes}分`, displayOrder: raw.displayOrder, active: raw.active });
@@ -59,10 +60,14 @@ export class DrizzleReservationRepository implements ReservationRepository {
   async getAccountDeletion(firebaseUid: string) {
     return await this.db.query.accountDeletion.findFirst({ where: eq(s.accountDeletion.firebaseUid, firebaseUid), columns: { completedAt: true } }) ?? null;
   }
-  async recordAccountDeletion(firebaseUid: string, completedAt?: string) {
+  async recordAccountDeletion(firebaseUid: string, completedAt?: string): Promise<void> {
+    if (!this.inTransaction) return this.atomic(`account:${firebaseUid}`, repo => repo.recordAccountDeletion(firebaseUid, completedAt));
+    await this.lockAccountUid(firebaseUid);
     await this.db.insert(s.accountDeletion).values({ firebaseUid, completedAt: completedAt ?? null }).onConflictDoUpdate({ target: s.accountDeletion.firebaseUid, set: { completedAt: completedAt ?? null } });
   }
-  async clearAccountDeletion(firebaseUid: string) {
+  async clearAccountDeletion(firebaseUid: string): Promise<void> {
+    if (!this.inTransaction) return this.atomic(`account:${firebaseUid}`, repo => repo.clearAccountDeletion(firebaseUid));
+    await this.lockAccountUid(firebaseUid);
     await this.db.delete(s.accountDeletion).where(eq(s.accountDeletion.firebaseUid, firebaseUid));
   }
   async getReservationSubmission(firebaseUid: string, requestKey: string) {
@@ -342,21 +347,38 @@ export class DrizzleReservationRepository implements ReservationRepository {
   }
 
   async listAccounts() { return (await this.db.select().from(s.account).where(eq(s.account.active, true)).orderBy(desc(s.account.createdAt))).map(accountModel); }
-  async listInactiveAccounts() { return (await this.db.select().from(s.account).where(eq(s.account.active, false)).orderBy(desc(s.account.updatedAt))).map(accountModel); }
+  async listInactiveAccounts(): Promise<Account[]> {
+    const rows = await this.db.select({ account: s.account, deletion: s.accountDeletion }).from(s.account)
+      .leftJoin(s.accountDeletion, eq(s.account.firebaseUid, s.accountDeletion.firebaseUid))
+      .where(eq(s.account.active, false)).orderBy(desc(s.account.updatedAt));
+    const activeEmails = new Set((await this.listAccounts()).map(other => normalizeLoginEmail(other.contact)));
+    return rows.map(({ account, deletion }) => {
+      const lifecycleStatus = deletion ? deletion.completedAt ? "deleted" : "deleting" : "disabled";
+      const reactivationBlockedReason = deletion
+        ? deletion.completedAt ? "本人による削除済みのため再有効化できません。" : "削除処理中のため再有効化できません。"
+        : activeEmails.has(normalizeLoginEmail(account.email)) ? "別の有効アカウントが同じログイン用メールアドレスを使用しています。" : undefined;
+      return { ...accountModel(account), lifecycleStatus, reactivationBlockedReason };
+    });
+  }
   async findAccountByFirebaseUid(firebaseUid: string): Promise<Account | null> {
     const raw = await this.db.query.account.findFirst({ where: and(eq(s.account.firebaseUid, firebaseUid), eq(s.account.active, true)) });
     return raw ? accountModel(raw) : null;
   }
   async createAccount(input: SaveAccountInput & { firebaseUid: string }): Promise<Account> {
     if (!this.inTransaction) return this.atomic(`account:${input.firebaseUid}`, repo => repo.createAccount(input));
+    await this.lockAccountUid(input.firebaseUid);
     if (await this.getAccountDeletion(input.firebaseUid)) throw Object.assign(new Error("このアカウントは削除手続き中または削除済みです。"), { statusCode: 403 });
-    if (await this.findAccountByFirebaseUid(input.firebaseUid)) throw new Error(`Account already exists for Firebase UID: ${input.firebaseUid}`);
+    const existing = await this.db.query.account.findFirst({ where: eq(s.account.firebaseUid, input.firebaseUid) });
+    if (existing) throw Object.assign(new Error("このアカウントは登録済み、または無効化されています。"), { statusCode: 409 });
+    await this.assertLoginEmailAvailable(input.contact);
     const [raw] = await this.db.insert(s.account).values({ ...profile(input), firebaseUid: input.firebaseUid }).returning();
     return accountModel(raw);
   }
   async updateAccount(id: string, input: SaveAccountInput): Promise<Account> {
     if (!this.inTransaction) return this.accountAtomic(id, repo => repo.updateAccount(id, input));
-    await this.assertAccountWritable(id);
+    const current = await this.assertAccountWritable(id);
+    const emailChanged = normalizeLoginEmail(current.email) !== normalizeLoginEmail(input.contact);
+    if (emailChanged || current.active) await this.assertLoginEmailAvailable(input.contact, id, !emailChanged);
     const [raw] = await this.db.update(s.account).set({ ...profile(input), updatedAt: now() }).where(eq(s.account.id, id)).returning();
     if (!raw) throw new Error(`Account not found: ${id}`);
     return accountModel(raw);
@@ -366,18 +388,38 @@ export class DrizzleReservationRepository implements ReservationRepository {
     if (!account) throw Object.assign(new Error("アカウントが見つかりません。"), { statusCode: 404 });
     return this.atomic(`account:${account.firebaseUid}`, work);
   }
+  private async lockAccountUid(uid: string) {
+    await this.db.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`account:${uid}`}, 0))`);
+  }
+  private async lockedAccount(id: string) {
+    const identity = await this.db.query.account.findFirst({ where: eq(s.account.id, id) });
+    if (!identity) throw Object.assign(new Error("アカウントが見つかりません。"), { statusCode: 404 });
+    await this.lockAccountUid(identity.firebaseUid);
+    return (await this.db.query.account.findFirst({ where: eq(s.account.id, id) }))!;
+  }
   private async assertAccountWritable(id: string) {
-    const account = await this.db.query.account.findFirst({ where: eq(s.account.id, id) });
+    const account = await this.lockedAccount(id);
     if (!account) throw Object.assign(new Error("アカウントが見つかりません。"), { statusCode: 404 });
     if (await this.getAccountDeletion(account.firebaseUid)) throw Object.assign(new Error("このアカウントは削除手続き中または削除済みです。"), { statusCode: 403 });
+    return account;
+  }
+  private async assertLoginEmailAvailable(email: string, id?: string, activeOnly = false) {
+    const normalized = normalizeLoginEmail(email);
+    await this.db.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`login-email:${normalized}`}, 0))`);
+    const matches = await this.db.select({ account: s.account, deletion: s.accountDeletion }).from(s.account)
+      .leftJoin(s.accountDeletion, eq(s.account.firebaseUid, s.accountDeletion.firebaseUid))
+      .where(sql`normalize_login_email(${s.account.email}) = ${normalized}`);
+    if (matches.some(item => item.account.id !== id && (item.account.active || !activeOnly && !item.deletion?.completedAt))) throw loginEmailConflict();
   }
   async deactivateAccount(id: string): Promise<void> {
     if (!this.inTransaction) return this.accountAtomic(id, repo => repo.deactivateAccount(id));
+    await this.lockedAccount(id);
     await this.db.update(s.account).set({ active: false, updatedAt: now() }).where(eq(s.account.id, id));
   }
   async reactivateAccount(id: string): Promise<Account> {
     if (!this.inTransaction) return this.accountAtomic(id, repo => repo.reactivateAccount(id));
-    await this.assertAccountWritable(id);
+    const current = await this.assertAccountWritable(id);
+    await this.assertLoginEmailAvailable(current.email, id, true);
     const [raw] = await this.db.update(s.account).set({ active: true, updatedAt: now() }).where(eq(s.account.id, id)).returning();
     if (!raw) throw new Error(`Account not found: ${id}`);
     return accountModel(raw);

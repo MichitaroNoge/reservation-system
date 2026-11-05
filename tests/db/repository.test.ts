@@ -321,7 +321,7 @@ test("deletion guards block profile resurrection without creating a fabricated a
 
 test("durable submission keys replay one reservation and reject changed content or disabled owners", async () => {
   const uid = "review-submission-user";
-  const account = await repo.createAccount({ firebaseUid: uid, name: "再送テスト", contact: input.email });
+  const account = await repo.createAccount({ firebaseUid: uid, name: "再送テスト", contact: "submission@example.test" });
   const key = "review-submission-key";
   const first = await createReservationOnce(repo, uid, key, input, transaction => transaction.createReservation({ ...input, accountFirebaseUid: uid }));
   const retry = await createReservationOnce(new DrizzleReservationRepository(db), uid, key, input, () => { throw new Error("must not create again"); });
@@ -389,7 +389,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
   let signalDeletionStarted: (() => void) | null = null;
   const token = mock.method(auth, "verifyIdToken", async () => ({ uid, email, email_verified: verified, admin, auth_time: authenticatedAt }));
   const deleteUser = mock.method(auth, "deleteUser", async () => { signalDeletionStarted?.(); if (deletionGate) await deletionGate; if (deletionError) throw deletionError; });
-  const getUser = mock.method(auth, "getUser", async () => { if (lookupError) throw lookupError; return { uid }; });
+  const getUser = mock.method(auth, "getUser", async () => { if (lookupError) throw lookupError; return { uid, email, emailVerified: verified, disabled: false }; });
   const firestore = mock.method(getFirestore(getFirebaseAdminApp()), "runTransaction", async () => { throw new Error("Firestore must not be called in PostgreSQL mode"); });
   try {
     const { POST, DELETE } = await import("../../app/api/accounts/me/route");
@@ -518,6 +518,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
     assert.deepEqual(await repo.getAccountDeletion(uid), { completedAt: null });
 
     // Both endpoints rewrite a full profile; the shared lock must preserve both changes.
+    lookupError = null;
     uid = "review-email-profile-concurrent";
     email = "new-sync@example.test";
     await repo.createAccount({ firebaseUid: uid, name: "旧氏名", contact: "old-sync@example.test", phone: "09000000000" });

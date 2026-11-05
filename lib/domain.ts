@@ -144,6 +144,8 @@ export type Account = {
   companyBranchName?: string;
   contactPersonName?: string;
   active?: boolean;
+  lifecycleStatus?: "disabled" | "deleting" | "deleted";
+  reactivationBlockedReason?: string;
 };
 export type AccountContactEmail = {
   id: string;
@@ -154,7 +156,7 @@ export type AccountContactEmail = {
   verificationExpiresAt?: string;
   createdAt?: string;
 };
-export type SaveAccountInput = Omit<Account,"active">;
+export type SaveAccountInput = Omit<Account,"active" | "lifecycleStatus" | "reactivationBlockedReason">;
 /** @deprecated Compatibility alias. New code should use Account. */
 export type Customer = Account & { count?: number; last?: string };
 /** @deprecated Compatibility alias. */

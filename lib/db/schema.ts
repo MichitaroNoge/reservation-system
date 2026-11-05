@@ -1,7 +1,7 @@
 // Local PostgreSQL model translated from dataconnect/schema/schema.gql.
 // Existing Cloud SQL physical names must be verified against a schema-only dump before a future migration.
-import { relations } from "drizzle-orm";
-import { pgTable, pgEnum, uuid, jsonb, text, varchar, integer, boolean, date, timestamp, index, primaryKey } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import { pgTable, pgEnum, uuid, jsonb, text, varchar, integer, boolean, date, timestamp, index, uniqueIndex, primaryKey } from "drizzle-orm/pg-core";
 
 // One administrator-owned calendar. Tokens never leave the server and are encrypted at rest.
 export const googleCalendarConnection = pgTable("google_calendar_connection", {
@@ -84,7 +84,7 @@ export const account = pgTable("account", {
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-});
+}, table => [uniqueIndex("account_active_login_email_unique").on(sql`normalize_login_email(${table.email})`).where(sql`${table.active} = true`)]);
 
 export const accountContactEmail = pgTable("account_contact_email", {
   id: uuid("id").primaryKey().defaultRandom(),

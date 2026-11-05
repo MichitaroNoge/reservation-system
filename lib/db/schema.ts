@@ -155,6 +155,7 @@ export const reservation = pgTable("reservation", {
   policyAgreementKind: varchar("policy_agreement_kind", { length: 20 }),
   policyAgreementAcceptedAt: timestamp("policy_agreement_accepted_at", { withTimezone: true, mode: "string" }),
   confirmationContactedAt: timestamp("confirmation_contacted_at", { withTimezone: true, mode: "string" }),
+  confirmationEmailGeneration: integer("confirmation_email_generation").notNull().default(0),
   receiptEmailRequestedAt: timestamp("receipt_email_requested_at", { withTimezone: true, mode: "string" }),
   receiptEmailSentAt: timestamp("receipt_email_sent_at", { withTimezone: true, mode: "string" }),
   receiptEmailLastAttemptAt: timestamp("receipt_email_last_attempt_at", { withTimezone: true, mode: "string" }),
@@ -384,14 +385,15 @@ export const reservationSubmission = pgTable("reservation_submission", {
 export const systemSettings = pgTable("system_settings", { settingKey: text("setting_key").primaryKey(), revision: integer("revision").notNull().default(0), acceptanceCapacity: integer("acceptance_capacity"), reservationLeadDays: integer("reservation_lead_days").notNull().default(3), blockedPeriods: jsonb("blocked_periods").$type<import("../domain").AcceptanceBlock[]>().notNull().default([]) });
 
 // Inquiries are independent of reservation workflows; contact snapshots never follow profile edits.
-export const inquiryCategoryEnum = pgEnum("inquiry_category", ["reservation", "service", "other"]);
-export const inquiryStatusEnum = pgEnum("inquiry_status", ["unhandled", "in_progress", "answered", "closed"]);
+export const inquiryCategoryEnum = pgEnum("inquiry_category", ["reservation", "service", "other", "availability"]);
+export const inquiryStatusEnum = pgEnum("inquiry_status", ["unhandled", "answered"]);
 export const inquiry = pgTable("inquiry", {
   id: uuid("id").primaryKey().defaultRandom(),
   inquiryNumber: integer("inquiry_number").generatedAlwaysAsIdentity({startWith:1001}).notNull().unique(),
   firebaseUid: text("firebase_uid"),
   reservationId: uuid("reservation_id").references(()=>reservation.id),
   name: varchar("name",{length:100}).notNull(), email: varchar("email",{length:255}).notNull(),
+  mealDate: date("meal_date", { mode: "string" }), mealStartTime: varchar("meal_start_time", { length: 5 }), people: integer("people"),
   category: inquiryCategoryEnum("category").notNull(), subject: varchar("subject",{length:200}).notNull(), body:text("body").notNull(),
   status: inquiryStatusEnum("status").notNull().default("unhandled"), revision:integer("revision").notNull().default(1),
   requestKey: uuid("request_key").notNull().unique(), requestHash:varchar("request_hash",{length:64}).notNull(),
@@ -414,3 +416,26 @@ export const inquiryReply = pgTable("inquiry_reply", {
   resolution: jsonb("resolution").$type<{ outcome: "sent" | "not_sent"; resolvedAt: string; adminUid: string }>(),
   sender:jsonb("sender").$type<import("../inquiries/types").SenderSnapshot>(),
 },t=>[index("inquiry_reply_inquiry_created_idx").on(t.inquiryId,t.createdAt)]);
+
+// Durable dispatch queue. Existing email/audit rows are not automatically enrolled.
+export const transactionalMailJob = pgTable("transactional_mail_job", {
+  key: text("key").primaryKey(),
+  target: jsonb("target").$type<import("../mail-dispatch").MailJobTarget>().notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("queued"),
+  attempts: integer("attempts").notNull().default(0),
+  requestedAt: timestamp("requested_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  availableAt: timestamp("available_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  leaseUntil: timestamp("lease_until", { withTimezone: true, mode: "string" }),
+  leaseToken: uuid("lease_token"),
+}, table => [index("transactional_mail_job_due_idx").on(table.status, table.availableAt)]);
+
+// Editable reply snippets. Sent replies keep their own immutable body text.
+export const inquiryReplyTemplate = pgTable("inquiry_reply_template", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  body: text("body").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  revision: integer("revision").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
+});

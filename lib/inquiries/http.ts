@@ -65,14 +65,14 @@ function secret() { const value = process.env.INQUIRY_FORM_SECRET; if (!value ||
     throw new InquiryError("問い合わせフォームの準備ができていません。管理者にお問い合わせください。", 503); return value; }
 function sign(value: string) { return createHmac("sha256", secret()).update(value).digest("base64url"); }
 function cookie(request: Request) { return (request.headers.get("cookie") ?? "").split(";").map(v => v.trim()).find(v => v.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1) ?? ""; }
-export function issueChallenge(request: Request, now = Date.now()) {
+export function issueChallenge(request: Request, now = Date.now(), requestKey: string = randomUUID()) {
     const url = new URL(request.url), origin = request.headers.get("origin");
     if ((origin && origin !== url.origin) || request.headers.get("sec-fetch-site") === "cross-site")
         throw new InquiryError("この画面から再度操作してください。", 403);
     const existing = cookie(request), browser = /^[A-Za-z0-9_-]{43}$/.test(existing) ? existing : randomBytes(32).toString("base64url");
-    const requestKey = randomUUID(), value = Buffer.from(JSON.stringify({ key: requestKey, browser: hash(browser), at: now })).toString("base64url");
+    const value = Buffer.from(JSON.stringify({ key: requestKey, browser: hash(browser), at: now })).toString("base64url");
     const response = json({ requestKey, formToken: `${value}.${sign(value)}` });
-    response.headers.set("Set-Cookie", `${cookieName}=${browser}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=1800${url.protocol === "https:" ? "; Secure" : ""}`);
+    response.headers.set("Set-Cookie", `${cookieName}=${browser}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=86400${url.protocol === "https:" ? "; Secure" : ""}`);
     return response;
 }
 export function verifyChallenge(request: Request, token: string | undefined, key: string, now = Date.now()) {

@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-export function useReservationPolicy() {
+export function useReservationPolicy(enabled = true) {
   const [policy, setPolicy] = useState<{days:number;minimumDate:string} | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
+    if(!enabled)return;
     let cancelled=false;
     const load = async()=>{
       try {const response=await fetch("/api/reservation-policy",{cache:"no-store"});const body=await response.json();if(!response.ok)throw new Error();if(!cancelled){setPolicy(body);setError("");}}
@@ -11,6 +12,6 @@ export function useReservationPolicy() {
     };
     void load();const timer=setInterval(()=>void load(),60000);
     return()=>{cancelled=true;clearInterval(timer);};
-  },[]);
+  },[enabled]);
   return {policy,error};
 }

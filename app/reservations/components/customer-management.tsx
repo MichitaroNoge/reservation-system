@@ -7,7 +7,7 @@ import { z } from "zod";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,22 +112,20 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
   );
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
+    <ListPanel>
+      <ListToolbar>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Account master</p>
-          <h2 className="mt-1 text-lg font-semibold">アカウント管理</h2>
-          <small className="mt-1 block text-xs text-muted-foreground">登録されたアカウントを表示します。管理者が代理入力した予約者は登録されません。</small>
+          <small className="block text-xs text-muted-foreground">登録されたアカウントを表示します。管理者が代理入力した予約者は登録されません。</small>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary">{customers.length}件</Badge>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <ResultCount count={customers.length} />
           {inactiveCustomers.length ? (
             <Button type="button" variant="outline" size="sm" onClick={() => setShowInactive((current) => !current)}>
               {showInactive ? "無効アカウントを隠す" : `無効アカウントを表示 (${inactiveCustomers.length})`}
             </Button>
           ) : null}
         </div>
-      </div>
+      </ListToolbar>
 
       <div>
         {saveError && <Alert className="m-5 border-destructive/40 text-destructive">{saveError}</Alert>}
@@ -157,20 +155,20 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
         <div className="border-t bg-muted/20 p-5">
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-semibold">無効アカウント</h3><Badge variant="secondary">{inactiveCustomers.length}件</Badge></div>
           <div className="table-wrap">
-            <table className="large-table customer-table inactive-table">
-              <thead><tr><th>アカウント名</th><th>メールアドレス</th><th>電話番号</th><th>住所</th><th>種別</th><th /></tr></thead>
-              <tbody>
+            <Table className="min-w-[960px]">
+              <TableHeader><TableRow><TableHead>アカウント名</TableHead><TableHead>メールアドレス</TableHead><TableHead>電話番号</TableHead><TableHead>住所</TableHead><TableHead>種別</TableHead><TableHead className="sticky right-0 bg-background">操作</TableHead></TableRow></TableHeader>
+              <TableBody>
                 {inactiveCustomers.map((customer) => (
-                  <tr key={customer.id ?? customer.name + "-inactive"}>
-                    <td><strong>{customer.name}</strong></td><td>{customer.contact}</td><td>{customer.phone || "-"}</td><td>{customer.address || "-"}</td><td>{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</td>
-                    <td><div className="row-actions"><button type="button" className="save" disabled={!customer.id || reactivatingId === customer.id} onClick={() => reactivate(customer)}>{reactivatingId === customer.id ? "有効化中" : "有効にする"}</button></div></td>
-                  </tr>
+                  <TableRow key={customer.id ?? customer.name + "-inactive"}>
+                    <TableCell><strong>{customer.name}</strong></TableCell><TableCell>{customer.contact}</TableCell><TableCell>{customer.phone || "-"}</TableCell><TableCell>{customer.address || "-"}</TableCell><TableCell>{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</TableCell>
+                    <TableCell className="sticky right-0 bg-card"><div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" disabled={!customer.id || reactivatingId === customer.id} onClick={() => reactivate(customer)}>{reactivatingId === customer.id ? "有効化中" : "有効にする"}</Button></div></TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </div>
       ) : null}
-    </Card>
+    </ListPanel>
   );
 }

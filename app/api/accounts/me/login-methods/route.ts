@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { getFirebaseAdminApp, requireVerifiedFirebaseUser, requireRecentlyAuthenticatedFirebaseUser } from "@/lib/auth";
+import { getFirebaseAdminApp, requireVerifiedFirebaseUser, requireRecentlyAuthenticatedFirebaseUser, assertRecentPasswordAuthentication, assertRecentGoogleAuthentication } from "@/lib/auth";
 import { assertSameOrigin, GoogleAuthError } from "@/lib/google-auth";
 import { googleErrorResponse, readGoogleJson } from "@/lib/google-http";
 import { getReservationRepository } from "@/lib/repositories";
@@ -17,20 +17,29 @@ export async function GET(request: Request) {
     const session = await requireVerifiedFirebaseUser(request), auth = getAuth(getFirebaseAdminApp());
     const user = await auth.getUser(session.uid);
     const google = user.providerData.find(p => p.providerId === "google.com");
-    return NextResponse.json({ password: isPasswordEnabled(user), google: Boolean(google), googleEmail: google?.email ?? null }, { headers });
+    let canLinkWithoutPassword = false;
+    try { assertRecentPasswordAuthentication(session); canLinkWithoutPassword = isPasswordEnabled(user) && !google; } catch { /* A password prompt is required before linking. */ }
+    return NextResponse.json({ password: isPasswordEnabled(user), google: Boolean(google), googleEmail: google?.email ?? null, canLinkWithoutPassword }, { headers });
   } catch (e) { return googleErrorResponse(e); }
 }
 export async function POST(request: Request) {
   try {
     assertSameOrigin(request);
     const session = await requireRecentlyAuthenticatedFirebaseUser(request);
-    const { password } = z.object({ password: z.string().min(8, "パスワードは8文字以上で入力してください。").max(128) }).strict().parse(await readGoogleJson(request));
+    const { password, operation } = z.object({ password: z.string().min(8, "パスワードは8文字以上で入力してください。").max(128), operation: z.enum(["change-password", "set-password"]) }).strict().parse(await readGoogleJson(request));
     const repository = await getReservationRepository(), auth = getAuth(getFirebaseAdminApp());
     await repositoryTransaction(repository, `account:${session.uid}`, async repo => {
       await assertAccountNotDeleting(repo, session.uid);
       const user = await auth.getUser(session.uid);
       if (isPrivilegedUser(user)) throw new GoogleAuthError("管理者の認証情報はこの画面で変更できません。", 403);
       if (user.disabled || (await repo.listInactiveAccounts()).some(a => a.firebaseUid === session.uid)) throw new GoogleAuthError("このアカウントは利用できません。", 403);
+      const hasPassword = isPasswordEnabled(user);
+      if ((operation === "change-password") !== hasPassword) throw new GoogleAuthError("ログイン方法が変更されました。画面を開き直してください。", 409);
+      if (hasPassword) assertRecentPasswordAuthentication(session);
+      else {
+        if (!user.providerData.some(provider => provider.providerId === "google.com")) throw new GoogleAuthError("パスワードを設定するにはGoogle連携が必要です。", 403);
+        assertRecentGoogleAuthentication(session);
+      }
       await auth.setCustomUserClaims(session.uid, { ...user.customClaims, customerGoogleVersion: randomUUID() });
       await auth.updateUser(session.uid, { password });
       await auth.revokeRefreshTokens(session.uid);
@@ -43,6 +52,7 @@ export async function DELETE(request: Request) {
   try {
     assertSameOrigin(request);
     const session = await requireRecentlyAuthenticatedFirebaseUser(request), repository = await getReservationRepository();
+    assertRecentPasswordAuthentication(session);
     await unlinkGoogleCustomer(repository, getAuth(getFirebaseAdminApp()), session.uid);
     const notification = await notifyAuthenticationChange(repository, session.uid, "Googleアカウントの連携を解除しました");
     return NextResponse.json({ unlinked: true, notification }, { headers });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { consumeLimits } from "@/lib/abuse-limits";
-import { requireFirebaseUser, assertRecentAuthentication } from "@/lib/auth";
+import { requireFirebaseUser, assertRecentPasswordAuthentication } from "@/lib/auth";
 import { assertSameOrigin, GoogleAuthError, googleAuthConfig, googleChallengeCookie, newGoogleChallenge, signGoogleChallenge } from "@/lib/google-auth";
 import { googleErrorResponse, readGoogleJson } from "@/lib/google-http";
 import { repositoryProvider } from "@/lib/db/environment";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const { mode } = z.object({ mode: z.enum(["login", "link", "reauth"]) }).strict().parse(await readGoogleJson(request));
     const { clientId, secret } = googleAuthConfig();
     let uid = "";
-    if (mode !== "login") { const user = await requireFirebaseUser(request); uid = user.uid; if (mode === "link") { assertRecentAuthentication(user); if (user.firebase.sign_in_provider !== "password") throw new GoogleAuthError("現在のパスワードで本人確認を行ってください。", 403); } }
+    if (mode !== "login") { const user = await requireFirebaseUser(request); uid = user.uid; if (mode === "link") { assertRecentPasswordAuthentication(user); } }
     await consumeLimits([{ key: `google:challenge:${uid || "public"}`, max: uid ? 10 : 100, seconds: 60 }]);
     const challenge = newGoogleChallenge(mode, uid);
     const response = NextResponse.json({ clientId, nonce: challenge.nonce }, { headers: { "Cache-Control": "private, no-store" } });

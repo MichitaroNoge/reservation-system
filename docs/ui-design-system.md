@@ -1,37 +1,71 @@
-# UI design system
+# UI標準
 
-## Principles
+更新日: 2026-10-28。2026-10-25の全体統一と、2026-10-28のお客様向け画面共通化の依頼により採用。
 
-- Use Tailwind CSS for layout, spacing, typography, states, and responsive behavior.
-- Prefer components in `components/ui` for repeated controls and feedback.
-- Keep business rules and data access outside presentational components.
-- Design customer screens for guided, single-task flows and admin screens for scanning and repeated operations.
-- Every interactive flow should account for loading, empty, error, success, and disabled states.
+## 基準
 
-## Tokens
+- 2026-10-28採用: お客様向けの新規・既存画面は[お客様向け画面の共通仕様](customer-screen-standard.md)に従う。フォーム720px・一覧960px、重複しないタイトル、下部操作欄、戻り先を明示したボタン、入力保持／破棄確認を共通化する。画面から戻るための入力保持と予約一覧への戻り先は、この追加依頼による変更を優先する。
 
-Semantic colors and radii live in `app/globals.css` as CSS variables and are exposed to Tailwind through `@theme inline`.
+- 管理側の一覧は予約一覧、詳細は中央ダイアログを基準とする。顧客側は共通ヘッダーと読みやすいフォームを用いる。
+- 見た目を揃えるために認証、権限、検索条件、予約の業務ルール、データの保持方法を変えない。
+- 一覧の枠、検索条件、件数、ページ送りを共通部品で構成し、同じ機能を画面ごとに似せて作らない。
+- 不要な英語の飾り見出し、同じ内容の重複タイトル、装飾だけの入れ子のカードを避ける。
 
-- `background` / `foreground`: page surface and primary text
-- `card` / `card-foreground`: raised content surfaces
-- `primary`: primary actions and active navigation
-- `secondary`, `muted`, `accent`: supporting actions and low-emphasis surfaces
-- `destructive`, `warning`, `success`: semantic feedback only
-- `border`, `input`, `ring`: boundaries and keyboard focus
+## 寸法と色
 
-Use semantic utilities such as `bg-primary`, `text-muted-foreground`, and `border-border`. Avoid adding screen-specific color literals when a semantic token fits.
+| 対象 | 標準 |
+| --- | --- |
+| 管理画面の外側余白 | 幅761px以上: 上34px・左右36px・下60px。狭い画面: 上下24px・左右18px |
+| 一覧の枠 | 白いcard背景、borderの1px枠、角丸8px、最小限の影 |
+| 一覧上部 | 左に検索・条件、右に「該当 N 件」と操作。左右20px・上下16px、幅に応じて折り返す |
+| 一覧検索 | 白背景、42px高、PC320px幅、文字12px、左右12px、アイコン15px、文字前余白9px。狭い画面では全幅 |
+| 件数 | ラベル12px、数字23px。取得中・件数不明時は「—」。0件と取得失敗を区別 |
+| 表 | 見出し・本文12px以上、見出しは淡い背景とし、列名が縦に崩れないよう原則1行。行は白背景と区切り線。共通Tableは左右20px・上下16px。列幅は内容に応じて指定 |
+| フォーム | 白背景、文字14px、通常入力44px高、角丸6px。検索欄は専用の42px高。日時入力は幅内に収める |
+| ボタン | 通常44px（PC42px）、コンパクトはモバイル44px・PC40px、アイコンは44px（PC42px）。長いラベルや並びは折り返す |
+| 詳細・確認 | 中央表示、白背景、角丸8px、最大高90dvh、内部スクロール。見出し18px、説明14px。予約詳細の閉じる操作は44px |
+| 見出し | 管理ヘッダー18px、お客様の認証画面20px。予約フォームの段階の見出しなど、必要な階層は維持 |
 
-## Components
+色はglobals.cssの意味別トークンを使う。backgroundはページ、cardは白い面、primaryは主要操作、muted-foregroundは補足、destructive／warning／successは状態、border／input／ringは枠とフォーカス。画面専用の色を増やさない。
 
-Use `Button`, `Input`, `Label`, `Textarea`, `Card`, `Badge`, `Alert`, `Tabs`, `Table`, `Skeleton`, and `EmptyState` before creating a new control. Extend variants in the shared component when the same visual behavior is needed in more than one place.
+## 共通部品
 
-## Responsive behavior
+| 用途 | 部品 |
+| --- | --- |
+| 管理画面の余白 | components/ui/management-layout.tsx のManagementPage |
+| 一覧の枠・操作欄・件数 | 同ファイルのListPanel／ListToolbar／ResultCount |
+| 一覧検索 | components/ui/list-search-field.tsx のListSearchField |
+| 条件選択／フォームの選択 | components/ui/select.tsx のListFilter／Select |
+| ページ送り | components/ui/list-pagination.tsx のListPagination |
+| お客様側ヘッダー | components/ui/customer-page-header.tsx のCustomerPageHeader |
+| お客様の本文枠・下部操作欄 | components/ui/customer-page-layout.tsx のCustomerPageFrame／CustomerPageActions。詳細はcustomer-screen-standard.md |
+| 予約申請の手順 | components/ui/booking-steps.tsx のBookingSteps。5列で幅に合わせてラベルを折り返す |
+| 文字入力・操作・状態 | 既存Input／Textarea／Label／Button／Badge／Alert／Card／Tableを優先 |
+| 単一入力欄のラベル・必須・エラー | FormFieldとInput。生成したidで関連付け、aria-invalid／aria-describedby／aria-requiredを共用。エラーの有無で横並びのラベル位置をずらさない |
+| 中央詳細・確認 | Dialogを使用。予約の詳細はReservationDetailsDialogを使用 |
 
-- Build mobile-first and add `sm`, `md`, and `lg` enhancements.
-- Keep customer forms in a readable single column on narrow screens.
-- Allow dense admin tables to scroll horizontally while keeping their surrounding actions responsive.
-- Provide at least 40px interactive targets and visible keyboard focus.
+## 操作と画面状態
 
-## Legacy CSS
+- 行選択と明示的なボタンは同じ詳細・編集処理を呼び出す。番号や主要操作はキーボードでも操作できるようにする。文字選択を妨げない。
+- 一覧内の操作ボタンは行クリックを重複実行しない。スクロールが必要な表では主要操作を右端に残す。
+- ページ送りは一覧の下部に配置し、件数範囲と現在ページを表示。端のページ・取得中・エラー時は適切に無効にする。
+- 読込中、0件、エラー、成功、保存・送信中を設計する。取得中に空一覧と誤認させず、読込表示の消失で一覧の位置を動かさない。
+- 入力エラーは対象欄の近くに表示し、必須／任意が分かるようにする。フォームの失敗で入力を意図せず消さない。
+- 2026-11-03追加: 予約の利用日・開始時間・人数はReact Hook FormとZodで検証し、入力不足の段階では項目別の理由を示す。受付期限の読込中等を除き、理由のない無効ボタンだけにしない。人数の整数・1〜999名という既存API条件を維持する。選択カードはaria-pressedで状態を伝える。
+- 2026-11-03追加: 管理メニューはPCで常時表示し、狭い画面は「メニュー」ボタンから縦に開く。aria-expandedとaria-controlsで開閉状態を示し、現在の画面はaria-currentで示す。画面選択後は閉じて選択先の見出しへフォーカスを移す。
+- 2026-11-03追加: 予約一覧は表内の横スクロールをキーボードでも利用可能とし、予約IDを左に固定する。ソート対象列はaria-sortで順序を伝え、利用日の範囲入力には開始・終了を明示する。
+- 確認が必要な削除、破棄、実メール送信では既存の確認手順を維持。下書きの保持範囲は既存仕様を守る。
+- 管理画面内の別画面への移動では先頭を表示し、詳細を閉じた際は同じ一覧の位置を保つ。
 
-`app/globals.css` still contains compatibility styles for complex reservation tables, drawers, and the booking wizard. Migrate these incrementally when those screens are changed; do not add new feature-specific global selectors unless Tailwind cannot express the requirement clearly.
+## 実装と互換性
+
+- Tailwindを標準にし、shadcn/uiの構成とRadixのダイアログを利用する。
+- globals.cssの通常要素の初期値はbaseレイヤーに置き、共通部品の文字・余白・アイコン指定を上書きしない。
+- 旧来の予約表、ウィザード、詳細編集には互換CSSが残る。今回、極小文字・過剰な角丸・主要な色と共通部品との競合を整理した。互換CSSの全削除や一括の構造変更はしていない。
+- 画面ごとの取得件数・抽出条件・ページ単位・更新間隔を、見た目の共通化のために統一しない。
+
+## 確認
+
+PC1280px、タブレット768px、スマートフォン390pxを代表幅として比較。ページ全体の横はみ出し、表内スクロール、ボタンの到達性、文字サイズ、入力保持、中央表示・閉じる、0件・エラー・再試行を確認する。認証・実メール・外部カレンダーの実操作は通常の隔離UI検証と区別する。
+
+npm testとnpm run buildを実施し、結果と画像を作業記録へ残す。今回の範囲は[全体の画面統一](56-system-design-alignment-2026-10-25.md)を参照。

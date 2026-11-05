@@ -23,7 +23,13 @@ export async function requireAdmin(request: Request) {
   return decoded;
 }
 
+const requestVerification = new WeakMap<Request, Promise<DecodedIdToken | null>>();
 export async function verifyOptionalFirebaseUser(request: Request) {
+  let result = requestVerification.get(request);
+  if (!result) { result = verifyRequestUser(request); requestVerification.set(request, result); }
+  return result;
+}
+async function verifyRequestUser(request: Request) {
   const token = bearerToken(request);
   if (!token) return null;
   try {
@@ -60,6 +66,20 @@ export async function requireRecentlyAuthenticatedFirebaseUser(request: Request)
   const user = await requireVerifiedFirebaseUser(request);
   assertRecentAuthentication(user);
   return user;
+}
+
+export function assertRecentPasswordAuthentication(user: DecodedIdToken, nowSeconds?: number) {
+  if (user.firebase?.sign_in_provider !== "password" || typeof user.customerGoogleSub === "string") {
+    throw new ApiAuthError("現在のパスワードで本人確認を行ってください。", 403);
+  }
+  assertRecentAuthentication(user, nowSeconds);
+}
+
+export function assertRecentGoogleAuthentication(user: DecodedIdToken, nowSeconds?: number) {
+  if (user.firebase?.sign_in_provider !== "google.com" && !(user.firebase?.sign_in_provider === "custom" && typeof user.customerGoogleSub === "string")) {
+    throw new ApiAuthError("連携済みのGoogleアカウントで本人確認を行ってください。", 403);
+  }
+  assertRecentAuthentication(user, nowSeconds);
 }
 
 export async function requireFirebaseUser(request: Request) {

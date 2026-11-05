@@ -22,7 +22,8 @@ async function run(request: Request) {
     const result = await sendDueConfirmationEmails(repository);
     const receiptEmails = await sendPendingReceiptEmails(repository);
     const approvalEmails = await sendPendingApprovalEmails(repository);
-    return NextResponse.json({ ...result, receiptEmails, approvalEmails });
+    const queuedEmails = await (await import("@/lib/mail-dispatch")).dispatchQueuedMail(repository);
+    return NextResponse.json({ ...result, receiptEmails, approvalEmails, queuedEmails });
   } catch (error) {
     return apiErrorResponse(error);
   }

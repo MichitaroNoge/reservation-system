@@ -1,5 +1,9 @@
 # ドキュメント
 
+機能追加時の参照入口: [標準仕様](standard-specification.md)、[UI標準](ui-design-system.md)。確定仕様と、未確定の検討事項を分けて記録しています。
+
+最新のデザイン統一: [全体の画面統一・検証記録](56-system-design-alignment-2026-10-25.md)。
+
 現在の主要設計方針は以下です。
 
 - ログイン可能な利用者は `Account` マスタで管理
@@ -60,3 +64,27 @@
 - [43. 全体再レビューの8件の改善](43-eight-review-improvements-2026-10-21.md)
 
 - [44. 予約通知メールの専用画面への移設](44-reservation-notification-page-2026-10-21.md)
+
+- [57. 顧客トップの予約操作優先と設定画面の分離](57-customer-portal-settings-2026-10-26.md)
+- [58. お問い合わせ・問い合わせ履歴への入口の改善](58-customer-inquiry-entry-2026-10-27.md)
+- [59. 問い合わせ回答テンプレートを定型文挿入へ変更](59-inquiry-reply-snippet-insertion-2026-10-27.md)
+- [60. 問い合わせ回答画面の情報整理](60-inquiry-reply-layout-2026-10-27.md)
+- [61. キャンセル申請画面の操作整理](61-cancellation-request-layout-2026-10-28.md)
+- [お客様向け画面の共通仕様](customer-screen-standard.md)
+- [62. お客様向け画面の共通仕様の適用](62-customer-screen-alignment-2026-10-28.md)
+- [63. 仮想店舗Webサイトと顧客ポータルの表示整理](63-customer-portal-entry-and-reservation-actions-2026-10-28.md)
+
+- [64. 顧客画面のログイン状態を保持する画面遷移](64-customer-session-navigation-2026-10-29.md)
+
+- [65. アカウント操作の子画面分離](65-customer-account-screens-2026-10-29.md)
+
+- [66. ログイン方法の設定の改善](66-login-method-settings-2026-11-03.md)
+- [67. パスワード変更の入口と見出しの改善](67-password-change-discoverability-2026-11-03.md)
+- [68. お客様の予約確認画面の改善](68-customer-reservation-review-2026-11-03.md)
+- [69. 予約確認の表示密度の改善](69-customer-reservation-density-2026-11-03.md)
+- [70. 自律開発の検証環境整備](70-autonomous-validation-2026-11-03.md)
+- [71. システム全体レビューと改善](71-system-review-2026-11-03.md)
+- [72. 未ログインからの予約開始](72-customer-booking-before-login-2026-11-03.md)
+- [73. デザイン・ユーザビリティの全体レビュー](73-design-usability-review-2026-11-03.md)
+- [74. 空き状況問い合わせの人数上限・過去日チェック](74-inquiry-availability-limits-2026-11-05.md)
+- [開発時の検証コマンドと環境](validation.md)

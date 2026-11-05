@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { GoogleCalendarSettings } from "./google-calendar-settings";
 import { Input } from "@/components/ui/input";
 import { systemSettingsSchema } from "@/lib/system-settings";
 import type { SystemSettings } from "@/lib/domain";
@@ -42,9 +41,8 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
       reset({ ...body.settings, reservationLeadDays: body.settings.reservationLeadDays ?? 3, blockedPeriods: body.settings.blockedPeriods ?? [] }); setRemoveIndex(null); setSuccess(true);
     } catch (e) { setError(e instanceof Error ? e.message : "設定を保存できませんでした。"); }
   });
-  return <section className="rounded-lg border border-border bg-background p-5 text-foreground">
-    <h2 className="text-lg font-semibold">その他</h2>
-    {loading ? <p role="status" className="mt-4 text-sm text-muted-foreground">設定を読み込み中…</p> : loaded && <form onSubmit={save} className="mt-5 grid max-w-3xl gap-5">
+  return <section aria-label="その他の設定" className="rounded-lg border border-border bg-card p-5 text-card-foreground">
+    {loading ? <p role="status" className="mt-4 text-sm text-muted-foreground">設定を読み込み中…</p> : loaded && <form onSubmit={save} className="grid max-w-3xl gap-5">
       <div className="grid gap-2"><label htmlFor="acceptance-capacity" className="text-sm font-medium">全体の受入上限（人数）</label>
         <p id="capacity-help" className="text-sm text-muted-foreground">共有スペースを含め、同じ時間帯に受け入れられる合計人数です。空欄は未設定です。</p>
         <Input id="acceptance-capacity" type="number" min={0} max={99999} step={1} inputMode="numeric" disabled={isSubmitting} aria-invalid={!!errors.acceptanceCapacity} aria-describedby="capacity-help capacity-error" {...register("acceptanceCapacity", { setValueAs: value => value === "" || value === null ? null : Number(value), onChange: () => setSuccess(false) })} />
@@ -71,6 +69,5 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
     </form>}
     {error && <div role="alert" className="mt-4 text-sm text-destructive"><p>{error}</p><Button type="button" variant="outline" className="mt-2 min-h-11" disabled={isSubmitting} onClick={() => setAttempt(value => value + 1)}>再読み込み</Button></div>}
     {success && <p role="status" className="mt-4 text-sm text-success">設定を保存しました。</p>}
-    <GoogleCalendarSettings getAdminToken={getAdminToken} />
   </section>;
 }

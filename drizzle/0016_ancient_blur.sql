@@ -1,0 +1,1 @@
+ALTER TYPE "public"."inquiry_category" ADD VALUE 'availability';

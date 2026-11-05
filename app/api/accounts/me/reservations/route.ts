@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireVerifiedFirebaseUser } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
+import { inquiryRepository } from "@/lib/inquiries/repository";
+import { repositoryProvider } from "@/lib/db/environment";
 
 export const runtime = "nodejs";
 
@@ -13,10 +15,15 @@ export async function GET(request: Request) {
     const reservations = (await repository.listReservationsForReservationAccount(user.uid))
       .sort((a, b) => `${b.date}T${b.startTime ?? "10:00"}`.localeCompare(`${a.date}T${a.startTime ?? "10:00"}`, "ja-JP", { numeric: true }));
     const reservationIds = new Set(reservations.map((reservation) => reservation.id));
-    const changeRequests = deduplicateChangeRequests((await repository.listReservationChangeRequests())
+    const changeRequests = deduplicateChangeRequests((repository.listReservationChangeRequestsForAccount ? await repository.listReservationChangeRequestsForAccount(user.uid) : await repository.listReservationChangeRequests())
       .filter((request) => reservationIds.has(request.reservationId))
       .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt, "ja-JP", { numeric: true })));
-    return NextResponse.json({ reservations, changeRequests });
+    let inquiryCounts: Record<string, number> | null = null;
+    if (repositoryProvider() === "drizzle") {
+      try { inquiryCounts = await (await inquiryRepository()).reservationInquiryCounts(user.uid, reservations.map(item => item.id)); }
+      catch { console.warn(JSON.stringify({ event: "customer_reservation_inquiry_counts_unavailable" })); }
+    }
+    return NextResponse.json({ reservations, changeRequests, inquiryCounts }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return apiErrorResponse(error);
   }

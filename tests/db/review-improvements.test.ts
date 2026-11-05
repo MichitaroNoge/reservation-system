@@ -82,7 +82,7 @@ test("review fixes prevent stale notices, retry starvation, update loss, false o
   await assert.rejects(sendReceiptEmailForReservation(repo, receipt.id, { now: start, emailClient: { send: async () => { throw new RateLimitError(60); } } }));
   const waiting = (await repo.listReservations()).find(b => b.id === receipt.id)!;
   assert.equal(waiting.receiptEmailRetryCount, 0); assert.ok(waiting.receiptEmailNextAttemptAt);
-  await sendReceiptEmailForReservation(repo, receipt.id, { now: start, emailClient: { send: async () => { sends++; return { id: "fake" }; } } });
+  await assert.rejects(sendReceiptEmailForReservation(repo, receipt.id, { now: start, emailClient: { send: async () => { sends++; return { id: "fake" }; } } }), RateLimitError);
   assert.equal(sends, 0);
   await sendReceiptEmailForReservation(repo, receipt.id, { now: new Date(start.getTime() + 61000), emailClient: { send: async () => { sends++; return { id: "fake" }; } } });
   assert.equal(sends, 1);
@@ -135,8 +135,7 @@ test("review fixes prevent stale notices, retry starvation, update loss, false o
   assert.equal((await inquiries.detail(number, "owner")).replies[0].body, "回答本文");
   assert.equal((await inquiries.detail(number, "owner")).replies[0].resolution, undefined);
   await deliverInquiryMail(inquiries, { number, replyId: reply }, { sender: async () => { throw new Error("must not call"); }, client: async () => { throw new Error("must not send"); } });
-  await inquiries.setStatus(number, "closed", (await inquiries.detail(number)).inquiry.revision);
-  await inquiries.setStatus(number, "in_progress", (await inquiries.detail(number)).inquiry.revision);
+  assert.equal((await inquiries.detail(number)).inquiry.status, "answered");
   const next = await inquiries.prepareReply(number, { subject: "追加回答", body: "追記", requestKey: randomUUID(), revision: (await inquiries.detail(number)).inquiry.revision }, "admin", "管理者");
   const active = await inquiries.claimMail({ number, replyId: next }, sender);
   await assert.rejects(inquiries.resolveReplyMail(number, next, "not_sent", (await inquiries.detail(number)).inquiry.revision, "admin"), /送信中/);

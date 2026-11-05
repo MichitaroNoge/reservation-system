@@ -40,3 +40,14 @@ test("independent overlap groups reclaim full width and short cards do not conce
  assert.notEqual(layout.items[0].lane,layout.items[1].lane);
  assert.equal(calendarLanes([day.entries[0]],60).items[0].lanes,1);
 });
+
+test("inquiry calendar uses existing occupancy classes without counting the inquiry as a booking", () => {
+ const entries = [row("booked", "12:00", "13:00", 50), row("tentative", "12:00", "13:00", 20, "temporary_confirmed"), row("pending", "12:00", "13:00", 999, "confirmed_requested"), row("cancelled", "12:00", "13:00", 999, "cancelled"), row("temp-rejected", "12:00", "13:00", 999, "temporary_rejected"), row("rejected", "12:00", "13:00", 999, "confirmed_rejected"), { ...row("cancel-request", "12:00", "13:00", 5, "cancellation_requested"), cancellationPreviousStatus: "temporary_confirmed" as const }];
+ const day = calendarDay("2026-10-20", entries, [], { acceptanceCapacity: 100, blockedPeriods: [{ start: "2026-10-20T12:30", end: "2026-10-20T13:30", reason: "共有スペース利用不可" }] });
+ assert.equal(day.peak, 50); assert.equal(day.combinedPeak, 75);
+ assert.deepEqual(day.entries.map(e => e.reservation.id).sort(), ["booked", "tentative", "pending", "cancel-request"].sort());
+ assert.equal(day.entries.find(e => e.reservation.id === "cancel-request")?.kind, "temporary");
+ assert.equal(day.blocks[0].reason, "共有スペース利用不可");
+ assert.equal(calendarCapacityWarning(day), null);
+ assert.equal(calendarDay("2026-10-21", entries, [], { acceptanceCapacity: 100 }).entries.length, 0);
+});

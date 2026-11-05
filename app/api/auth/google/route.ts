@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createHash } from "node:crypto";
 import { consumeLimits } from "@/lib/abuse-limits";
 import { getAuth } from "firebase-admin/auth";
-import { getFirebaseAdminApp, requireFirebaseUser, assertRecentAuthentication } from "@/lib/auth";
+import { getFirebaseAdminApp, requireFirebaseUser, assertRecentPasswordAuthentication } from "@/lib/auth";
 import { assertGoogleClaims, assertSameOrigin, GoogleAuthError, googleAuthConfig, googleChallengeCookie, readGoogleChallenge } from "@/lib/google-auth";
 import { googleErrorResponse, readGoogleJson } from "@/lib/google-http";
 import { getReservationRepository } from "@/lib/repositories";
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (challenge.mode !== "login") {
       const user = await requireFirebaseUser(request);
       if (user.uid !== challenge.uid) throw new GoogleAuthError("ログイン状態が変わりました。やり直してください。", 403);
-      if (challenge.mode === "link") { assertRecentAuthentication(user); if (user.firebase.sign_in_provider !== "password") throw new GoogleAuthError("現在のパスワードで本人確認を行ってください。", 403); }
+      if (challenge.mode === "link") { assertRecentPasswordAuthentication(user); }
     }
     // Bound untrusted verification traffic and consume each challenge exactly once, across processes.
     await consumeLimits([{ key: "google:verify:global", max: 100, seconds: 60 }, { key: `google:nonce:${challenge.nonce}`, max: 1, seconds: 600 }]);

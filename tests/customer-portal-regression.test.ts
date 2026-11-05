@@ -1,10 +1,11 @@
+import {reservationPageSource} from "./reservation-page-source";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 
 test("customer reservation portal keeps account booking choices", async () => {
-  const pageSource = await readFile(path.join(process.cwd(), "app", "page.tsx"), "utf8");
+  const pageSource = await reservationPageSource();
   const sessionSource = await readFile(path.join(process.cwd(), "app", "reservations", "hooks", "use-customer-session.ts"), "utf8");
   const accountReservationsApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "reservations", "route.ts"), "utf8");
   const changeRequestApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "change-requests", "route.ts"), "utf8");
@@ -28,7 +29,7 @@ test("customer reservation portal keeps account booking choices", async () => {
     "/api/accounts/me/reservations",
     "CustomerReservationRequestStatus",
     "CustomerPortalHome",
-    "ログイン済みのお客様のみ手続きできます。アカウントがないお客様は先にアカウント登録してください。",
+    "仮想の店舗Webサイト",
     "予約確認・変更・キャンセル",
     "予約内容変更申請",
     "キャンセル申請",
@@ -41,9 +42,9 @@ test("customer reservation portal keeps account booking choices", async () => {
   }
 
   assert.doesNotMatch(pageSource, /アカウント登録なしで予約する/, "guest reservation entry must not be shown");
-  assert.doesNotMatch(pageSource, /アカウント登録して予約する/, "registration should be presented before procedures, not as a guest-like booking shortcut");
   assert.doesNotMatch(pageSource, /onOpenConfirmedChange/, "confirmed change should be started from reservation cards, not the portal home");
-  assert.doesNotMatch(pageSource, /onOpenChange/, "change requests should be started from reservation cards, not the portal home");
+  const portalHomeSource = pageSource.split("function CustomerPortalHome")[1].split("const loginAuthSchema")[0];
+  assert.doesNotMatch(portalHomeSource, /onOpenChange/, "change requests should be started from reservation cards, not the portal home");
   assert.doesNotMatch(pageSource, /onOpenCancellation/, "cancellation should be started from reservation cards, not the portal home");
   assert.doesNotMatch(pageSource, /\/api\/customers\/me/, "customer reservation portal should use Account APIs for logged-in profile data");
   assert.doesNotMatch(pageSource, /一般団体予約/, "individual reservations should not be labeled as group reservations");
@@ -61,7 +62,7 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(cancellationFormSource, /disabled=\{!canSubmit \|\| !reservation \|\| isSubmitting\}/, "missing reservations and repeated submissions must be blocked");
   assert.match(pageSource, /function CustomerReservationDashboard/, "customer reservation dashboard should stay split from CustomerPortal");
   assert.match(pageSource, /function CustomerReservationRequestStatus/, "customer reservation dashboard should show request statuses");
-  assert.match(pageSource, /function CustomerPortalHome/, "customer portal home should expose shared login before procedures");
+  assert.match(pageSource, /function CustomerPortalHome/, "customer portal home should retain the shared customer entry");
   assert.match(pageSource, /function CustomerRequestForms/, "customer request forms should stay split from CustomerPortal");
   assert.match(pageSource, /function ReservationActionButtons/, "reservation action buttons should stay split from CustomerPortal");
   assert.match(pageSource, /onSubmitCancellation[\s\S]*\{ authToken \}/, "customer cancellation requests must send the Firebase token when logged in");

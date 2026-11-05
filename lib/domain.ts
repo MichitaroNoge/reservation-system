@@ -197,6 +197,7 @@ export type Reservation = {
   policyAgreement?: PolicyAgreement;
   policyConsents?: import("./cancellation-policy-consent").CancellationPolicyConsent[];
   confirmationContactedAt?: string | null;
+  confirmationEmailGeneration?: number;
   receiptEmailNextAttemptAt?: string | null;
   cancellationPreviousStatus?: ReservationStatus | null;
   revision?: number;

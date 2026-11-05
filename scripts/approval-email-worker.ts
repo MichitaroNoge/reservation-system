@@ -11,11 +11,14 @@ const stop = new AbortController();
 process.on("SIGINT", () => stop.abort());
 process.on("SIGTERM", () => stop.abort());
 async function main() {
-  if (process.env.APPROVAL_EMAIL_WORKER_ENABLED !== "true" || repositoryProvider() !== "drizzle") return;
+  if (repositoryProvider() !== "drizzle") return;
   const repo = await getReservationRepository();
   while (!stop.signal.aborted) {
-    try { await sendPendingApprovalEmails(repo); }
-    catch { console.error(JSON.stringify({ event: "approval_email_worker_retry" })); }
+    const results = await Promise.allSettled([
+      (await import("../lib/mail-dispatch")).dispatchQueuedMail(repo),
+      process.env.APPROVAL_EMAIL_WORKER_ENABLED === "true" ? sendPendingApprovalEmails(repo) : Promise.resolve(),
+    ]);
+    if (results.some(result => result.status === "rejected")) console.error(JSON.stringify({ event: "mail_worker_retry" }));
     if (!stop.signal.aborted) await sleep(30000, undefined, { signal: stop.signal }).catch(() => undefined);
   }
 }

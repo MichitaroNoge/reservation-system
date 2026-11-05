@@ -201,7 +201,7 @@ test("ID token validation, admin claims and reservation owner checks remain enfo
   try {
     await assert.rejects(findOwnedReservationByAuthenticatedCustomer(new Request("http://localhost/test"),repo,own.id),(error:unknown)=>error instanceof ApiAuthError&&error.statusCode===401);
     await assert.rejects(findOwnedReservationByAuthenticatedCustomer(new Request("http://localhost/test",{headers:{authorization:"Bearer invalid-token"}}),repo,own.id),(error:unknown)=>error instanceof ApiAuthError&&error.statusCode===401);
-    assert.equal((await findOwnedReservationByAuthenticatedCustomer(request,repo,own.id)).id,own.id);
+    assert.equal((await findOwnedReservationByAuthenticatedCustomer(request.clone(),repo,own.id)).id,own.id);
     tokenUser={...tokenUser,uid:"other-uid"};
     await assert.rejects(findOwnedReservationByAuthenticatedCustomer(request,repo,own.id),(error:unknown)=>error instanceof ApiAuthError&&error.statusCode===403);
     tokenUser={...tokenUser,uid:"owner-uid",email_verified:false};
@@ -407,7 +407,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
     const created = await createBooking(initialBookingRequest);
     assert.equal(created.status, 201, JSON.stringify(await created.clone().json()));
     const createdBody = await created.json();
-    assert.equal(createdBody.receiptEmail.status, "failed");
+    assert.equal(createdBody.receiptEmail.status, "pending");
     const reservationId = createdBody.reservation.id;
     assert.equal((await repo.listReservationsForReservationAccount("review-api-user")).length, 1);
     await repo.updateReceiptEmailDelivery(reservationId, { sentAt: null, lastAttemptAt: new Date().toISOString(), retryCount: 5, lastError: "mail retries exhausted" });
@@ -423,7 +423,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
     const { PATCH: updateStatus } = await import("../../app/api/reservations/[id]/status/route");
     const status = await updateStatus(request(`/api/reservations/${reservationId}/status`, "PATCH", { status: "confirmed" }), { params: Promise.resolve({ id: reservationId }) });
     assert.equal(status.status, 200);
-    assert.equal((await status.json()).approvalEmail.status, "failed");
+    assert.equal((await status.json()).approvalEmail.status, "pending");
     assert.ok((await repo.listApprovalEmailDeliveries()).some(delivery => delivery.reservationId === reservationId && !delivery.sentAt));
     const { PATCH: assign } = await import("../../app/api/reservations/[id]/store/route");
     const assignment = await assign(request(`/api/reservations/${reservationId}/store`, "PATCH", { assignments: [{ store: "テスト店", people: 5 }] }), { params: Promise.resolve({ id: reservationId }) });
@@ -433,7 +433,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
     assert.equal(contacted.status, 200);
     assert.equal((await contacted.json()).reservation.status, "waiting_for_visit");
     const { PATCH: editBooking } = await import("../../app/api/reservations/[id]/route");
-    const edited = await editBooking(request(`/api/reservations/${reservationId}`, "PATCH", { people: 7 }), { params: Promise.resolve({ id: reservationId }) });
+    const edited = await editBooking(request(`/api/reservations/${reservationId}`, "PATCH", { people: 7, expectedRevision: (await repo.getReservation(reservationId))!.revision }), { params: Promise.resolve({ id: reservationId }) });
     assert.equal(edited.status, 200);
     const editedBody = await edited.json();
     assert.equal(editedBody.reservation.status, "confirmed");

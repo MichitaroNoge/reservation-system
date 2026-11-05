@@ -8,10 +8,11 @@ export async function reconcileReservationReadiness(repository: ReservationRepos
   return status === reservation.status ? reservation : repository.updateReservationStatus(reservation.id, status);
 }
 
-export async function saveReservationDetails(repository: ReservationRepository, id: string, input: UpdateReservationInput) {
+export async function saveReservationDetails(repository: ReservationRepository, id: string, input: UpdateReservationInput, expectedRevision?: number) {
   return repositoryTransaction(repository, `reservation:${id}`, async repo => {
     const current = (await repo.listReservations()).find(item => item.id === id);
     if (!current) throw new Error(`Reservation not found: ${id}`);
+    if (expectedRevision !== undefined && expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("他の画面で予約内容が更新されました。入力内容は保持しています。最新の予約を開き直し、変更内容を確認してください。"), { statusCode: 409 });
     const resetAssignments = (input.people !== undefined && input.people !== current.people)
       || (input.date !== undefined && input.date !== current.date)
       || (input.startTime !== undefined && input.startTime !== current.startTime);

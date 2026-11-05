@@ -335,9 +335,9 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const reservation = await this.getReservationWithInternalId(request.reservationId);
     assertReservationChangeAllowed(reservation.status);
-    await assertReservationChangeApproval(this, reservation, request);
+    const target = await assertReservationChangeApproval(this, reservation, request);
     const resetAssignments = reservation.date !== request.requestedDate || (reservation.startTime ?? "10:00") !== request.requestedStartTime || reservation.people !== request.requestedPeople;
-    await this.updateReservation(reservation.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
+    await this.updateReservation(reservation.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems, endTime: target.endTime });
     if (resetAssignments) {
       const refreshed = await this.getReservationWithInternalId(request.reservationId);
       for (const assignment of refreshed.dataConnectStoreAssignments) await op("deleteStoreAssignment")(this.connection(), { id: assignment.id });

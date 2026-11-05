@@ -99,6 +99,49 @@ export class DrizzleReservationRepository implements ReservationRepository {
     return reservationModel(await this.rawReservation(id));
   }
 
+  async queueTransactionalEmail(target: import("../mail-dispatch").MailJobTarget) { await (await import("../mail-dispatch")).enqueueMail(this.db,target); }
+  async readReservationRows(where?: import("drizzle-orm").SQL, limit?: number, offset = 0) {
+    const rows = await this.db.query.reservation.findMany({ where, limit, offset, orderBy: desc(s.reservation.receivedAt), columns: { remarks: false, reserverAddress: false }, with: { reservationDetails: { with: { menu: true } }, storeAssignments: { with: { store: true } } } });
+    return rows.map(row => reservationModel({ ...row, remarks: null, reserverAddress: null, account: null }));
+  }
+  async getReservation(id: string) { const row = await this.db.query.reservation.findFirst({ where: eq(s.reservation.reservationCode,id), with: reservationRelations }); return row ? reservationModel(row) : null; }
+  async reservationPage(query: import("../reservation-search").ReservationSearch, page: number, pageSize: number, today: string) {
+    const { reservationWhere, reservationSortExpression } = await import("../reservation-read-query");
+    const { compareReservationSortValues } = await import("../reservation-search");
+    return this.db.transaction(async tx => {
+      await tx.execute(sql`set transaction isolation level repeatable read read only`);
+      const where = reservationWhere(query,today);
+      const [count] = await tx.select({ total: sql<number>`count(*)::int` }).from(s.reservation).where(where);
+      const total = count.total, safePage = Math.min(page,Math.max(1,Math.ceil(total/pageSize)));
+      let ids: string[];
+      if (query.sortKey === "date" || query.sortKey === "id") {
+        const expr = query.sortKey === "id" ? sql`coalesce(nullif(regexp_replace(${s.reservation.reservationCode},'[^0-9]','','g'),''),'0')::numeric` : reservationSortExpression("date",today);
+        ids = (await tx.select({id:s.reservation.id}).from(s.reservation).where(where).orderBy(query.direction==='asc'?asc(expr):desc(expr),desc(s.reservation.receivedAt),asc(s.reservation.id)).limit(pageSize).offset((safePage-1)*pageSize)).map(row=>row.id);
+      } else {
+        // Preserve the existing Japanese numeric collator without loading full reservations.
+        const keys = await tx.select({id:s.reservation.id,value:reservationSortExpression(query.sortKey,today).as("sort_value")}).from(s.reservation).where(where).orderBy(desc(s.reservation.receivedAt),asc(s.reservation.id));
+        keys.sort((a,b)=>compareReservationSortValues(String(a.value),String(b.value),query.direction));
+        ids=keys.slice((safePage-1)*pageSize,safePage*pageSize).map(row=>row.id);
+      }
+      const rows=ids.length?await new DrizzleReservationRepository(tx as unknown as ReservationDatabase).readReservationRows(inArray(s.reservation.id,ids)):[];
+      const byId=new Map(rows.map(row=>[row.id,row]));
+      const codes=ids.length?await tx.select({id:s.reservation.id,code:s.reservation.reservationCode}).from(s.reservation).where(inArray(s.reservation.id,ids)):[];
+      const codesById=new Map(codes.map(row=>[row.id,row.code]));
+      return { reservations: ids.map(id=>byId.get(codesById.get(id)!)!), total, page:safePage, pageSize };
+    });
+  }
+  async listReservationChangeRequestsForAccount(firebaseUid: string) {
+    const owner=await this.findAccountByFirebaseUid(firebaseUid);if(!owner?.id)return [];
+    return this.readChangeRequests(inArray(s.reservationChangeRequest.reservationId,this.db.select({id:s.reservation.id}).from(s.reservation).where(eq(s.reservation.accountId,owner.id))));
+  }
+  async readChangeRequests(where?: import("drizzle-orm").SQL) {
+    return (await this.db.query.reservationChangeRequest.findMany({where,orderBy:desc(s.reservationChangeRequest.requestedAt),with:{reservation:{with:{reservationDetails:{with:{menu:true}},storeAssignments:{with:{store:true}}}}}})).map(raw=>{
+      const r=reservationModel({...raw.reservation,account:null});
+      let menus:string[]=[];try{const value:unknown=JSON.parse(raw.requestedMenuItemsJson);if(Array.isArray(value))menus=value.filter((v):v is string=>typeof v==='string');}catch{}
+      return {id:raw.id,reservationId:r.id,customer:r.customer,email:r.email,phone:r.phone,currentDate:r.date,currentStartTime:r.startTime??"10:00",currentPeople:r.people,currentMenuItems:r.menuItems,requestedDate:raw.requestedDate,requestedStartTime:raw.requestedTime,requestedPeople:raw.requestedPeople,requestedMenuItems:menus,reason:raw.reason??undefined,baseRevision:raw.baseRevision,status:raw.status.toLowerCase() as ReservationChangeRequest["status"],requestedAt:iso(raw.requestedAt)!,reviewedAt:iso(raw.reviewedAt),feeAcknowledgement:raw.feeAcknowledgement};
+    });
+  }
+
   async listReservations(): Promise<Reservation[]> {
     return (await this.db.query.reservation.findMany({ orderBy: desc(s.reservation.receivedAt), with: reservationRelations })).map(reservationModel);
   }
@@ -167,6 +210,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
       policyAgreementKind: input.policyAgreement?.kind ?? null, policyAgreementAcceptedAt: input.policyAgreement?.acceptedAt ?? null, receiptEmailRequestedAt: input.receiptEmailRequestedAt ?? null,
     }).returning();
     await this.replaceDetails(created.id, menuItems);
+    if (input.receiptEmailRequestedAt) await this.queueTransactionalEmail({ kind: "reservation_receipt", reservationId: reservationCode });
     return reservationModel(await this.rawReservation(reservationCode));
   }
 
@@ -210,8 +254,8 @@ export class DrizzleReservationRepository implements ReservationRepository {
 
   async updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation> {
     if (!this.inTransaction) return this.atomic(`reservation:${id}`, repo => repo.updateConfirmationContact(id, contactedAt));
-    await this.rawReservation(id);
-    await this.db.update(s.reservation).set({ confirmationContactedAt: contactedAt, updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
+    const current = await this.rawReservation(id);
+    await this.db.update(s.reservation).set({ confirmationContactedAt: contactedAt, ...(contactedAt === null && current.confirmationContactedAt ? { confirmationEmailGeneration: sql`${s.reservation.confirmationEmailGeneration} + 1` } : {}), updatedAt: now() }).where(eq(s.reservation.reservationCode, id));
     return reservationModel(await this.rawReservation(id));
   }
   async updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null; nextAttemptAt?: string | null }): Promise<Reservation> {
@@ -276,9 +320,9 @@ export class DrizzleReservationRepository implements ReservationRepository {
     if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
     const current = reservationModel(await this.rawReservation(request.reservationId));
     assertReservationChangeAllowed(current.status);
-    await assertReservationChangeApproval(this, current, request);
+    const target = await assertReservationChangeApproval(this, current, request);
     const resetAssignments = current.date !== request.requestedDate || (current.startTime ?? "10:00") !== request.requestedStartTime || current.people !== request.requestedPeople;
-    await this.updateReservation(current.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems });
+    await this.updateReservation(current.id, { date: request.requestedDate, startTime: request.requestedStartTime, people: request.requestedPeople, menuItems: request.requestedMenuItems, endTime: target.endTime });
     if (resetAssignments) await this.assignStores(current.id, []);
     let reservation = reservationModel(await this.rawReservation(current.id));
     const automatic = getAutomaticReservationStatus(reservation);
@@ -427,6 +471,10 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const [raw] = await this.db.insert(s.emailTemplate).values(values).onConflictDoUpdate({ target: s.emailTemplate.templateKey, set: { ...values, updatedAt: now() } }).returning();
     return templateModel(raw);
   }
+  async findLegacyConfirmationEmailDelivery(baseKey: string): Promise<EmailDelivery | null> {
+    const [row] = await this.db.select({ key: s.emailDelivery.deliveryKey }).from(s.emailDelivery).where(and(eq(s.emailDelivery.templateKey, "reservation_reminder"), or(eq(s.emailDelivery.deliveryKey, baseKey), sql`${s.emailDelivery.deliveryKey} like ${baseKey + "/manual/%"}`))).orderBy(desc(s.emailDelivery.requestedAt), desc(s.emailDelivery.id)).limit(1);
+    return row ? this.getEmailDelivery(row.key) : null;
+  }
   async getEmailDelivery(deliveryKey: string): Promise<EmailDelivery | null> {
     const raw = await this.db.query.emailDelivery.findFirst({ where: eq(s.emailDelivery.deliveryKey, deliveryKey), with: { reservation: true } });
     return raw ? { id: raw.id, deliveryKey: raw.deliveryKey, templateKey: raw.templateKey, recipient: raw.recipient, subject: raw.subject, body: raw.body, status: raw.status as EmailDelivery["status"], reservationId: raw.reservation?.reservationCode ?? null, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastError: raw.lastError } : null;
@@ -463,7 +511,7 @@ function reservationModel(raw: RawReservation): Reservation {
   const assignments = raw.storeAssignments.map(item => ({ store: item.store.name, people: item.people }));
   return {
     id: raw.reservationCode, accountType: raw.reserverAccountType as Reservation["accountType"], companyBranchName: raw.reserverCompanyBranchName ?? undefined, contactPersonName: raw.reserverContactPersonName ?? undefined, accountId: raw.accountId, customer: raw.reserverName ?? "", email: raw.reserverEmail ?? "", phone: raw.reserverPhone ?? "", address: raw.reserverAddress ?? undefined,
-    revision: raw.revision, cancellationPreviousStatus: raw.cancellationPreviousStatus ? normalizeReservationStatus(raw.cancellationPreviousStatus) : null, receiptEmailNextAttemptAt: iso(raw.receiptEmailNextAttemptAt),
+    confirmationEmailGeneration: raw.confirmationEmailGeneration, revision: raw.revision, cancellationPreviousStatus: raw.cancellationPreviousStatus ? normalizeReservationStatus(raw.cancellationPreviousStatus) : null, receiptEmailNextAttemptAt: iso(raw.receiptEmailNextAttemptAt),
     date: raw.usageDate, startTime: raw.usageTime, endTime: raw.usageEndTime ?? undefined, people: raw.expectedPeople, initialConfirmedPeople: raw.initialConfirmedPeople,
     bookingType: raw.bookingType as Reservation["bookingType"], bookingContactName: raw.bookingContactName ?? undefined, dayContactName: raw.dayContactName ?? undefined, dayContactPhone: raw.dayContactPhone ?? undefined,
     groupName: raw.groupName ?? undefined, groupNameKana: raw.groupNameKana ?? undefined, groupType: raw.groupType ?? undefined, groupTypeOther: raw.groupTypeOther ?? undefined,

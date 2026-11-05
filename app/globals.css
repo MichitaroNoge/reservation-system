@@ -89,14 +89,13 @@ body {
   font-family: "Segoe UI", "Yu Gothic UI", "Noto Sans JP", sans-serif;
   background: var(--bg);
 }
-button,
-input,
-select {
-  font: inherit;
+@layer base {
+  button, input, select, textarea { font: inherit; }
 }
 button {
   cursor: pointer;
 }
+@layer base {
 svg {
   width: 20px;
   height: 20px;
@@ -105,6 +104,7 @@ svg {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
 }
 .app-shell {
   display: flex;
@@ -145,7 +145,7 @@ svg {
 }
 .logo small {
   color: #8c9ab9;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1.4px;
 }
@@ -155,7 +155,7 @@ svg {
   gap: 5px;
 }
 .sidebar nav p {
-  font-size: 10px;
+  font-size: 12px;
   color: #7886a5;
   letter-spacing: 1.4px;
   padding: 0 12px;
@@ -183,9 +183,9 @@ svg {
   font-style: normal;
   background: #e95d68;
   color: #fff;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 1px 7px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .sidebar-bottom {
   margin-top: auto;
@@ -220,17 +220,17 @@ svg {
   background: #435476;
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: 12px;
 }
 .profile div {
   display: flex;
   flex-direction: column;
 }
 .profile strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 .profile small {
-  font-size: 9px;
+  font-size: 12px;
   color: #8390aa;
   margin-top: 3px;
 }
@@ -241,7 +241,7 @@ svg {
 }
 .topbar {
   height: 82px;
-  background: white;
+  background: var(--card);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -254,7 +254,7 @@ svg {
 }
 .topbar p {
   margin: 5px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .top-actions {
@@ -280,13 +280,13 @@ svg {
   outline: 0;
   width: 100%;
   padding-left: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .icon-btn {
   width: 38px;
   height: 38px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   position: relative;
 }
@@ -313,7 +313,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 .new-btn svg {
@@ -330,7 +330,7 @@ svg {
 }
 .welcome p {
   margin: 0 0 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .welcome h2 {
@@ -338,12 +338,12 @@ svg {
   margin: 0;
 }
 .pulse {
-  font-size: 10px;
+  font-size: 12px;
   color: #6d7c91;
-  background: #fff;
+  background: var(--card);
   padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 8px;
 }
 .pulse span {
   display: inline-block;
@@ -360,9 +360,9 @@ svg {
   margin-bottom: 18px;
 }
 .stat {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
   padding: 18px;
   display: flex;
   gap: 14px;
@@ -370,7 +370,7 @@ svg {
 .stat-icon {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
 }
@@ -393,7 +393,7 @@ svg {
 .stat p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .stat strong {
   display: block;
@@ -401,11 +401,11 @@ svg {
   margin: 4px 0;
 }
 .stat strong small {
-  font-size: 10px;
+  font-size: 12px;
   margin-left: 3px;
 }
 .stat div > span {
-  font-size: 9px;
+  font-size: 12px;
 }
 .positive {
   color: #2e9d78;
@@ -419,9 +419,9 @@ svg {
   gap: 18px;
 }
 .panel {
-  background: white;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
 }
 .panel-head {
   padding: 18px 20px 14px;
@@ -436,7 +436,7 @@ svg {
 .panel-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 .panel-head > button {
   background: transparent;
@@ -445,7 +445,7 @@ svg {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .panel-head > button svg {
   width: 13px;
@@ -460,7 +460,7 @@ svg {
   border: 0;
   background: transparent;
   color: #8490a2;
-  font-size: 10px;
+  font-size: 12px;
   padding: 6px 10px;
   border-radius: 6px;
 }
@@ -472,17 +472,21 @@ svg {
 .table-wrap {
   overflow-x: auto;
 }
+@layer base {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 10px;
+  font-size: 12px;
 }
 th {
   text-align: left;
-  color: #99a3b1;
+  color: var(--muted-foreground);
   font-weight: 500;
   padding: 10px 12px;
-  background: #fafbfc;
+  background: var(--background);
+}
+thead th {
+  white-space: nowrap;
 }
 th:first-child,
 td:first-child {
@@ -491,7 +495,7 @@ td:first-child {
 td {
   padding: 13px 12px;
   border-top: 1px solid #f0f2f5;
-  color: #445067;
+  color: var(--foreground);
 }
 tbody tr {
   cursor: pointer;
@@ -501,14 +505,15 @@ tbody tr:hover {
 }
 td strong {
   display: block;
-  color: #263149;
-  font-size: 10px;
+  color: var(--foreground);
+  font-size: 12px;
 }
 td small {
   display: block;
-  color: #9aa4b2;
-  font-size: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
   margin-top: 4px;
+}
 }
 .badge {
   display: inline-flex;
@@ -516,7 +521,7 @@ td small {
   gap: 5px;
   border-radius: 12px;
   padding: 5px 8px;
-  font-size: 8px;
+  font-size: 12px;
   white-space: nowrap;
 }
 .badge i {
@@ -572,9 +577,9 @@ td small {
 .tasks .panel-head > span {
   background: #fff0f1;
   color: #d65861;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 3px 8px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .task {
   width: calc(100% - 28px);
@@ -582,7 +587,7 @@ td small {
   padding: 12px 6px;
   border: 0;
   border-top: 1px solid #f0f2f5;
-  background: #fff;
+  background: var(--card);
   display: grid;
   grid-template-columns: 4px 1fr 16px;
   gap: 10px;
@@ -609,10 +614,10 @@ td small {
   gap: 4px;
 }
 .task strong {
-  font-size: 10px;
+  font-size: 12px;
 }
 .task small {
-  font-size: 8px;
+  font-size: 12px;
   color: var(--muted);
 }
 .task svg {
@@ -629,7 +634,7 @@ td small {
   padding: 0 20px;
 }
 .timeline > span {
-  font-size: 9px;
+  font-size: 12px;
   color: #8c97a8;
   padding-top: 2px;
 }
@@ -666,10 +671,10 @@ td small {
   padding-bottom: 18px;
 }
 .timeline strong {
-  font-size: 10px;
+  font-size: 12px;
 }
 .timeline small {
-  font-size: 8px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -686,7 +691,7 @@ td small {
   top: 0;
   height: 100vh;
   width: 420px;
-  background: white;
+  background: var(--card);
   box-shadow: -12px 0 35px rgba(20, 30, 50, 0.15);
   overflow: auto;
 }
@@ -717,7 +722,7 @@ td small {
 .section-label {
   text-transform: uppercase;
   letter-spacing: 1px;
-  font-size: 9px;
+  font-size: 12px;
   color: #8c97a7;
   margin: 0 0 14px;
 }
@@ -744,7 +749,7 @@ td small {
   font-size: 13px;
 }
 .customer-card small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.7;
   margin-top: 4px;
@@ -757,7 +762,7 @@ td small {
   justify-content: space-between;
   padding: 10px 0;
   border-bottom: 1px solid #f0f2f5;
-  font-size: 11px;
+  font-size: 12px;
 }
 .drawer dt {
   color: var(--muted);
@@ -781,7 +786,7 @@ td small {
   border-radius: 8px;
   padding: 11px;
   border: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 12px;
 }
 .approve,
 .full-action {
@@ -810,14 +815,14 @@ td small {
   right: 24px;
   bottom: 24px;
   padding: 13px 18px;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #16233e;
   color: #fff;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .toast svg {
   width: 16px;
@@ -833,7 +838,7 @@ td small {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #fff;
+  background: var(--card);
 }
 .public-logo {
   display: flex;
@@ -855,16 +860,16 @@ td small {
   align-items: center;
 }
 .customer-page nav a {
-  font-size: 11px;
+  font-size: 12px;
   text-decoration: none;
-  color: #536074;
+  color: var(--muted-foreground);
 }
 .customer-page nav button {
   border: 1px solid var(--line);
-  background: white;
+  background: var(--card);
   border-radius: 7px;
   padding: 8px 14px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .customer-hero {
   min-height: 300px;
@@ -875,7 +880,7 @@ td small {
   overflow: hidden;
 }
 .customer-hero p {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 3px;
   color: #92a2c4;
 }
@@ -915,15 +920,15 @@ td small {
 .booking-card {
   width: min(980px, 90vw);
   margin: -35px auto 70px;
-  background: #fff;
-  border-radius: 14px;
+  background: var(--card);
+  border-radius: 8px;
   position: relative;
   box-shadow: 0 18px 50px rgba(27, 36, 54, 0.09);
   overflow: hidden;
 }
 .stepper {
   height: 82px;
-  background: #fafbfc;
+  background: var(--background);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -942,20 +947,20 @@ td small {
   place-items: center;
   background: #e6e9ef;
   color: #8791a1;
-  font-size: 10px;
+  font-size: 12px;
 }
 .stepper div.active > span {
   background: var(--blue);
   color: #fff;
 }
 .stepper small {
-  font-size: 9px;
+  font-size: 12px;
   color: #8d97a7;
   margin-left: 7px;
   white-space: nowrap;
 }
 .stepper div.active small {
-  color: #34415a;
+  color: var(--foreground);
   font-weight: 600;
 }
 .stepper i {
@@ -972,7 +977,7 @@ td small {
   margin: auto;
 }
 .form-kicker {
-  font-size: 9px !important;
+  font-size: 12px !important;
   color: var(--blue) !important;
   letter-spacing: 2px;
   font-weight: 600;
@@ -982,7 +987,7 @@ td small {
   margin: 8px 0;
 }
 .form-body > p {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .menu-grid {
@@ -995,8 +1000,8 @@ td small {
   position: relative;
   min-height: 175px;
   border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 22px;
   text-align: left;
 }
@@ -1028,7 +1033,7 @@ td small {
   margin: 16px 0 8px;
 }
 .menu-grid p {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.7;
 }
@@ -1042,7 +1047,7 @@ td small {
   font-size: 15px;
 }
 .menu-grid small {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
 }
 .next {
@@ -1055,7 +1060,7 @@ td small {
   align-items: center;
   gap: 12px;
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
 }
 .next:disabled {
   opacity: 0.45;
@@ -1073,7 +1078,7 @@ td small {
   grid-template-columns: 1fr;
 }
 .form-fields label {
-  font-size: 10px;
+  font-size: 12px;
   color: #596578;
   font-weight: 600;
 }
@@ -1086,9 +1091,9 @@ td small {
   border-radius: 8px;
   margin-top: 8px;
   padding: 0 12px;
-  background: #fff;
-  color: #34415a;
-  font-size: 11px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
 }
 .form-nav {
   display: flex;
@@ -1097,23 +1102,24 @@ td small {
   margin-top: 26px;
 }
 .form-nav > button:first-child {
+  min-height: 44px;
   border: 0;
   background: transparent;
-  color: #748094;
-  font-size: 11px;
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .form-nav .next {
   margin: 0;
 }
 .confirm-box {
   background: #f7f8fb;
-  border-radius: 9px;
+  border-radius: 8px;
   padding: 16px;
   margin-top: 24px;
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   align-items: center;
-  font-size: 11px;
+  font-size: 12px;
 }
 .confirm-box span {
   color: var(--muted);
@@ -1149,7 +1155,7 @@ td small {
   gap: 50px;
 }
 .guide span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--blue);
   font-weight: 700;
 }
@@ -1157,7 +1163,7 @@ td small {
   font-size: 14px;
 }
 .guide p {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.8;
   color: var(--muted);
 }
@@ -1283,7 +1289,7 @@ td small {
 .page-title p {
   margin: 0 0 7px;
   color: var(--blue);
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 1.5px;
   font-weight: 700;
 }
@@ -1292,7 +1298,7 @@ td small {
   margin: 0 0 7px;
 }
 .page-title span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .page-title > button {
@@ -1301,7 +1307,7 @@ td small {
   padding: 11px 17px;
   background: var(--blue);
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1328,8 +1334,8 @@ td small {
   background: transparent;
   padding: 7px 11px;
   border-radius: 6px;
-  color: #7c8798;
-  font-size: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 .segmented button.active {
   background: #edf2ff;
@@ -1338,11 +1344,11 @@ td small {
 }
 .segmented b {
   margin-left: 4px;
-  background: #fff;
-  border-radius: 10px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 1px 5px;
 }
-.management-tools > label {
+.management-tools > label:not([data-ui="list-search"]) {
   height: 34px;
   width: 190px;
   border: 1px solid var(--line);
@@ -1350,22 +1356,26 @@ td small {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  color: #9aa4b2;
+  color: var(--muted-foreground);
 }
-.management-tools svg {
+.management-tools svg:not([data-ui="list-search-icon"]) {
   width: 14px;
 }
-.management-tools input {
+.management-tools input:not([data-ui="list-search-input"]) {
   border: 0;
   outline: 0;
   width: 100%;
   padding-left: 6px;
-  font-size: 10px;
+  font-size: 12px;
 }
-.large-table th,
+.large-table th {
+  height: 48px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
 .large-table td {
-  padding-top: 15px;
-  padding-bottom: 15px;
+  padding-top: 16px;
+  padding-bottom: 16px;
 }
 .large-table td:last-child svg {
   width: 14px;
@@ -1377,9 +1387,9 @@ td small {
   gap: 16px;
 }
 .entity-card {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
   padding: 20px;
 }
 .entity-head {
@@ -1407,7 +1417,7 @@ td small {
   margin: 16px 0 7px;
 }
 .entity-card > p {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.8;
   min-height: 34px;
@@ -1422,7 +1432,7 @@ td small {
   display: flex;
   justify-content: space-between;
   padding: 5px 0;
-  font-size: 9px;
+  font-size: 12px;
 }
 .entity-card dt {
   color: var(--muted);
@@ -1436,7 +1446,7 @@ td small {
   border: 0;
   background: transparent;
   color: var(--blue);
-  font-size: 9px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1469,10 +1479,10 @@ td small {
   position: absolute;
   right: 10px;
   top: 10px;
-  background: #fff;
-  border-radius: 12px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 4px 8px;
-  font-size: 8px;
+  font-size: 12px;
   color: #2e8e6e;
 }
 .store-photo > span i {
@@ -1514,7 +1524,7 @@ td small {
     max-width: 100%;
     overflow: auto;
   }
-  .management-tools > label {
+  .management-tools > label:not([data-ui="list-search"]) {
     display: none;
   }
   .card-grid,
@@ -1528,7 +1538,7 @@ td small {
   gap: 14px;
 }
 .drawer-form label {
-  font-size: 10px;
+  font-size: 12px;
   color: #596578;
   font-weight: 600;
 }
@@ -1541,9 +1551,9 @@ td small {
   border-radius: 8px;
   margin-top: 7px;
   padding: 0 12px;
-  background: #fff;
-  color: #34415a;
-  font-size: 11px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
 }
 .drawer-form.single {
   gap: 12px;
@@ -1552,7 +1562,7 @@ td small {
   display: block;
   margin-top: 5px;
   color: #6f7a8c;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.45;
   font-weight: 500;
 }
@@ -1572,8 +1582,8 @@ td small {
 }
 .reservation-summary {
   background: #f7f8fb;
-  border: 1px solid #edf0f5;
-  border-radius: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   padding: 14px;
   margin-bottom: 14px;
   display: grid;
@@ -1583,7 +1593,7 @@ td small {
   font-size: 13px;
 }
 .reservation-summary span {
-  font-size: 11px;
+  font-size: 12px;
   color: #596578;
 }
 .reservation-summary small {
@@ -1598,9 +1608,9 @@ td small {
   border-radius: 8px;
   margin-top: 7px;
   padding: 10px 12px;
-  background: #fff;
-  color: #34415a;
-  font-size: 11px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
   resize: vertical;
 }
 .drawer-form input:disabled {
@@ -1609,15 +1619,15 @@ td small {
 }
 .exception-toggle {
   width: 100%;
-  border: 1px solid #e1e6ef;
-  background: #fafbfc;
+  border: 1px solid var(--border);
+  background: var(--background);
   border-radius: 8px;
   padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   text-align: left;
-  color: #34415a;
+  color: var(--foreground);
 }
 .exception-toggle span {
   display: grid;
@@ -1627,12 +1637,12 @@ td small {
   font-size: 12px;
 }
 .exception-toggle small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .exception-toggle svg {
   width: 15px;
-  color: #8c96a7;
+  color: var(--muted-foreground);
 }
 .manual-status-panel {
   margin-top: 14px;
@@ -1659,8 +1669,8 @@ td small {
   position: relative;
   min-height: 132px;
   border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 18px;
   text-align: left;
 }
@@ -1692,7 +1702,7 @@ td small {
   margin: 12px 0 7px;
 }
 .menu-check-grid p {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.6;
 }
@@ -1706,7 +1716,7 @@ td small {
   font-size: 13px;
 }
 .menu-check-grid small {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
 }
 .menu-admin-grid {
@@ -1728,7 +1738,7 @@ td small {
   border: 0;
   background: transparent;
   color: var(--blue);
-  font-size: 10px;
+  font-size: 12px;
   margin-right: 8px;
 }
 .text-action.danger {
@@ -1737,25 +1747,25 @@ td small {
 .cancel-edit {
   border: 0;
   background: transparent;
-  color: #748094;
-  font-size: 10px;
+  color: var(--muted-foreground);
+  font-size: 12px;
   margin-top: 10px;
 }
 .optional-note {
   margin: 0 0 10px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.7;
 }
 .edit-reservation-button {
   width: 100%;
   margin-top: 16px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   color: var(--blue);
   border-radius: 8px;
   padding: 10px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 .drawer-actions .approve:disabled {
@@ -1773,11 +1783,11 @@ td small {
 .customer-card-actions button {
   flex: 1;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   padding: 9px;
   color: #526077;
-  font-size: 10px;
+  font-size: 12px;
 }
 .customer-card-actions .save {
   background: var(--blue);
@@ -1799,7 +1809,7 @@ td small {
 .empty-panel p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .customer-table tbody tr {
   cursor: default;
@@ -1810,9 +1820,9 @@ td small {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 0 10px;
-  color: #34415a;
-  background: #fff;
-  font-size: 10px;
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 12px;
 }
 .editing-row {
   background: #fafbff;
@@ -1827,12 +1837,13 @@ td small {
   white-space: nowrap;
 }
 .row-actions button {
+  min-height: 40px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 7px;
   padding: 7px 9px;
   color: #526077;
-  font-size: 10px;
+  font-size: 12px;
 }
 .row-actions .save {
   background: var(--blue);
@@ -1854,7 +1865,7 @@ td small {
   min-height: 54px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1867,7 +1878,7 @@ td small {
 }
 .customer-management-bar strong {
   font-size: 18px;
-  color: #263149;
+  color: var(--foreground);
 }
 .customer-management-bar span {
   font-size: 12px;
@@ -1882,11 +1893,11 @@ td small {
 .customer-management-bar button {
   height: 32px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 7px;
   padding: 0 12px;
   color: #526077;
-  font-size: 11px;
+  font-size: 12px;
 }
 .customer-management-bar button.active {
   border-color: #c7d2fe;
@@ -1912,7 +1923,7 @@ td small {
 }
 .inactive-customer-section {
   border-top: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   padding: 16px 0 0;
 }
 .subsection-head {
@@ -1929,7 +1940,7 @@ td small {
 .subsection-head p {
   margin: 3px 0 0;
   color: #6b7891;
-  font-size: 11px;
+  font-size: 12px;
 }
 .subsection-head span {
   color: #6b7891;
@@ -1939,7 +1950,7 @@ td small {
   background: #f6f8fb;
 }
 .inactive-table tbody tr {
-  background: #fff;
+  background: var(--card);
 }
 .store-edit-card .drawer-form {
   padding: 0 0 4px;
@@ -1954,21 +1965,21 @@ td small {
   gap: 8px;
   width: auto !important;
   color: #667085 !important;
-  font-size: 10px;
+  font-size: 12px;
 }
 .status-filter select {
   height: 30px;
   border: 0;
   background: transparent;
-  color: #34415a;
+  color: var(--foreground);
   outline: 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 .empty-table {
   padding: 28px;
   text-align: center;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   border-top: 1px solid #f0f2f5;
 }
 .sort-header {
@@ -1985,7 +1996,7 @@ td small {
 }
 .sort-header span {
   color: #7f8aa0;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
 }
 .reservation-tools {
@@ -1993,7 +2004,7 @@ td small {
   gap: 13px;
   align-items: stretch;
   justify-content: stretch;
-  background: #fbfcfe;
+  background: var(--background);
 }
 .reservation-search-row {
   display: grid;
@@ -2023,7 +2034,7 @@ td small {
   height: 100%;
   display: flex;
   align-items: center;
-  color: #8c96a7;
+  color: var(--muted-foreground);
 }
 .reservation-search svg {
   width: 15px;
@@ -2037,7 +2048,7 @@ td small {
   padding-left: 9px;
   font-size: 12px;
   background: transparent;
-  color: #34415a;
+  color: var(--foreground);
 }
 .reservation-date-range {
   gap: 10px;
@@ -2060,7 +2071,7 @@ td small {
   width: 132px;
   border: 0;
   background: transparent;
-  color: #34415a;
+  color: var(--foreground);
   outline: 0;
   padding: 0;
   font-size: 12px;
@@ -2078,7 +2089,7 @@ td small {
   height: 42px;
   border: 1px solid #cbd3e1;
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   padding: 0 12px;
   color: #667085;
   box-shadow: 0 1px 0 rgba(20, 30, 50, 0.03);
@@ -2098,7 +2109,7 @@ td small {
 }
 .reservation-status-dropdown summary strong {
   font-size: 12px;
-  color: #34415a;
+  color: var(--foreground);
 }
 .reservation-status-dropdown[open] summary {
   border-color: #8ea3ee;
@@ -2112,9 +2123,9 @@ td small {
   width: 260px;
   max-height: min(440px, calc(100vh - 170px));
   overflow-y: auto;
-  background: #fff;
+  background: var(--card);
   border: 1px solid #d9e0eb;
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 16px 36px rgba(20, 30, 50, 0.16);
   padding: 10px;
   display: grid;
@@ -2132,7 +2143,7 @@ td small {
   border-radius: 7px;
   background: #f8fafc;
   color: #526077;
-  font-size: 11px;
+  font-size: 12px;
 }
 .reservation-status-menu label {
   display: flex;
@@ -2140,7 +2151,7 @@ td small {
   gap: 8px;
   padding: 8px;
   border-radius: 7px;
-  color: #34415a;
+  color: var(--foreground);
   font-size: 12px;
 }
 .reservation-status-menu label:hover {
@@ -2174,7 +2185,7 @@ td small {
 .reservation-search-row .result-count strong {
   font-size: 23px;
   line-height: 1;
-  color: #263149;
+  color: var(--foreground);
 }
 .reservation-search-row .result-count span {
   font-size: 12px;
@@ -2190,15 +2201,15 @@ td small {
   margin-left: auto;
   margin-right: 8px;
   color: #667085;
-  font-size: 10px;
+  font-size: 12px;
   white-space: nowrap;
 }
 .result-count strong {
   font-size: 18px;
-  color: #263149;
+  color: var(--foreground);
 }
 .result-count span {
-  font-size: 10px;
+  font-size: 12px;
   color: #667085;
 }
 .stat {
@@ -2218,7 +2229,7 @@ td small {
   opacity: 0.72;
 }
 .stat.static strong {
-  color: #263149;
+  color: var(--foreground);
 }
 .stat.clickable:hover {
   border-color: #cfd6e4;
@@ -2229,17 +2240,17 @@ td small {
   height: 30px;
   border: 0;
   background: transparent;
-  color: #34415a;
+  color: var(--foreground);
   outline: 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 .clear-filter {
   height: 34px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 7px;
   color: #667085;
-  font-size: 10px;
+  font-size: 12px;
   padding: 0 12px;
 }
 .dashboard-block {
@@ -2258,12 +2269,12 @@ td small {
 .dashboard-block-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .dashboard-info-block {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
   padding: 18px 20px 20px;
 }
 .dashboard-info-block .dashboard-block-head {
@@ -2302,7 +2313,7 @@ td small {
 .info-metric strong {
   display: block;
   margin-top: 4px;
-  color: #263149;
+  color: var(--foreground);
   font-size: 30px;
   line-height: 1;
 }
@@ -2328,7 +2339,7 @@ td small {
 .today-reservation-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .today-reservation-head button {
   border: 0;
@@ -2357,9 +2368,9 @@ td small {
   min-height: 76px;
   margin: 0;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 8px;
   padding: 16px 14px;
-  background: #fff;
+  background: var(--card);
   grid-template-columns: 4px 1fr 16px;
   gap: 12px;
 }
@@ -2376,11 +2387,11 @@ td small {
   width: 16px;
 }
 .task-card-grid .task .task-count {
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 9px;
 }
 .task-card-grid .task.no-count {
-  background: #fbfcfe;
+  background: var(--background);
   border-color: #edf0f5;
   color: #738096;
 }
@@ -2435,7 +2446,7 @@ td small {
   color: #4164ce;
   border-radius: 999px;
   padding: 2px 7px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .task strong {
   display: flex;
@@ -2474,8 +2485,8 @@ td small {
 .assignment-summary > button {
   min-width: 190px;
   border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 12px;
   text-align: left;
 }
@@ -2486,7 +2497,7 @@ td small {
 .assignment-summary span {
   display: block;
   color: #667085;
-  font-size: 10px;
+  font-size: 12px;
 }
 .assignment-summary strong {
   display: block;
@@ -2495,7 +2506,7 @@ td small {
 }
 .assignment-summary small {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 12px;
 }
 .master-link-grid {
   display: grid;
@@ -2505,9 +2516,9 @@ td small {
 .master-link-grid button {
   min-height: 88px;
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: #fff;
-  color: #34415a;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
   text-align: left;
   padding: 22px;
   display: grid;
@@ -2524,7 +2535,7 @@ td small {
   width: 42px;
   height: 42px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #edf2ff;
   color: var(--blue);
 }
@@ -2538,7 +2549,7 @@ td small {
 .master-link-grid strong {
   display: block;
   font-size: 16px;
-  color: #263149;
+  color: var(--foreground);
 }
 .assignment-editor {
   display: grid;
@@ -2556,22 +2567,22 @@ td small {
   height: 36px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #34415a;
+  background: var(--card);
+  color: var(--foreground);
   padding: 0 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .assignment-row span {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 .assignment-row button {
   height: 34px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   color: #d9535e;
-  font-size: 10px;
+  font-size: 12px;
 }
 .assignment-row button:disabled {
   opacity: 0.35;
@@ -2581,7 +2592,7 @@ td small {
   margin: 10px 0 12px;
   padding: 10px 12px;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 .assignment-total.ok {
@@ -2594,8 +2605,8 @@ td small {
 }
 .readiness-card {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fafbfc;
+  border-radius: 8px;
+  background: var(--background);
   padding: 14px;
   display: grid;
   gap: 8px;
@@ -2604,13 +2615,13 @@ td small {
   font-size: 12px;
 }
 .readiness-card small {
-  font-size: 11px;
+  font-size: 12px;
   color: #596578;
 }
 .readiness-card p {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 @media (max-width: 1100px) {
   .menu-admin-grid {
@@ -2670,8 +2681,8 @@ td small {
 .reservation-type-grid button {
   position: relative;
   border: 1px solid var(--line);
-  background: #fff;
-  border-radius: 10px;
+  background: var(--card);
+  border-radius: 8px;
   padding: 18px;
   text-align: left;
   display: grid;
@@ -2704,7 +2715,7 @@ td small {
   font-size: 13px;
 }
 .reservation-type-grid small {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 @media (max-width: 760px) {
@@ -2719,7 +2730,7 @@ body {
   line-height: 1.55;
 }
 .sidebar nav p {
-  font-size: 11px;
+  font-size: 12px;
 }
 .sidebar nav button {
   font-size: 14px;
@@ -2731,7 +2742,7 @@ body {
   font-size: 12px;
 }
 .profile small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .topbar h1 {
   font-size: 21px;
@@ -2752,7 +2763,7 @@ body {
   font-size: 24px;
 }
 .pulse {
-  font-size: 11px;
+  font-size: 12px;
 }
 .stat p {
   font-size: 12px;
@@ -2764,65 +2775,65 @@ body {
   font-size: 12px;
 }
 .stat div > span {
-  font-size: 11px;
+  font-size: 12px;
 }
 .panel-head h3 {
   font-size: 16px;
 }
 .panel-head p {
-  font-size: 11px;
+  font-size: 12px;
 }
 .panel-head > button {
   font-size: 12px;
 }
 .filters button {
-  font-size: 11px;
+  font-size: 12px;
 }
 table {
   font-size: 12px;
 }
 th {
-  font-size: 11px;
+  font-size: 12px;
 }
 td strong {
   font-size: 12px;
 }
 td small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .badge {
-  font-size: 10px;
+  font-size: 12px;
   padding: 5px 9px;
 }
 .task strong {
   font-size: 12px;
 }
 .task small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .task-count {
-  font-size: 10px;
+  font-size: 12px;
 }
 .timeline > span {
-  font-size: 11px;
+  font-size: 12px;
 }
 .timeline strong {
   font-size: 12px;
 }
 .timeline small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .drawer h2 {
   font-size: 22px;
 }
 .section-label {
-  font-size: 10px;
+  font-size: 12px;
 }
 .customer-card strong {
   font-size: 14px;
 }
 .customer-card small {
-  font-size: 11px;
+  font-size: 12px;
 }
 .drawer dl div {
   font-size: 12px;
@@ -2838,13 +2849,13 @@ td small {
   font-size: 12px;
 }
 .customer-page nav button {
-  font-size: 11px;
+  font-size: 12px;
 }
 .customer-hero div > span {
   font-size: 13px;
 }
 .stepper small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .form-body h2 {
   font-size: 24px;
@@ -2853,14 +2864,14 @@ td small {
   font-size: 12px;
 }
 .form-kicker {
-  font-size: 10px !important;
+  font-size: 12px !important;
 }
 .form-fields label {
   font-size: 12px;
 }
 .form-fields input,
 .form-fields select {
-  font-size: 13px;
+  font-size: 14px;
 }
 .form-nav > button:first-child,
 .next {
@@ -2879,7 +2890,7 @@ td small {
   font-size: 12px;
 }
 .page-title p {
-  font-size: 10px;
+  font-size: 12px;
 }
 .page-title h2 {
   font-size: 26px;
@@ -2891,38 +2902,38 @@ td small {
   font-size: 12px;
 }
 .segmented button {
-  font-size: 11px;
+  font-size: 12px;
 }
-.management-tools > label,
+.management-tools > label:not([data-ui="list-search"]),
 .status-filter,
 .status-filter select,
 .status-filter input[type="date"],
 .clear-filter {
   font-size: 12px;
 }
-.management-tools input {
+.management-tools input:not([data-ui="list-search-input"]) {
   font-size: 12px;
 }
 .result-count {
-  font-size: 11px;
+  font-size: 12px;
 }
 .result-count strong {
   font-size: 20px;
 }
 .result-count span {
-  font-size: 11px;
+  font-size: 12px;
 }
 .entity-card h3 {
   font-size: 16px;
 }
 .entity-card > p {
-  font-size: 11px;
+  font-size: 12px;
 }
 .entity-card dl div {
-  font-size: 11px;
+  font-size: 12px;
 }
 .entity-card > button {
-  font-size: 11px;
+  font-size: 12px;
 }
 .drawer-form label {
   font-size: 12px;
@@ -2941,13 +2952,13 @@ td small {
   font-size: 15px;
 }
 .menu-check-grid p {
-  font-size: 11px;
+  font-size: 12px;
 }
 .menu-check-grid strong {
   font-size: 14px;
 }
 .menu-check-grid small {
-  font-size: 11px;
+  font-size: 12px;
 }
 .text-action,
 .cancel-edit {
@@ -2961,7 +2972,7 @@ td small {
 }
 .customer-card-actions button,
 .row-actions button {
-  font-size: 11px;
+  font-size: 12px;
 }
 .customer-table input {
   font-size: 12px;
@@ -2977,13 +2988,13 @@ td small {
   font-size: 12px;
 }
 .assignment-summary span {
-  font-size: 11px;
+  font-size: 12px;
 }
 .assignment-summary strong {
   font-size: 20px;
 }
 .assignment-summary small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .assignment-row select,
 .assignment-row input {
@@ -2991,7 +3002,7 @@ td small {
 }
 .assignment-row span,
 .assignment-row button {
-  font-size: 11px;
+  font-size: 12px;
 }
 .assignment-total {
   font-size: 12px;
@@ -3003,18 +3014,18 @@ td small {
   font-size: 12px;
 }
 .readiness-card p {
-  font-size: 11px;
+  font-size: 12px;
 }
 .reservation-type-grid strong {
   font-size: 14px;
 }
 .reservation-type-grid small {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Restaurant customer booking refinements. */
 .restaurant-reservation {
-  background: #faf7f1;
+  background: var(--background);
 }
 .restaurant-hero {
   background:
@@ -3075,7 +3086,7 @@ td small {
 .restaurant-reservation .menu-check-grid > button {
   min-height: 104px;
   padding: 13px 14px;
-  border-radius: 9px;
+  border-radius: 8px;
 }
 .restaurant-reservation .menu-check-grid > button.selected {
   padding: 12px 13px;
@@ -3086,7 +3097,7 @@ td small {
   padding-right: 22px;
 }
 .restaurant-reservation .menu-check-grid p {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3100,7 +3111,7 @@ td small {
   font-size: 13px;
 }
 .restaurant-reservation .menu-check-grid small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .restaurant-reservation .confirm-box {
   grid-template-columns: 1fr 1.5fr auto;
@@ -3115,9 +3126,9 @@ td small {
   font-size: 24px;
 }
 .restaurant-guide div {
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 20px;
   box-shadow: 0 10px 30px rgba(39, 26, 18, 0.04);
 }
@@ -3174,7 +3185,7 @@ td small {
 .agreement-notes ul {
   margin: 0;
   padding-left: 20px;
-  color: #445067;
+  color: var(--foreground);
   font-size: 13px;
   line-height: 1.8;
 }
@@ -3190,8 +3201,8 @@ td small {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 15px 16px;
-  color: #34415a;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
 }
 .agreement-check:before {
   content: "";
@@ -3229,7 +3240,7 @@ td small {
 }
 .agreement-check em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--blue);
   white-space: nowrap;
@@ -3249,8 +3260,8 @@ td small {
 }
 .final-summary {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 8px;
+  background: var(--card);
   padding: 6px 20px;
   margin: 24px 0;
 }
@@ -3274,7 +3285,7 @@ td small {
 .final-summary dd {
   margin: 0;
   font-weight: 700;
-  color: #34415a;
+  color: var(--foreground);
   overflow-wrap: anywhere;
 }
 @media (max-width: 760px) {
@@ -3321,7 +3332,7 @@ td small {
 }
 .reservation-notes p {
   margin: 0;
-  color: #445067;
+  color: var(--foreground);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -3335,14 +3346,14 @@ td small {
 .reservation-type-options legend {
   font-size: 12px;
   font-weight: 700;
-  color: #34415a;
+  color: var(--foreground);
   margin-bottom: 8px;
 }
 .reservation-type-options button {
   position: relative;
   width: 100%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   padding: 14px 16px 14px 46px;
   text-align: left;
@@ -3350,7 +3361,7 @@ td small {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  color: #34415a;
+  color: var(--foreground);
 }
 .reservation-type-options button:before {
   content: "";
@@ -3379,7 +3390,7 @@ td small {
   height: 18px;
   border: 2px solid #b8c0cc;
   border-radius: 50%;
-  background: #fff;
+  background: var(--card);
 }
 .reservation-type-options button.selected .radio-mark {
   border-color: var(--blue);
@@ -3403,7 +3414,7 @@ td small {
 }
 .reservation-type-options em {
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--blue);
   white-space: nowrap;
@@ -3455,13 +3466,13 @@ td small {
   grid-template-columns: 230px auto minmax(76px, 1fr) max-content;
   gap: 12px;
   align-items: center;
-  background: #fbfcfe;
+  background: var(--background);
 }
 .confirmation-window-control {
   height: 42px;
   border: 1px solid #cbd3e1;
   border-radius: 8px;
-  background: #fff;
+  background: var(--card);
   padding: 0 12px;
   display: flex;
   align-items: center;
@@ -3483,7 +3494,7 @@ td small {
   border-left: 1px solid #edf0f5;
   border-right: 1px solid #edf0f5;
   padding: 0 8px;
-  color: #34415a;
+  color: var(--foreground);
   outline: 0;
   font-weight: 700;
 }
@@ -3559,7 +3570,7 @@ td small {
   height: 34px;
   border: 0;
   background: transparent;
-  color: #536074;
+  color: var(--muted-foreground);
   padding: 0;
   margin: 0 0 14px;
   display: inline-flex;
@@ -3580,8 +3591,8 @@ td small {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 0 10px;
-  color: #34415a;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   font-size: 12px;
 }
 .new-store-row {
@@ -3595,7 +3606,7 @@ td small {
   min-height: 54px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3608,7 +3619,7 @@ td small {
 }
 .store-management-bar strong {
   font-size: 18px;
-  color: #263149;
+  color: var(--foreground);
 }
 .store-management-bar span {
   font-size: 12px;
@@ -3623,11 +3634,11 @@ td small {
 .store-management-bar button {
   height: 32px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 7px;
   padding: 0 12px;
   color: #526077;
-  font-size: 11px;
+  font-size: 12px;
 }
 .store-management-bar button.active {
   border-color: #c7d2fe;
@@ -3653,7 +3664,7 @@ td small {
 }
 .inactive-store-section {
   border-top: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   padding: 16px 0 0;
 }
 .menu-table tbody tr {
@@ -3665,8 +3676,8 @@ td small {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 0 10px;
-  color: #34415a;
-  background: #fff;
+  color: var(--foreground);
+  background: var(--card);
   font-size: 12px;
 }
 .menu-table th:nth-child(3),
@@ -3692,7 +3703,7 @@ td small {
   min-height: 54px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3705,7 +3716,7 @@ td small {
 }
 .menu-management-bar strong {
   font-size: 18px;
-  color: #263149;
+  color: var(--foreground);
 }
 .menu-management-bar span {
   font-size: 12px;
@@ -3720,11 +3731,11 @@ td small {
 .menu-management-bar button {
   height: 32px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 7px;
   padding: 0 12px;
   color: #526077;
-  font-size: 11px;
+  font-size: 12px;
 }
 .menu-management-bar button.primary {
   border-color: var(--blue);
@@ -3781,17 +3792,17 @@ td small {
   margin-top: 10px;
 }
 .next-action-note {
-  border: 1px solid #edf0f5;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--card);
   border-radius: 8px;
   padding: 10px 12px;
   color: #596578;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .next-action-note strong {
   display: block;
-  color: #263149;
+  color: var(--foreground);
   font-size: 12px;
   margin-bottom: 2px;
 }
@@ -3802,7 +3813,7 @@ td small {
   position: sticky;
   bottom: 0;
   z-index: 1;
-  background: #fff;
+  background: var(--card);
   padding-bottom: calc(22px + env(safe-area-inset-bottom));
   box-shadow: 0 -14px 26px rgba(20, 30, 50, 0.08);
 }
@@ -3846,7 +3857,7 @@ td small {
 }
 .inactive-menu-section {
   border-top: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
   padding: 16px 0 0;
 }
 .admin-auth-page {
@@ -3858,9 +3869,9 @@ td small {
 }
 .admin-auth-panel {
   width: min(420px, 100%);
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: 8px;
   padding: 30px;
   box-shadow: 0 18px 45px rgba(20, 30, 50, 0.08);
 }
@@ -3898,8 +3909,8 @@ td small {
   border-radius: 8px;
   margin-top: 7px;
   padding: 0 12px;
-  background: #fff;
-  color: #34415a;
+  background: var(--card);
+  color: var(--foreground);
   font-size: 13px;
 }
 .admin-auth-form button {
@@ -3927,8 +3938,8 @@ td small {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   padding: 11px 12px;
   font-size: 12px;
 }
@@ -3943,8 +3954,8 @@ td small {
 }
 .customer-account-panel {
   border: 1px solid var(--line);
-  background: #fafbfc;
-  border-radius: 10px;
+  background: var(--background);
+  border-radius: 8px;
   padding: 14px;
   margin: 22px 0 24px;
 }
@@ -3964,16 +3975,16 @@ td small {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 11px;
-  background: #fff;
-  color: #34415a;
+  background: var(--card);
+  color: var(--foreground);
   font-size: 12px;
 }
 .customer-account-form button,
-.customer-account-current button {
+.customer-account-current button:not([data-ui="button"]) {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   padding: 0 12px;
   font-size: 12px;
 }
@@ -3987,16 +3998,20 @@ td small {
 }
 .customer-account-current {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   align-items: center;
   gap: 10px;
 }
 .customer-account-current span {
-  font-size: 11px;
+  font-size: 12px;
   color: #29916e;
   font-weight: 700;
 }
 .customer-account-current strong {
-  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
   margin-right: auto;
 }
 @media (max-width: 760px) {
@@ -4028,11 +4043,11 @@ td small {
 }
 .customer-booking-mode-card {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   padding: 12px;
   text-align: left;
-  color: #34415a;
+  color: var(--foreground);
   min-height: 78px;
 }
 .customer-booking-mode-card.selected {
@@ -4048,7 +4063,7 @@ td small {
 .customer-booking-mode-card small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .customer-mode-note {
@@ -4087,7 +4102,7 @@ td small {
   margin-top: 12px;
 }
 .customer-account-profile-form label {
-  font-size: 11px;
+  font-size: 12px;
   color: #596578;
   font-weight: 700;
 }
@@ -4100,8 +4115,8 @@ td small {
   border-radius: 8px;
   margin-top: 6px;
   padding: 0 11px;
-  background: #fff;
-  color: #34415a;
+  background: var(--card);
+  color: var(--foreground);
   font-size: 12px;
 }
 .customer-account-profile-form > button {
@@ -4127,7 +4142,7 @@ td small {
 }
 .account-type-options legend {
   grid-column: 1/-1;
-  font-size: 11px;
+  font-size: 12px;
   color: #596578;
   font-weight: 700;
   margin-bottom: 6px;
@@ -4137,11 +4152,11 @@ td small {
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--card);
   border-radius: 8px;
   padding: 12px;
   text-align: left;
-  color: #34415a;
+  color: var(--foreground);
 }
 .account-type-options button.selected {
   border-color: var(--blue);
@@ -4165,7 +4180,7 @@ td small {
   margin-left: 7px;
   border-radius: 999px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   vertical-align: middle;
 }
@@ -4192,11 +4207,11 @@ td small {
 .portal-entry-grid button {
   min-height: 118px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 8px;
+  background: var(--card);
   text-align: left;
   padding: 20px;
-  color: #34415a;
+  color: var(--foreground);
 }
 .portal-entry-grid button:hover {
   border-color: #c7d2fe;
@@ -4217,8 +4232,8 @@ td small {
   margin: 18px 24px 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   padding: 9px 12px;
   font-size: 12px;
 }
@@ -4228,6 +4243,25 @@ td small {
 .cancellation-form .form-nav {
   margin-top: 22px;
 }
+/* Shared customer frame bridges the existing booking forms during their migration. */
+.customer-page-frame .form-body {
+  max-width: none;
+  margin: 0;
+  padding: 24px;
+  font-size: 14px;
+}
+.customer-page-frame .form-body > h1 {
+  margin: 0 0 24px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.customer-page-frame .form-body > p:not([role="alert"]) {
+  font-size: 14px;
+  color: var(--foreground);
+}
+@media (max-width: 640px) {
+  .customer-page-frame .form-body { padding: 24px 16px; }
+}
 .form-fields textarea {
   width: 100%;
   min-height: 96px;
@@ -4236,8 +4270,8 @@ td small {
   padding: 12px;
   resize: vertical;
   outline: 0;
-  background: #fff;
-  color: #34415a;
+  background: var(--card);
+  color: var(--foreground);
 }
 .form-fields textarea:focus {
   border-color: #8ea3ee;
@@ -4252,7 +4286,7 @@ td small {
   justify-content: flex-end;
   padding: 18px 20px 14px;
   border-bottom: 1px solid var(--line);
-  background: #fbfcfe;
+  background: var(--background);
 }
 .change-request-head span {
   font-size: 12px;
@@ -4274,8 +4308,8 @@ td small {
   height: 32px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   padding: 0 12px;
 }
 .row-actions.compact button.primary {
@@ -4319,7 +4353,7 @@ td small {
   white-space: nowrap;
 }
 .topbar-meta span {
-  font-size: 10px;
+  font-size: 12px;
 }
 .topbar-meta strong {
   font-size: 12px;
@@ -4334,62 +4368,15 @@ td small {
     display: none;
   }
   .topbar-meta strong {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 .management-panel table thead th,
 .change-request-screen table thead th {
-  background: #fafbfc;
+  background: var(--background);
 }
 .reservation-list-panel {
   overflow: visible;
-}
-.customer-reservation-dashboard {
-  max-width: 860px;
-}
-.reservation-account-head {
-  margin: 20px 0;
-}
-.customer-reservation-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 18px;
-}
-.customer-reservation-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
-  gap: 16px;
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fff;
-  padding: 16px;
-}
-.customer-reservation-item strong {
-  display: block;
-  margin: 10px 0 4px;
-  font-size: 15px;
-}
-.customer-reservation-item small {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-}
-.customer-reservation-item dl {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 0;
-}
-.customer-reservation-item dt {
-  font-size: 10px;
-  color: var(--muted);
-}
-.customer-reservation-item dd {
-  margin: 2px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #34415a;
 }
 .customer-request-status-list {
   grid-column: 1/-1;
@@ -4405,12 +4392,12 @@ td small {
   align-items: center;
   border: 1px solid #e6ebf3;
   border-radius: 8px;
-  background: #fbfcfe;
+  background: var(--background);
   padding: 10px 12px;
 }
 .customer-request-status-list span {
   font-size: 12px;
-  color: #536074;
+  color: var(--muted-foreground);
 }
 .customer-request-status-list strong {
   margin: 0;
@@ -4419,50 +4406,15 @@ td small {
 }
 .customer-request-status-list small {
   grid-column: 1/-1;
-  color: #536074;
+  color: var(--muted-foreground);
 }
-.customer-reservation-actions {
-  grid-column: 1/-1;
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-}
-.customer-reservation-actions button {
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  color: #536074;
-  padding: 0 12px;
-  font-size: 12px;
-}
-.customer-reservation-actions button:hover:not(:disabled) {
-  border-color: #c7d2fe;
-  background: #fafbff;
-  color: var(--blue);
-}
-.customer-reservation-actions button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+
+
+
+
 @media (max-width: 760px) {
-  .customer-reservation-item {
-    grid-template-columns: 1fr;
-  }
-  .customer-reservation-item dl {
-    grid-template-columns: 1fr;
-  }
   .customer-request-status-list div {
     grid-template-columns: 1fr;
-  }
-  .customer-reservation-actions {
-    justify-content: stretch;
-    flex-direction: column;
-  }
-  .customer-reservation-actions button {
-    width: 100%;
   }
 }
 .stepper div > span svg {
@@ -4471,15 +4423,15 @@ td small {
 }
 .confirmation-send-confirm {
   border: 1px solid var(--line);
-  background: #fbfcfe;
-  border-radius: 9px;
+  background: var(--background);
+  border-radius: 8px;
   padding: 13px;
   display: grid;
   gap: 12px;
 }
 .confirmation-send-confirm strong {
   font-size: 13px;
-  color: #263149;
+  color: var(--foreground);
 }
 .confirmation-send-confirm div {
   display: grid;
@@ -4490,8 +4442,8 @@ td small {
   height: 38px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .confirmation-send-confirm button.approve {
@@ -4522,7 +4474,7 @@ td small {
 }
 .management table td small {
   font-size: 12px;
-  color: #263149;
+  color: var(--foreground);
 }
 
 .email-verification-panel {
@@ -4533,7 +4485,7 @@ td small {
   line-height: 1.8;
 }
 .email-verification-panel > p strong {
-  color: #243149;
+  color: var(--foreground);
 }
 .email-verification-actions {
   display: grid;
@@ -4545,8 +4497,8 @@ td small {
   height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
-  color: #536074;
+  background: var(--card);
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .email-verification-actions .next {
@@ -4563,18 +4515,18 @@ td small {
   margin-top: 14px;
   border: 0;
   background: transparent;
-  color: #748094;
-  font-size: 11px;
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 @media (max-width: 760px) {
   .email-verification-actions {
     grid-template-columns: 1fr;
   }
 }
-.customer-account-current .account-delete-button {
+.customer-account-current .account-delete-button:not([data-ui="button"]) {
   border-color: #f1c4c8;
   color: #c43f4b;
 }
-.customer-account-current .account-delete-button:disabled {
+.customer-account-current .account-delete-button:not([data-ui="button"]):disabled {
   opacity: 0.5;
 }

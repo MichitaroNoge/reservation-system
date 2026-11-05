@@ -72,6 +72,22 @@ Seedは店舗・メニュー・メールテンプレート・サンプルAccount
 SeedはFirebase Authユーザーを作成・変更しません。UID未指定のサンプルAccountはログイン用途ではありません。
 Seed後にUIDを変えても既存予約は再紐付けされません。紐付けし直す場合は必要なローカルデータをバックアップし、初期化してください。
 
+### 普段の画面確認（ビルド済みで高速起動）
+
+コードを変更した後は、既存のサーバーをCtrl+Cで止めてから次を実行してください。
+
+```powershell
+npm run preview:local
+```
+
+ビルド済みでコードに変更がない場合は `npm run start:local` で起動できます。画面は従来どおり `http://localhost:3000` です。開発時の自動再読み込みが必要な場合は `npm run dev:local` を使います。開発用とビルド済みの出力フォルダーは分離されていますが、同じポートでは同時起動できません。
+
+`start:local` と `dev:local` は、アプリと一緒にGoogleカレンダーワーカーとメールワーカーを起動・停止します。予約の受付メール、問い合わせの受付・回答メールはDBへ送信予定を保存し、メールワーカーが30秒間隔で処理します。予約承認・変更・キャンセル通知の自動再試行は従来どおり `APPROVAL_EMAIL_WORKER_ENABLED=true` の場合だけ実行します。ワーカーを別に起動する場合は `npm run mail:worker` を使用し、通常起動と重複させないでください。旧 `approval-email:worker` コマンドも同じワーカーを起動します。
+
+メール配送を待たずに画面へ保存完了を返します。メールの送信結果は管理画面の通知・問い合わせ履歴で確認できます。アプリを停止しても送信予定はDBに残ります。今回のマイグレーション `0015` はキューテーブルだけを追加し、過去の停止済みメールを送信対象へ登録しません。
+
+変更点・性能測定・確認範囲は[性能改善の作業記録](docs/45-performance-improvements-2026-10-22.md)を参照してください。
+
 ### 停止・再起動・データ再構築
 
 ブラウザーでローカルDBを確認する場合は、別のPowerShellで`npm run db:studio`を実行し、表示されたDrizzle StudioのURLを開きます。
@@ -110,16 +126,29 @@ npm run db:migrate
 
 ### テスト
 
+自律開発では次の2コマンドを使用します。Docker・実Firebase設定・実メール設定は不要です。
+
+```powershell
+npm run verify
+npm run test:auth
+```
+
+`verify`は型チェック・警告0件のLint・通常テスト・一時PGliteのDBテスト・検証用ビルドを順番に実行し、失敗した時点で停止します。検証用ビルドはダミー設定を使い`.next-check`へ出力します。通常の`.next`／開発用の`.next-dev`と分離され、公開用の生成物としては使用しません。
+
+個別に実行する場合:
+
 ```powershell
 npm run typecheck
 npm run lint
 npm test
 npm run test:db
-npm run build
+npm run build:check
 ```
 
 `test:db`は独立したPGliteのPostgreSQLエンジンで、実SQLマイグレーション・制約・Repository・認可・ロールバックを検証します。
-Firebaseトークン検証とメール送信はテストで代替し、クラウドへ接続・送信しません。PGliteは複数接続の競合テストを代替しません。
+直列実行でメモリー使用を抑え、外部DB接続設定・PostgreSQL初期化の確認値は引き継ぎません。Firebaseトークン検証とメール送信はテストで代替します。PGliteは複数接続の競合テストを代替しません。
+
+`test:auth`は`demo-reservation-google`のローカル認証エミュレーターを起動し、契約テスト後に停止します。9099・4400・4500番ポートを使用します。検証コマンドの一覧、対象範囲、エラーへの対処は[検証環境の使い方](docs/validation.md)を参照してください。
 
 DockerのPostgreSQLとnode-postgresドライバーで全DBテストを実行する場合は、隔離したテストDBを準備します。
 
@@ -181,7 +210,7 @@ Admin SDKのCJS/ESM操作ラッパーはAccountモデルへ追随済みです。
 
 既存の `tests/reservation-workflows.test.ts` も、予約作成時にAccountを暗黙作成しない新仕様へ更新しています。
 
-`.github/workflows/refactor-check.yml` では `npm test` と `npm run build` を実行します。
+`.github/workflows/refactor-check.yml`では、push・pull request・手動起動時に`npm ci`、`npm run verify`、`npm run test:auth`を実行します。実環境のFirebase設定やGitHub Secretsは不要です。公開・デプロイ・DB初期化は行いません。
 
 ## 問い合わせ機能
 

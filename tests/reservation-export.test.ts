@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { csvLine, safeCsvText } from "../lib/csv/encoding";
 import { exportFileName, japaneseDateTime, reservationCsvHeader, reservationCsvRow, reservationExportColumns } from "../lib/csv/reservation-export";
-import { compareReservations, matchesReservation, type ReservationSearch } from "../lib/reservation-search";
+import { activeReservationStatuses, compareReservations, matchesReservation, type ReservationSearch } from "../lib/reservation-search";
 import { validateReservationExport } from "../lib/reservation-export-validation";
 import { ExportError, generateReservationExport, exportMaxBytes } from "../lib/services/reservation-export-service";
 import type { ReservationRepository } from "../lib/repositories/reservation-repository";
-import type { Reservation } from "../lib/domain";
+import { reservationStatuses, type Reservation } from "../lib/domain";
 
 const query: ReservationSearch = { search: "", dateFrom: "", dateTo: "", statuses: [], filter: "すべて", sortKey: "id", direction: "asc" };
 const today = "2026-10-19";
@@ -31,6 +31,15 @@ function readCsv(csv: string) {
 test("CSV query rejects unknown scope, sort injection, malformed dates, duplicate statuses and overlong search", () => {
   assert.deepEqual(validateReservationExport(query), query);
   for (const change of [{ dateFrom: "2026-02-30" }, { dateTo: "2026-13-01" }, { sortKey: "id;drop table reservation" }, { userId: "other-user" }, { storeId: "other-store" }, { tenantId: "other" }, { statuses: ["confirmed", "confirmed"] }, { statuses: ["ALL"] }, { search: "x".repeat(501) }, { direction: "sideways" }]) assert.throws(() => validateReservationExport({ ...query, ...change }));
+});
+
+test("active reservation selection excludes rejected, cancelled and visited rows without hiding manually selected history", () => {
+  const results = reservationStatuses.filter(status => matchesReservation({ ...row(), status }, { ...query, statuses: activeReservationStatuses }, today));
+  assert.deepEqual(results, ["temporary_requested", "temporary_confirmed", "confirmed_requested", "confirmed", "waiting_for_visit", "cancellation_requested"]);
+  for (const status of ["temporary_rejected", "confirmed_rejected", "cancelled", "visited"] as const) {
+    assert.equal(matchesReservation({ ...row(), status }, { ...query, statuses: activeReservationStatuses }, today), false);
+    assert.equal(matchesReservation({ ...row(), status }, { ...query, statuses: [status] }, today), true);
+  }
 });
 
 test("shared filters preserve keyword fields, reversed inclusive dates, empty statuses and approval categories", () => {

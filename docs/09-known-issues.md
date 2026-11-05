@@ -32,4 +32,4 @@
 
 ## CI
 
-`.github/workflows/refactor-check.yml` で `npm test` と `npm run build` を実行する構成を追加しています。ただし、この作業環境からGitHub Actionsの成功結果を確認できていません。マージ前に実行結果の確認が必要です。
+2026-11-03更新: `.github/workflows/refactor-check.yml`で`npm run verify`（型・Lint・通常テスト・PGlite・検証ビルド）と`npm run test:auth`を実行します。同じコマンドのローカル実行は成功していますが、GitHub Actions上の成功結果は未確認です。マージ前に実行結果を確認してください。手順と範囲は[検証環境の使い方](validation.md)を参照してください。

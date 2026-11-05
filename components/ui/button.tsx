@@ -9,15 +9,15 @@ const buttonVariants = cva("inline-flex shrink-0 items-center justify-center gap
       default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       destructive: "bg-destructive text-white hover:bg-destructive/90",
-      outline: "border border-border bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground",
+      outline: "border border-input bg-card text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground",
       ghost: "text-foreground hover:bg-accent hover:text-accent-foreground",
       link: "text-primary underline-offset-4 hover:underline",
     },
     size: {
-      default: "h-10 px-4 py-2",
-      sm: "h-9 rounded-md px-3",
+      default: "h-11 px-4 py-2 sm:h-[42px]",
+      sm: "h-11 rounded-md px-3 text-xs sm:h-10",
       lg: "h-11 rounded-md px-6",
-      icon: "size-10",
+      icon: "size-11 sm:size-[42px]",
     },
   },
   defaultVariants: { variant: "default", size: "default" },
@@ -29,6 +29,6 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild, ...props }, ref) => {
   const Component = asChild ? Slot : "button";
-  return <Component ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+  return <Component data-ui="button" ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 });
 Button.displayName = "Button";

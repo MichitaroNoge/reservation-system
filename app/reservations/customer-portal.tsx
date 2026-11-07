@@ -1853,6 +1853,7 @@ function CustomerPortal({
   };
   const removeContactEmail = async (id: string) => {
     if (!customerUser) return;
+    if (!window.confirm("この追加連絡先を削除しますか？再登録する場合は、メールアドレスの確認が必要です。")) return;
     const uid = customerUser.uid;
     await requestJson(`/api/accounts/me/contact-emails?id=${encodeURIComponent(id)}`, { method: "DELETE", authToken: await customerUser.getIdToken() });
     if (activeCustomerUid.current !== uid) return;

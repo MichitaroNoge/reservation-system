@@ -67,7 +67,7 @@ function reservationMatchesContact(reservation: Reservation, input: { email?: st
 
 function assertCanRequestReservationChange(reservation: Reservation) {
   const allowedStatuses: readonly ReservationStatus[] = [reservationStatusCodes.temporaryRequested, reservationStatusCodes.temporaryConfirmed, reservationStatusCodes.confirmedRequested, reservationStatusCodes.confirmed, reservationStatusCodes.waitingForVisit];
-  if (!allowedStatuses.includes(reservation.status)) throw new Error(`Reservation change cannot be requested for status: ${reservation.status}`);
+  if (!allowedStatuses.includes(reservation.status)) throw Object.assign(new Error("この予約は現在のステータスでは変更申請できません。"), { statusCode: 400 });
 }
 
 function sortByDisplayOrderThenName<T extends { displayOrder?: number; name: string }>(items: T[]) {

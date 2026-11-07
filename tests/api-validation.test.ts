@@ -23,29 +23,31 @@ test("PostgreSQL errors return safe messages instead of SQL parameters", async (
   } finally { console.error = original; }
 });
 
-test("Data Connect errors are returned with actionable messages", async () => {
-  const error = new Error("partial-error");
+test("Data Connect errors do not disclose provider details in responses or logs", async () => {
+  const error = new Error("partial-error private@example.test secret-credential");
   error.name = "DataConnectOperationError";
   Object.assign(error, {
     response: {
-      errors: [{ message: "Cannot update reservation" }],
+      errors: [{ message: "Cannot update reservation private@example.test secret-value" }],
     },
   });
   const originalConsoleError = console.error;
-  console.error = () => {};
+  const logs: unknown[][] = [];
+  console.error = (...values: unknown[]) => { logs.push(values); };
 
   try {
     const response = apiErrorResponse(error);
     const body = await response.json();
 
     assert.equal(response.status, 502);
-    assert.equal(body.error, "Data Connectの更新に失敗しました: Cannot update reservation");
+    assert.doesNotMatch(JSON.stringify(body), /private@example|secret-value|secret-credential/);
+    assert.doesNotMatch(JSON.stringify(logs), /private@example|secret-value|secret-credential/);
   } finally {
     console.error = originalConsoleError;
   }
 });
 
-test("missing deployed Data Connect operations are explained", async () => {
+test("missing deployed Data Connect operations return a safe service error", async () => {
   const error = new Error('operation "GetAccountByFirebaseUid" not found');
   const originalConsoleError = console.error;
   console.error = () => {};
@@ -55,8 +57,16 @@ test("missing deployed Data Connect operations are explained", async () => {
     const body = await response.json();
 
     assert.equal(response.status, 502);
-    assert.equal(body.error, "Data Connectの更新に失敗しました: Data Connectに GetAccountByFirebaseUid が反映されていません。firebase dataconnect:sdk:generate と firebase deploy --only dataconnect を実行してください。");
+    assert.doesNotMatch(body.error, /GetAccountByFirebaseUid|firebase deploy/);
   } finally {
     console.error = originalConsoleError;
+  }
+});
+
+test("untyped infrastructure errors cannot expose details through not-found or conflict matching", async () => {
+  for (const [message, status] of [["private@example.test not found", 404], ["secret-value already exists", 409]] as const) {
+    const response = apiErrorResponse(new Error(message));
+    assert.equal(response.status, status);
+    assert.doesNotMatch(JSON.stringify(await response.json()), /private@example|secret-value/);
   }
 });

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ReservationWorklist } from "./reservation-worklist";
+import { StoreAssignmentOptions } from "./store-assignment-options";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { duplicateAssignmentStores, isConfirmedReservation, reservationAssignments } from "@/lib/domain";
 import type { Reservation, Store, StoreAssignment } from "../types";
@@ -18,10 +19,10 @@ export function StoreAssignmentPage({ reservations, stores, loading, error, onAs
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const [saved,setSaved]=useState(false);
   const pending = useMemo(()=>reservations.filter(r=>isConfirmedReservation(r) && !reservationAssignments(r).length).sort((a,b)=>`${a.date} ${a.startTime??""}`.localeCompare(`${b.date} ${b.startTime??""}`) || a.id.localeCompare(b.id)),[reservations]);
-  const rows=pending.filter(r=>[r.id,r.customer].some(value=>value.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())));
+  const rows=pending.filter(r=>[r.id,r.customer,r.groupName??""].some(value=>value.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())));
   const selected=reservations.find(r=>r.id===selectedId);
   return <>
-    <ReservationWorklist count={rows.length} search={search} onSearch={setSearch} loading={loading} error={error}>
+    <ReservationWorklist count={rows.length} search={search} onSearch={setSearch} loading={loading} error={error} searchLabel="予約ID・顧客名・団体名で検索">
       {saved && <p role="status" className="px-5 pt-4 text-sm text-success">店舗割当を保存しました。</p>}
       {loading ? <p role="status" className="p-5 text-sm text-muted-foreground">店舗割当待ちの予約を読み込み中…</p> : error ? <p role="alert" className="p-5 text-sm text-destructive">予約または店舗を取得できませんでした。画面上部から再読み込みしてください。</p> : <>
         {!stores.length && <p role="alert" className="px-5 pt-4 text-sm text-warning">有効な店舗がありません。マスタ管理で店舗を登録してください。</p>}
@@ -44,7 +45,7 @@ function StoreAssignmentDialog({reservation:r,stores,onAssign,onClose,unavailabl
     <header className="border-b border-border p-5"><DialogTitle className="text-lg font-semibold">店舗割当</DialogTitle><DialogDescription className="mt-1 text-sm text-muted-foreground">{r.customer} ／ {r.date} {r.startTime??"未設定"}〜{r.endTime??"未設定"} ／ {r.people}名</DialogDescription></header>
     <form onSubmit={submit}><div className="grid gap-4 p-5">
       {processed && <p role="alert" className="text-sm text-warning">この予約は店舗割当済み、または割当待ちの状態ではありません。閉じて最新の一覧を確認してください。</p>}
-      {fields.map((field,index)=><div key={field.id} className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-start gap-2"><label className="grid min-w-0 gap-1 text-sm">店舗 {index+1}<Select disabled={isSubmitting} className="h-11" aria-invalid={!!errors.assignments?.[index]?.store} {...register(`assignments.${index}.store`)}><option value="">店舗を選択</option>{stores.map(store=><option key={store.name} value={store.name} disabled={assignments.some((a,i)=>i!==index&&a.store===store.name)&&assignments[index]?.store!==store.name}>{store.name}</option>)}</Select>{errors.assignments?.[index]?.store && <span role="alert" className="text-xs text-destructive">{errors.assignments[index]?.store?.message}</span>}</label><label className="grid gap-1 text-sm">人数<Input type="number" min={1} max={r.people} disabled={isSubmitting} className="h-11" aria-invalid={!!errors.assignments?.[index]?.people} {...register(`assignments.${index}.people`,{valueAsNumber:true})}/>{errors.assignments?.[index]?.people && <span role="alert" className="text-xs text-destructive">{errors.assignments[index]?.people?.message}</span>}</label><Button type="button" variant="ghost" className="mt-6 min-h-11" aria-label={`割当行${index+1}を削除`} disabled={isSubmitting||fields.length===1} onClick={()=>remove(index)}><Trash2 className="size-4"/></Button></div>)}
+      {fields.map((field,index)=><div key={field.id} className="grid grid-cols-[minmax(0,1fr)_100px_auto] items-start gap-2"><label className="grid min-w-0 gap-1 text-sm">店舗 {index+1}<Select disabled={isSubmitting} className="h-11" aria-invalid={!!errors.assignments?.[index]?.store} {...register(`assignments.${index}.store`)}><StoreAssignmentOptions stores={stores} assignments={assignments} index={index} /></Select>{errors.assignments?.[index]?.store && <span role="alert" className="text-xs text-destructive">{errors.assignments[index]?.store?.message}</span>}</label><label className="grid gap-1 text-sm">人数<Input type="number" min={1} max={r.people} disabled={isSubmitting} className="h-11" aria-invalid={!!errors.assignments?.[index]?.people} {...register(`assignments.${index}.people`,{valueAsNumber:true})}/>{errors.assignments?.[index]?.people && <span role="alert" className="text-xs text-destructive">{errors.assignments[index]?.people?.message}</span>}</label><Button type="button" variant="ghost" className="mt-6 min-h-11" aria-label={`割当行${index+1}を削除`} disabled={isSubmitting||fields.length===1} onClick={()=>remove(index)}><Trash2 className="size-4"/></Button></div>)}
       <Button type="button" variant="outline" className="min-h-11 justify-self-start" disabled={isSubmitting||fields.length>=50||allStoresUsed} onClick={()=>append({store:"",people:Math.max(0,r.people-total)})}><Plus className="size-4"/>割当先を追加</Button>
       {duplicates.length>0&&<p role="alert" className="text-sm text-destructive">同じ店舗は複数行に割り当てられません：{duplicates.join("、")}</p>}
       <p className={`text-sm font-medium ${total===r.people?"text-success":"text-destructive"}`}>割当合計 {total}名 ／ 予約人数 {r.people}名</p>

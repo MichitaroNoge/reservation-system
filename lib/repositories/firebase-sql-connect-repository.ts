@@ -619,5 +619,5 @@ function normalizeContact(value: string | undefined) { return (value ?? "").repl
 function reservationMatchesContact(reservation: Reservation, input: { email?: string; phone?: string }) { return Boolean((input.email && normalizeContact(reservation.email) === normalizeContact(input.email)) || (input.phone && normalizeContact(reservation.phone) === normalizeContact(input.phone))); }
 function assertCanRequestReservationChange(reservation: Reservation) {
   const allowed: readonly ReservationStatus[] = [reservationStatusCodes.temporaryRequested, reservationStatusCodes.temporaryConfirmed, reservationStatusCodes.confirmedRequested, reservationStatusCodes.confirmed, reservationStatusCodes.waitingForVisit];
-  if (!allowed.includes(reservation.status)) throw new Error(`Reservation change cannot be requested for status: ${reservation.status}`);
+  if (!allowed.includes(reservation.status)) throw Object.assign(new Error("この予約は現在のステータスでは変更申請できません。"), { statusCode: 400 });
 }

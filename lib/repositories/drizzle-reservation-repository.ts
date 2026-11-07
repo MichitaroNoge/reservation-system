@@ -1,6 +1,7 @@
 import { consumeDatabaseLimits } from "../db/abuse-limit-store";
 import { reservationNotificationSnapshot } from "../services/reservation-notification-state";
 import { assertReservationChangeAllowed } from "../domain";
+import { ApiValidationError } from "../api-validation";
 import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
 import { isCompletedBooking } from "../cancellation-policy";
 import "server-only";
@@ -278,6 +279,9 @@ export class DrizzleReservationRepository implements ReservationRepository {
     for (const assignment of valid) {
       const store = await this.db.query.store.findFirst({ where: eq(s.store.name, assignment.store) });
       if (!store) throw new Error(`Store not found: ${assignment.store}`);
+      if (!store.active && !raw.storeAssignments.some(existing => existing.storeId === store.id)) {
+        throw new ApiValidationError(`店舗「${assignment.store}」は現在選択できません。有効な店舗を選択してください。`);
+      }
       await this.db.insert(s.storeAssignment).values({ reservationId: raw.id, storeId: store.id, people: assignment.people });
     }
     if (shouldResetConfirmationContactForAssignments(current, valid)) await this.updateConfirmationContact(id, null);
@@ -299,7 +303,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const normalize = (value?: string) => (value ?? "").replace(/[\s-]/g, "").toLowerCase();
     if (!((input.email && normalize(input.email) === normalize(current.email)) || (input.phone && normalize(input.phone) === normalize(current.phone)))) throw new Error(`Reservation not found: ${input.reservationId}`);
     const allowed: Reservation["status"][] = ["temporary_requested", "temporary_confirmed", "confirmed_requested", "confirmed", "waiting_for_visit"];
-    if (!allowed.includes(current.status)) throw new Error(`Reservation change cannot be requested for status: ${current.status}`);
+    if (!allowed.includes(current.status)) throw Object.assign(new Error("この予約は現在のステータスでは変更申請できません。"), { statusCode: 400 });
     if (input.expectedRevision !== undefined && input.expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから変更申請してください。"), { statusCode: 409 });
     const existing = (await this.listReservationChangeRequests()).find(item => item.reservationId === input.reservationId && item.status === "requested" && item.requestedDate === input.requestedDate && item.requestedStartTime === input.requestedStartTime && item.requestedPeople === input.requestedPeople && JSON.stringify([...item.requestedMenuItems].sort()) === JSON.stringify([...input.requestedMenuItems].sort()) && (item.reason ?? "") === (input.reason ?? ""));
     if (existing) {

@@ -14,9 +14,9 @@ export function CustomerBookingSchedule({ value, minimumDate, busy, onChange, on
     values: { date: value.date, startTime: value.startTime, people: value.people },
     mode: "onTouched",
   });
-  return <form id="customer-booking-schedule" noValidate onSubmit={form.handleSubmit(() => { if (minimumDate && !busy) onNext(); })} className="grid min-w-0 gap-4 sm:grid-cols-3">
-    <FormField label="利用日" required error={form.formState.errors.date?.message}><Input type="date" min={minimumDate ?? undefined} disabled={busy} {...form.register("date", { onChange: event => onChange({ date: event.target.value }) })} /></FormField>
-    <FormField label="開始時間" required error={form.formState.errors.startTime?.message}><Input type="time" step="60" disabled={busy} {...form.register("startTime", { onChange: event => onChange({ startTime: event.target.value }) })} /></FormField>
+  return <form id="customer-booking-schedule" noValidate onSubmit={form.handleSubmit(values => { if (minimumDate && !busy) { onChange(values); onNext(); } })} className="grid min-w-0 gap-4 sm:grid-cols-3">
+    <FormField label="利用日" required error={form.formState.errors.date?.message}><Controller name="date" control={form.control} render={({ field }) => <Input {...field} type="date" min={minimumDate ?? undefined} disabled={busy} onChange={event => { const date = event.target.value; field.onChange(date); onChange({ date }); }} />} /></FormField>
+    <FormField label="開始時間" required error={form.formState.errors.startTime?.message}><Controller name="startTime" control={form.control} render={({ field }) => <Input {...field} type="time" step="60" disabled={busy} onChange={event => { const startTime = event.target.value; field.onChange(startTime); onChange({ startTime }); }} />} /></FormField>
     <FormField label="人数" required error={form.formState.errors.people?.message}><Controller name="people" control={form.control} render={({ field }) => <Input {...field} type="number" inputMode="numeric" min="1" max="999" step="1" disabled={busy} value={field.value || ""} onChange={event => { const people = Number(event.target.value); field.onChange(people); onChange({ people }); }} />} /></FormField>
   </form>;
 }

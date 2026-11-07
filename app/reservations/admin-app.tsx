@@ -53,6 +53,7 @@ import { ReservationNotificationManagement } from "./components/reservation-noti
 import { ReservationReminderPage } from "./components/reservation-reminder-page";
 import { ReservationSearchToolbar } from "./components/reservation-worklist";
 import { StoreAssignmentPage } from "./components/store-assignment-page";
+import { StoreAssignmentOptions } from "./components/store-assignment-options";
 import { StoreManagement } from "./components/store-management";
 import {
   cancellationApprovalStatuses,
@@ -3419,12 +3420,7 @@ function ReservationDrawer({
                         updateAssignment(index, { store: event.target.value })
                       }
                     >
-                      <option value="">店舗を選択</option>
-                      {stores.map((store) => (
-                        <option key={store.name} value={store.name} disabled={assignmentDraft.some((a,i)=>i!==index&&a.store===store.name)&&assignment.store!==store.name}>
-                          {store.name}
-                        </option>
-                      ))}
+                      <StoreAssignmentOptions stores={stores} assignments={assignmentDraft} index={index} />
                     </select>
                     <input
                       type="number"

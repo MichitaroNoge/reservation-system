@@ -56,7 +56,7 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
         if (!recipients.length) throw new Error("Reservation email is required");
         const templateKey = approvalTypeTemplateKey(queued.type);
         const rendered = await renderRepositoryEmail(repository, templateKey, reservationTemplateVariables(booking));
-        await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: booking.id, templateKey, recipient: recipients.join(","), subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: queued.requestedAt, sentAt: null, lastError: null });
+        await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: booking.id, templateKey, recipient: recipients.join(","), subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: (options.now ?? new Date()).toISOString(), sentAt: null, lastError: null });
       }
     } catch (error) { preparationError = error; }
   }
@@ -75,7 +75,10 @@ async function sendLockedApprovalEmail(repository: ReservationRepository, delive
   const auditKey = `reservation-approval/${delivery.deliveryKey}`;
   const existingAudit = await repository.getEmailDelivery(auditKey);
   if (existingAudit?.status === "sent") return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: existingAudit.sentAt ?? attemptedAt, lastAttemptAt: attemptedAt, retryCount, lastError: null });
-  if (existingAudit && delivery.retryCount > 0 && Date.parse(attemptedAt) - Date.parse(existingAudit.requestedAt) > 23 * 3600000) {
+  // The payload survives a lost commit; the counter in the sending transaction may not.
+  // Bound retries by the persisted payload's preparation time, even with a zero counter.
+  const preparedAt = existingAudit ? Date.parse(existingAudit.requestedAt) : undefined;
+  if (preparedAt !== undefined && (!Number.isFinite(preparedAt) || Date.parse(attemptedAt) - preparedAt > 23 * 3600000)) {
     return repository.updateApprovalEmailDelivery(deliveryKey, { sentAt: null, stoppedAt: attemptedAt, lastAttemptAt: attemptedAt, retryCount: delivery.retryCount, lastError: "安全な再送期限を超えました。Resendの送信履歴を確認し、予約通知メール画面から復旧してください。" });
   }
   const stillApplicable = delivery.type === "cancellation_approved"
@@ -96,7 +99,7 @@ async function sendLockedApprovalEmail(repository: ReservationRepository, delive
     let audit = await repository.getEmailDelivery(auditKey);
     if (!audit) {
       const rendered = await renderRepositoryEmail(repository, templateKey, reservationTemplateVariables(reservation));
-      audit = await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: reservation.id, templateKey, recipient: recipients.join(","), subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: delivery.requestedAt, sentAt: null, lastError: null });
+      audit = await getOrCreateEmailDelivery(repository, { deliveryKey: auditKey, reservationId: reservation.id, templateKey, recipient: recipients.join(","), subject: rendered.subject, body: rendered.body, status: "pending", requestedAt: attemptedAt, sentAt: null, lastError: null });
     }
     if (audit.status !== "sent") {
       let timer: ReturnType<typeof setTimeout> | undefined;

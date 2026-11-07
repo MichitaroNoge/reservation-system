@@ -305,6 +305,24 @@ test("approval emails retain failures for periodic retry", async () => {
   assert.ok((await repository.listApprovalEmailDeliveries())[0].sentAt);
 });
 
+test("approval retries expire even when a lost commit leaves the attempt counter at zero", async () => {
+  for (const age of [23 * 3600000, 23 * 3600000 + 1]) {
+    const repository = new MemoryReservationRepository([reservation({ id: "RSV-APPROVAL-LOST-COMMIT" })]);
+    await assert.rejects(requestAndSendApprovalEmail(repository, "RSV-APPROVAL-LOST-COMMIT", "reservation_approved", "confirmed", {
+      now, emailClient: new RecordingEmailClient(new Error("lost send response")),
+    }));
+    const queued = (await repository.listApprovalEmailDeliveries())[0];
+    // The payload is committed before sending, but the transaction containing the counter can roll back.
+    await repository.updateApprovalEmailDelivery(queued.deliveryKey, { retryCount: 0, lastAttemptAt: now.toISOString() });
+    const auditKey = `reservation-approval/${queued.deliveryKey}`;
+    await repository.updateEmailDelivery(auditKey, { status: "pending", sentAt: null, lastError: null });
+    const client = new RecordingEmailClient();
+    await sendPendingApprovalEmails(repository, { now: new Date(now.getTime() + age), emailClient: client });
+    assert.equal(client.sent.length, age === 23 * 3600000 ? 1 : 0);
+    assert.equal(Boolean((await repository.listApprovalEmailDeliveries())[0].stoppedAt), age > 23 * 3600000);
+  }
+});
+
 test("reminders exclude past visit dates using the Japan calendar date", () => {
   const midnight = new Date("2026-08-13T15:00:00Z");
   assert.equal(isConfirmationEmailDue(reservation({ date: "2026-08-13" }), midnight, 6), false);

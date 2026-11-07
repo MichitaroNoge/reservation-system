@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { apiErrorResponse } from "@/lib/api-validation";
+import { apiErrorResponse, readJsonObject } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
+
+import { createAdminAccountProfile } from "@/lib/services/admin-account-service";
 
 export const runtime = "nodejs";
 
@@ -18,20 +20,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await requireAdmin(request);
-    const body = await request.json();
-    if (!body.firebaseUid || !body.name || !body.contact) {
-      return NextResponse.json({ error: "firebaseUid, name and contact are required" }, { status: 400 });
-    }
-    const account = await (await getReservationRepository()).createAccount({
-      firebaseUid: body.firebaseUid,
-      name: body.name,
-      contact: body.contact,
-      phone: body.phone,
-      address: body.address,
-      accountType: body.accountType,
-      companyBranchName: body.companyBranchName,
-      contactPersonName: body.contactPersonName,
-    });
+    const body = await readJsonObject(request);
+    const account = await createAdminAccountProfile(await getReservationRepository(), body);
     return NextResponse.json({ account }, { status: 201 });
   } catch (error) {
     return apiErrorResponse(error);

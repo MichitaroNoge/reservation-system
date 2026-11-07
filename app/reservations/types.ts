@@ -63,6 +63,8 @@ export type Customer = {
   companyBranchName?: string;
   contactPersonName?: string;
   active?: boolean;
+  lifecycleStatus?: "disabled" | "deleting" | "deleted";
+  reactivationBlockedReason?: string;
   count?: number;
   last?: string;
 };

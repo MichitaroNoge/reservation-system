@@ -148,6 +148,13 @@
       "when": 1792900552083,
       "tag": "0020_inquiry_two_statuses",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793922357655,
+      "tag": "0021_account_login_email",
+      "breakpoints": true
     }
   ]
 }

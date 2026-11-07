@@ -13,7 +13,6 @@ test("customer reservation portal keeps account booking choices", async () => {
   const reservationApiSource = await readFile(path.join(process.cwd(), "app", "api", "reservations", "route.ts"), "utf8");
   const accountApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "me", "route.ts"), "utf8");
   const contactEmailVerificationApiSource = await readFile(path.join(process.cwd(), "app", "api", "accounts", "contact-emails", "verify", "route.ts"), "utf8");
-  const firebaseRepositorySource = await readFile(path.join(process.cwd(), "lib", "repositories", "firebase-sql-connect-repository.ts"), "utf8");
 
   for (const requiredText of [
     "ログイン",
@@ -96,8 +95,6 @@ test("customer reservation portal keeps account booking choices", async () => {
   assert.match(contactEmailVerificationApiSource, /if \(!contact\.verifiedAt\) await repository\.verifyAccountContactEmail/, "an already verified additional email link should remain successful");
   assert.match(pageSource, /追加の連絡先メールアドレスを確認しました/, "additional email verification should show a completion message");
   assert.match(pageSource, /applyAccountToReservationForm\(current, customerAccount\)/, "opening the reservation form should reapply the account type default");
-  assert.match(firebaseRepositorySource, /createAccount[\s\S]*firebaseUid: input\.firebaseUid, \.\.\.accountProfileVariables\(input\)/, "account creation should include the Firebase UID");
-  assert.match(firebaseRepositorySource, /updateAccount[\s\S]*\{ id, \.\.\.accountProfileVariables\(input\) \}/, "account updates should only send declared profile mutation variables");
 });
 
 function escapeRegExp(value: string) {

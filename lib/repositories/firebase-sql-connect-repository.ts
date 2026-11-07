@@ -365,7 +365,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
 
   async listInactiveAccounts() {
     const { data } = await op("listInactiveAccounts")(this.connection());
-    return (data.accounts ?? []).map(toAccount);
+    return (data.accounts ?? []).map((raw: RawAccount) => ({ ...toAccount(raw), reactivationBlockedReason: "旧DBでは削除状態を確認できません。Drizzleへの移行後に確認してください。" }));
   }
 
   async findAccountByFirebaseUid(firebaseUid: string) {
@@ -373,23 +373,25 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     return account ? toAccount(account) : null;
   }
 
-  async createAccount(input: SaveAccountInput & { firebaseUid: string }) {
-    if (await this.findRawAccountByFirebaseUid(input.firebaseUid)) throw new Error(`Account already exists for Firebase UID: ${input.firebaseUid}`);
-    const { data } = await op("createAccount")(this.connection(), { firebaseUid: input.firebaseUid, ...accountProfileVariables(input) });
-    const raw = await this.getRawAccountById(data.account_insert.id);
-    return toAccount(raw);
+  private requireSafeAccountWrites(): never {
+    throw Object.assign(new Error("アカウントを安全に更新できる状態ではありません。管理者にお問い合わせください。"), { statusCode: 503 });
   }
 
-  async updateAccount(id: string, input: SaveAccountInput) {
-    await op("updateAccount")(this.connection(), { id, ...accountProfileVariables(input) });
-    return toAccount(await this.getRawAccountById(id));
+  async createAccount(_input: SaveAccountInput & { firebaseUid: string }): Promise<Account> {
+    void _input;
+    return this.requireSafeAccountWrites();
+  }
+
+  async updateAccount(_id: string, _input: SaveAccountInput): Promise<Account> {
+    void _id; void _input;
+    return this.requireSafeAccountWrites();
   }
 
   async deactivateAccount(id: string) { await op("deactivateAccount")(this.connection(), { id }); }
 
-  async reactivateAccount(id: string) {
-    await op("reactivateAccount")(this.connection(), { id });
-    return toAccount(await this.getRawAccountById(id));
+  async reactivateAccount(_id: string): Promise<Account> {
+    void _id;
+    return this.requireSafeAccountWrites();
   }
 
   async listAccountContactEmails(accountId: string): Promise<AccountContactEmail[]> {
@@ -527,17 +529,6 @@ function toEmailDelivery(raw: any): EmailDelivery {
   return { id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation?.reservationCode ?? null, templateKey: raw.templateKey, recipient: raw.recipient, subject: raw.subject, body: raw.body, status: raw.status, requestedAt: String(raw.requestedAt), sentAt: raw.sentAt ? String(raw.sentAt) : null, lastError: raw.lastError ?? null };
 }
 
-function accountProfileVariables(input: SaveAccountInput) {
-  return {
-    name: input.name,
-    phone: input.phone ?? null,
-    email: input.contact,
-    address: input.address ?? null,
-    accountType: input.accountType ?? "individual",
-    companyBranchName: input.companyBranchName ?? null,
-    contactPersonName: input.contactPersonName ?? null,
-  };
-}
 
 function toAccount(raw: RawAccount): Account {
   return { id: raw.id, firebaseUid: raw.firebaseUid, name: raw.name, contact: raw.email, phone: raw.phone ?? undefined, address: raw.address ?? undefined, accountType: raw.accountType ?? undefined, companyBranchName: raw.companyBranchName ?? undefined, contactPersonName: raw.contactPersonName ?? undefined, active: raw.active };

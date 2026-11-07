@@ -35,17 +35,19 @@ export async function updateAuthenticatedAccountProfile(repository: ReservationR
 }
 
 export async function saveAuthenticatedAccountProfile(repository: ReservationRepository, user: { uid: string; email?: string }, body: Record<string, unknown>) {
-  await assertAccountNotDeleting(repository, user.uid);
-  if (!user.email) throw new ApiValidationError("認証済みメールアドレスを確認できません。");
-  const input = profileInput(body, user.email);
-  const existing = await repository.findAccountByFirebaseUid(user.uid);
-  if (!existing && (await repository.listInactiveAccounts()).some(account => account.firebaseUid === user.uid)) {
-    throw new ApiAuthError("このアカウントは無効化されています。管理者にお問い合わせください。", 403);
-  }
-  const account = existing
-    ? await repository.updateAccount(existing.id!, input)
-    : await repository.createAccount({ ...input, firebaseUid: user.uid });
-  return { account, created: !existing };
+  return repositoryTransaction(repository, `account:${user.uid}`, async repository => {
+    await assertAccountNotDeleting(repository, user.uid);
+    if (!user.email) throw new ApiValidationError("認証済みメールアドレスを確認できません。");
+    const existing = await repository.findAccountByFirebaseUid(user.uid);
+    const input = profileInput(body, existing?.contact ?? user.email);
+    if (!existing && (await repository.listInactiveAccounts()).some(account => account.firebaseUid === user.uid)) {
+      throw new ApiAuthError("このアカウントは無効化されています。管理者にお問い合わせください。", 403);
+    }
+    const account = existing
+      ? await repository.updateAccount(existing.id!, input)
+      : await repository.createAccount({ ...input, firebaseUid: user.uid });
+    return { account, created: !existing };
+  });
 }
 
 export async function updateAdminAccountProfile(repository: ReservationRepository, id: string, body: Record<string, unknown>) {

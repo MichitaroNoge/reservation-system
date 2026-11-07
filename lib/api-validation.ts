@@ -14,16 +14,8 @@ export class ApiValidationError extends Error {
 export function apiErrorResponse(error: unknown) {
   if (isLoginEmailConstraintError(error)) return Response.json({ error: loginEmailConflictMessage }, { status: 409 });
   const message = error instanceof Error ? error.message : "Unexpected error";
-  if (error instanceof Error && "statusCode" in error && typeof error.statusCode === "number") {
-    return Response.json({ error: message }, { status: error.statusCode, headers: "retryAfter" in error ? { "Retry-After": String(error.retryAfter) } : undefined });
-  }
-  if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
-  if (error instanceof ZodError) return Response.json({ error: error.issues[0]?.message ?? "入力内容を確認してください。", fields: error.flatten().fieldErrors }, { status: 400 });
-  if (/Invalid reservation status transition/i.test(message)) return Response.json({ error: message }, { status: 400 });
-  if (/Could not load the default credentials|invalid-credential|credential/i.test(message)) {
-    console.error(error);
-    return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
-  }
+  // Provider exceptions may carry statusCode too; it is not a guarantee of a public message.
+  if (isStructuredDataConnectError(error)) return dataConnectErrorResponse();
   const databaseCode = postgresErrorCode(error);
   if (databaseCode) {
     // Drizzle exceptions include SQL values. Never expose personal data or connection details.
@@ -33,14 +25,31 @@ export function apiErrorResponse(error: unknown) {
     console.error("PostgreSQL operation failed:", databaseCode);
     return Response.json({ error: "データベースに接続できないか、処理に失敗しました。" }, { status: 503 });
   }
-  if (isDataConnectError(error)) {
-    console.error(error);
-    return Response.json({ error: `Data Connectの更新に失敗しました: ${dataConnectErrorMessage(error)}` }, { status: 502 });
+  if (error instanceof Error && "statusCode" in error && typeof error.statusCode === "number") {
+    if (!Number.isInteger(error.statusCode) || error.statusCode < 400 || error.statusCode > 599) return internalErrorResponse();
+    return Response.json({ error: message }, { status: error.statusCode, headers: "retryAfter" in error ? { "Retry-After": String(error.retryAfter) } : undefined });
   }
-  if (/not found/i.test(message)) return Response.json({ error: message }, { status: 404 });
-  if (/already exists/i.test(message)) return Response.json({ error: message }, { status: 409 });
-  console.error(error);
+  if (error instanceof ApiValidationError) return Response.json({ error: message }, { status: 400 });
+  if (error instanceof ZodError) return Response.json({ error: error.issues[0]?.message ?? "入力内容を確認してください。", fields: error.flatten().fieldErrors }, { status: 400 });
+  if (/Invalid reservation status transition/i.test(message)) return Response.json({ error: message }, { status: 400 });
+  if (isDataConnectError(error)) return dataConnectErrorResponse();
+  if (/Could not load the default credentials|invalid-credential|credential/i.test(message)) {
+    console.error(JSON.stringify({ event: "firebase_admin_credentials_unavailable" }));
+    return Response.json({ error: "Firebase Admin SDKの認証情報が未設定です。FIREBASE_SERVICE_ACCOUNT_KEY または Google Application Default Credentials を設定してください。" }, { status: 503 });
+  }
+  if (/not found/i.test(message)) return Response.json({ error: "対象のデータが見つかりません。内容を確認してください。" }, { status: 404 });
+  if (/already exists/i.test(message)) return Response.json({ error: "同じ識別情報のデータが既に登録されています。" }, { status: 409 });
+  return internalErrorResponse();
+}
+
+function internalErrorResponse() {
+  console.error(JSON.stringify({ event: "api_operation_failed" }));
   return Response.json({ error: "Internal server error" }, { status: 500 });
+}
+
+function dataConnectErrorResponse() {
+  console.error(JSON.stringify({ event: "dataconnect_operation_failed" }));
+  return Response.json({ error: "データの取得または保存に失敗しました。時間をおいて再度お試しください。" }, { status: 502 });
 }
 
 function postgresErrorCode(error: unknown): string | undefined {
@@ -57,21 +66,12 @@ function postgresErrorCode(error: unknown): string | undefined {
 }
 
 function isDataConnectError(error: unknown): error is Error {
-  return error instanceof Error && /DataConnect|data connect|partial-error|unauthorized|operation .+ not found/i.test(`${error.name} ${error.message}`);
+  return isStructuredDataConnectError(error) || error instanceof Error && /DataConnect|data connect|partial-error|unauthorized|operation .+ not found/i.test(`${error.name} ${error.message}`);
 }
 
-function dataConnectErrorMessage(error: Error) {
-  const responseErrors = typeof error === "object" && error && "response" in error
-    ? (error as { response?: { errors?: { message?: unknown }[] } }).response?.errors
-    : undefined;
-  const firstMessage = Array.isArray(responseErrors) ? responseErrors.find((item) => typeof item.message === "string")?.message : undefined;
-  const responseMessage = typeof firstMessage === "string" ? firstMessage : undefined;
-  const message = responseMessage || error.message;
-  const missingOperation = message.match(/operation "([^"]+)" not found/i);
-  if (missingOperation) {
-    return `Data Connectに ${missingOperation[1]} が反映されていません。firebase dataconnect:sdk:generate と firebase deploy --only dataconnect を実行してください。`;
-  }
-  return message;
+function isStructuredDataConnectError(error: unknown): error is Error {
+  return error instanceof Error && (/DataConnect/i.test(error.name)
+    || "code" in error && typeof error.code === "string" && error.code.startsWith("data-connect/"));
 }
 
 export async function readJsonObject(request: Request) {

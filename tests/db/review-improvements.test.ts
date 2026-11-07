@@ -213,7 +213,7 @@ test("approval retries retain the exact payload after a lost transaction commit"
   const hanging = { send: async () => { calls++; return new Promise<{ id: string }>(() => {}); } };
   await assert.rejects(requestAndSendApprovalEmail(repo, timed.id, "reservation_approved", "timeout", { emailClient: hanging, timeoutMs: 5 }));
   assert.equal(calls, 1);
-  await assert.rejects(requestAndSendApprovalEmail(repo, timed.id, "reservation_approved", "timeout", { emailClient: hanging, timeoutMs: 5 }), /再送期限/);
+  await assert.rejects(requestAndSendApprovalEmail(repo, timed.id, "reservation_approved", "timeout", { now: new Date(Date.now() + 24 * 3600000), emailClient: hanging, timeoutMs: 5 }), /再送期限/);
   assert.equal(calls, 1); assert.ok((await repo.listApprovalEmailDeliveries()).find(d => d.reservationId === timed.id)?.stoppedAt);
  } finally { await fixture.close(); }
 });

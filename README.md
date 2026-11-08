@@ -230,3 +230,7 @@ Admin SDKのCJS/ESM操作ラッパーはAccountモデルへ追随済みです。
 マスタ管理「その他」からGoogleへ接続し、専用カレンダーに承認済みの仮予約・本予約を反映します。キャンセル確定・却下分は対象外です。ローカルでは `npm run dev:local` が同期ワーカーも起動します。Google側のOAuth設定・管理者の許可が必要です。[設定手順と検証記録](docs/41-google-calendar-integration-2026-10-20.md)を参照してください。
 
 承認通知メールのローカル自動再試行は `APPROVAL_EMAIL_WORKER_ENABLED=true` を明示した `npm run dev:local` で起動します（30秒間隔、既定は無効）。実際の予約の登録宛先へ送信するため、運用開始時に送信設定と送信対象を確認してください。停止・期限切れ通知は「マスタ管理 → 予約通知メール」で確認できます。
+
+## 開発運用手順
+
+[Codex・GitHub操作手順一覧](docs/workflows/README.md)

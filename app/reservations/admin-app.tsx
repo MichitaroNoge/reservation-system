@@ -1,4 +1,6 @@
 "use client";
+import { ReservationStatusBadge, StatusBadge } from "@/components/ui/reservation-status-badge";
+
 import { ApprovalHistoryTabs, ReservationHistoryButton } from "./components/reservation-history";
 import { ReplyTemplateManagement } from "@/components/inquiries/reply-template-management";
 import { InquiryManagement } from "@/components/inquiries/inquiry-management";
@@ -66,7 +68,6 @@ import {
   DEFAULT_START_TIME,
   reservationApprovalStatuses,
   STATUS,
-  statusClass,
   statusOptions
 } from "./constants";
 import {
@@ -1760,7 +1761,7 @@ function ManagementPage({
                 </summary>
                 <div className="reservation-status-menu">
                   <div className="status-menu-actions">
-                    <button
+                    <Button variant="outline" size="sm" className="h-11 whitespace-normal px-2 sm:h-10"
                       type="button"
                       onClick={() =>
                         setReservationStatusFilters(
@@ -1769,14 +1770,14 @@ function ManagementPage({
                       }
                     >
                       有効分のみ
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-11 whitespace-normal px-2 sm:h-10"
                       type="button"
                       onClick={() => setReservationStatusFilters([])}
                     >
                       解除
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-11 whitespace-normal px-2 sm:h-10"
                       type="button"
                       onClick={(event) =>
                         event.currentTarget
@@ -1785,7 +1786,7 @@ function ManagementPage({
                       }
                     >
                       閉じる
-                    </button>
+                    </Button>
                   </div>
                   {statusOptions.map((status) => (
                     <label key={status}>
@@ -1799,7 +1800,7 @@ function ManagementPage({
                   ))}
                 </div>
               </details>
-              <button
+              <Button type="button" variant="outline" size="sm"
                 className={
                   hasReservationDateFilter
                     ? "clear-filter"
@@ -1814,16 +1815,16 @@ function ManagementPage({
                 }}
               >
                 日付クリア
-              </button>
+              </Button>
               <ResultCount count={reservationTotal} loading={reservationPage.loading} error={!!reservationPage.error} />
-              <button
+              <Button
                 type="button"
-                className="reservation-new-button"
+                className="justify-self-end"
                 onClick={onOpenNewReservation}
               >
                 <Icon name="plus" />
                 新規登録
-              </button>
+              </Button>
             </div>
           </div>
           <div className="border-b border-border px-4 py-3 sm:px-5"><ReservationCsvExport query={reservationQuery} count={reservationTotal} getAdminToken={getAdminToken} /></div>
@@ -1902,10 +1903,7 @@ function ManagementPage({
                       <ReservationBookingTypeCell reservation={r} />
                     </td>
                     <td>
-                      <span className={"badge " + statusClass[r.status]}>
-                        <i />
-                        {reservationDisplayLabel(r)}
-                      </span>
+                      <ReservationStatusBadge status={r.status}>{reservationDisplayLabel(r)}</ReservationStatusBadge>
                     </td>
                     <td>
                       <strong>{r.customer}</strong>
@@ -2131,10 +2129,8 @@ function ConfirmationContactPage({
                     )}
                   </td>
                   <td>
-                    <span className="badge amber">
-                      <i />
-                      {windowDays}日未満
-                    </span>
+                    <StatusBadge tone="warning">{windowDays}日未満
+                    </StatusBadge>
                   </td>
                   <td className="sticky right-0 bg-card"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); onSelect(reservation); }}>詳細を確認</Button></td>
                 </tr>
@@ -2375,12 +2371,7 @@ function ConfirmedReservationRequestPage({
                     ) : null}
                   </td>
                   <td>
-                    <span
-                      className={"badge " + statusClass[reservation.status]}
-                    >
-                      <i />
-                      {reservationDisplayLabel(reservation)}
-                    </span>
+                    <ReservationStatusBadge status={reservation.status}>{reservationDisplayLabel(reservation)}</ReservationStatusBadge>
                     <small>{policyAgreementLabel(reservation)}</small>
                   </td>
                   <td>
@@ -2465,12 +2456,7 @@ function ReservationApprovalPage({
                       <ReservationBookingTypeCell reservation={reservation} />
                     </td>
                     <td>
-                      <span
-                        className={"badge " + statusClass[reservation.status]}
-                      >
-                        <i />
-                        {reservationDisplayLabel(reservation)}
-                      </span>
+                      <ReservationStatusBadge status={reservation.status}>{reservationDisplayLabel(reservation)}</ReservationStatusBadge>
                     </td>
                     <td>
                       <strong>{reservation.customer}</strong>
@@ -2559,12 +2545,7 @@ function CancellationApprovalPage({
                     <ReservationBookingTypeCell reservation={reservation} />
                   </td>
                   <td>
-                    <span
-                      className={"badge " + statusClass[reservation.status]}
-                    >
-                      <i />
-                      {reservationDisplayLabel(reservation)}
-                    </span>
+                    <ReservationStatusBadge status={reservation.status}>{reservationDisplayLabel(reservation)}</ReservationStatusBadge>
                   </td>
                   <td>
                     <strong>{reservation.customer}</strong>
@@ -2755,10 +2736,7 @@ function ReservationDrawer({
     <ReservationDetailsDialog title={`予約詳細 ${r.id}`} busy={isSavingReservation || isSavingAssignments} onClose={closeDetail}>
         <header>
           <div>
-            <span className={"badge " + statusClass[r.status]}>
-              <i />
-              {reservationDisplayLabel(r)}
-            </span>
+            <ReservationStatusBadge status={r.status}>{reservationDisplayLabel(r)}</ReservationStatusBadge>
             <h2>{r.id}</h2>
           </div>
           <Button type="button" variant="ghost" size="icon" aria-label="閉じる" disabled={isSavingReservation || isSavingAssignments} onClick={closeDetail}>

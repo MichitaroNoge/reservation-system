@@ -5,7 +5,6 @@ import { CustomerPageHeader } from "@/components/ui/customer-page-header";
 import { CustomerPageFrame } from "@/components/ui/customer-page-layout";
 import { inquiryCategories, inquiryStatuses, inquiryDate, mailStatusLabels, type InquiryDetail } from "@/lib/inquiries/types";
 
-export const controlClass = "min-h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 export function ContactShell({ title, children, wide = false }: { title: string; children: ReactNode; wide?: boolean }) {
 return <main className="min-h-screen bg-background text-foreground">
     <CustomerPageHeader>{null}</CustomerPageHeader>

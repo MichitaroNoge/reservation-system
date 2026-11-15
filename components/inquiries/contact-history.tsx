@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCustomerSession } from "@/app/reservations/hooks/use-customer-session";
@@ -40,23 +42,23 @@ export function ContactHistory({ number }: { number?: string }) {
   </div> : detail ? <div className="space-y-5">
     <InquiryContent detail={detail} />
   </div> : data ? <>
-    <ListPanel aria-label="問い合わせ履歴一覧"><ListToolbar><ResultCount count={data.total} /></ListToolbar><div className="overflow-x-auto">
-      <table className="w-full min-w-[650px] text-left text-sm">
-        <thead className="bg-muted/40 text-xs text-muted-foreground">
-          <tr>{["問い合わせ番号・受付日時", "件名", "予約番号", "対応状況"].map(v =>
-            <th key={v} className="p-4 font-medium">{v}</th>)}</tr>
-        </thead>
-        <tbody>{data.inquiries.map(i =>
-          <tr key={i.number} className="cursor-pointer border-t border-border hover:bg-accent/40" onClick={event=>{if(!(event.target as HTMLElement).closest("a")&&!window.getSelection()?.toString()){remember();router.push(`/contact/history/${encodeURIComponent(i.number)}`);}}}>
-            <td className="p-4">
+    <ListPanel aria-label="問い合わせ履歴一覧"><ListToolbar><ResultCount count={data.total} /></ListToolbar>
+      <Table density="comfortable" className="min-w-[650px] text-left text-sm">
+        <TableHeader className="bg-muted/40 text-xs text-muted-foreground">
+          <TableRow>{["問い合わせ番号・受付日時", "件名", "予約番号", "対応状況"].map(v =>
+            <TableHead key={v} className="p-4 font-medium">{v}</TableHead>)}</TableRow>
+        </TableHeader>
+        <TableBody>{data.inquiries.map(i =>
+          <TableRow key={i.number} className="cursor-pointer border-t border-border hover:bg-accent/40" onClick={event=>{if(!(event.target as HTMLElement).closest("a")&&!window.getSelection()?.toString()){remember();router.push(`/contact/history/${encodeURIComponent(i.number)}`);}}}>
+            <TableCell className="p-4">
               <Link className="text-primary underline" onClick={remember} href={`/contact/history/${i.number}`}>{i.number}</Link>
               <span className="mt-1 block text-xs text-muted-foreground">{inquiryDate(i.createdAt)}</span>
-            </td>
-            <td className="max-w-64 break-words p-4">{i.subject}</td>
-            <td className="p-4">{i.reservationNumber ?? "—"}</td>
-            <td className="p-4"><Badge variant={i.status === "unhandled" ? "warning" : "success"}>{inquiryStatuses[i.status]}</Badge></td>
-          </tr>)}</tbody>
-      </table>{!data.inquiries.length && <p className="p-8 text-center text-sm text-muted-foreground">問い合わせはありません。</p>}</div>
+            </TableCell>
+            <TableCell className="max-w-64 break-words p-4">{i.subject}</TableCell>
+            <TableCell className="p-4">{i.reservationNumber ?? "—"}</TableCell>
+            <TableCell className="p-4"><Badge variant={i.status === "unhandled" ? "warning" : "success"}>{inquiryStatuses[i.status]}</Badge></TableCell>
+          </TableRow>)}</TableBody>
+      </Table>{!data.inquiries.length && <EmptyState title="問い合わせはありません。" />}
     <ListPagination page={page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} /></ListPanel>
   </> : null}<CustomerPageActions wide={!number} backLabel={number ? "問い合わせ履歴へ戻る" : "お手続きトップへ戻る"} backHref={number ? "/contact/history" : "/?customerMode=home"} /></ContactShell>;
 }

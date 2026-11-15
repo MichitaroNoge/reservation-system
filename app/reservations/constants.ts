@@ -28,18 +28,6 @@ export const defaultStores: Store[] = [
   { name: "横浜店", displayOrder: 30 },
 ];
 
-export const statusClass: Record<Status, string> = {
-  temporary_requested: "amber",
-  temporary_confirmed: "blue",
-  temporary_rejected: "red",
-  confirmed_requested: "violet",
-  confirmed: "green",
-  confirmed_rejected: "red",
-  waiting_for_visit: "cyan",
-  visited: "gray",
-  cancellation_requested: "red",
-  cancelled: "red",
-};
 export const statusOptions: Status[] = [...reservationStatuses];
 export const reservationApprovalStatuses: readonly Status[] = [STATUS.temporaryRequested, STATUS.confirmedRequested];
 export const cancellationApprovalStatuses: readonly Status[] = [STATUS.cancellationRequested];

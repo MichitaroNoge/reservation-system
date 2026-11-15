@@ -1,6 +1,6 @@
 # UI標準
 
-更新日: 2026-10-28。2026-10-25の全体統一と、2026-10-28のお客様向け画面共通化の依頼により採用。
+更新日: 2026-11-15。既存の配色・レイアウト・情報密度を活かし、共通部品と意味別トークンをデザインシステムとして運用する。2026-10-25の全体統一、2026-10-28のお客様向け共通化とその後の確定仕様を維持する。
 
 ## 基準
 
@@ -28,6 +28,41 @@
 
 色はglobals.cssの意味別トークンを使う。backgroundはページ、cardは白い面、primaryは主要操作、muted-foregroundは補足、destructive／warning／successは状態、border／input／ringは枠とフォーカス。画面専用の色を増やさない。
 
+## デザインシステムの基礎（2026-11-15採用）
+
+実装の正本は`app/globals.css`のトークンと`components/ui`。既存の管理一覧・顧客フォーム・予約詳細を基準とし、shadcn/uiの初期デザインへの置き換えや業務画面の全面改修は行わない。
+
+| 分類 | 採用する値・使い方 |
+| --- | --- |
+| 色 | ページbackground `#f6f8fb`、本文foreground `#172033`、面card `#ffffff`、主要操作primary `#315bd6`。既存値を維持し、部品では意味別ユーティリティを使用 |
+| 補足と境界 | mutedは控えめな背景、muted-foregroundは補足文字。border／input／ringを枠とフォーカスに使用。旧`--muted`の文字色別名は廃止 |
+| 文字 | 本文`text-sm` 14px、補足・表`text-xs` 12px、強調`text-base` 16px、管理見出し`text-lg` 18px、顧客見出し`text-xl` 20px。件数23pxや集計24pxは用途別の例外として維持 |
+| 余白 | Tailwind標準の4px単位を基本とし、欄内12px、項目間16〜20px、本文16px／PC24pxを使用。管理外側34／36／60pxと検索寸法は既存仕様の例外 |
+| 幅 | `max-w-customer-form` 720px、`max-w-customer-list` 960px。CustomerPageFrame／CustomerPageActionsで共用 |
+| 角丸 | 入力・通常操作6px、カード・一覧・ダイアログ8px。状態バッジの12pxと丸いマーカーは小さな状態表示の例外で、カードへ適用しない |
+| 影 | カード・一覧・入力は原則なし。Buttonのshadow-sm、ダイアログのshadow-lgを維持。影の追加で階層を増やさない |
+| 表の密度 | Tableのdefaultは左右20px、comfortableは16px、compactは12px。上下16px・文字12px以上。顧客の履歴はcomfortable、管理の通常一覧はdefault。情報量のある旧予約表の12pxは移行時にも維持可能 |
+
+予約状態は`ReservationStatusBadge`へstatusと既存の表示文言を渡す。仮予約の期限切れ等を含む表示文言の判定は既存の業務ヘルパーを使用し、部品内で再判定しない。10状態の色対応を共用し、従来の7色を`status-*`／`status-*-background`トークンとして保持する。通常の成功・警告表示には引き続きBadgeのsuccess／warning等を使用する。条件付きの注意バッジにはStatusBadgeを使用できる。
+
+フォームはInput／Select／TextareaとFormFieldを優先する。通常入力は44px高・14px・角丸6px。Textareaもラベル・必須・項目エラーの関連付けを共用する。既存フォームの明示id、aria属性、ref、文字数制限、入力保持、読み取り専用・処理中を引き継ぐ。検索42pxとフォーム44pxの差、ネイティブselectの使用は意図した仕様として維持する。
+
+### 部品・状態の確認
+
+2026-11-15の追加依頼によりStorybook 10.6.7（`@storybook/nextjs-vite`・Vite 8.3.8）を採用する。既存の部品と`app/globals.css`を読み込み、デザイントークン・互換CSSを含めて現在の見た目を確認する。アプリの実装をStory用に複製しない。
+
+`npm run storybook`（互換コマンド`npm run dev:ui`）でワーカーなしの127.0.0.1:6006を起動する。`scripts/storybook.ts`は既存のvalidationEnvironmentで外部認証情報を除去し、ダミー設定を使用する。StoryはAPIを呼ばず、入力を保存・送信しない。Node.js 22.12以上が必要。旧`/design-system`とNext.js用のカタログ実装は削除し、以下へ移した。
+
+- `UI`: Button、Input、Select、Textarea、FormField、Badge、ReservationStatusBadge、Dialog。通常／無効／処理中／エラー、全予約状態、入力検証、ダイアログの開閉を確認する。
+- `Patterns/ManagementList`: 検索、長い名称、内部横スクロール、主要行操作、読み込み中／失敗と再試行／0件。
+- `Patterns/CustomerForm`: 実際の共通予約入力部品、支払条件・備考、固定した下部操作、入力破棄確認。
+
+共通部品は同じディレクトリーの`*.stories.tsx`、画面の構成例は`stories/*.stories.tsx`で管理する。部品の引数・使用例はDocsとControlsで確認できる。ViewportにはPC1280px・タブレット768px・モバイル390px・狭幅320pxを用意する。通常はResponsiveで確認し、Mobile／NarrowのStoryは指定幅を固定する。
+
+新しい共通部品・状態を追加したら対応するStoryも更新する。フォームには見えるラベルを付け、アイコンだけの操作には名前を付ける。Dialogや固定フッターなどPortalを使う部品は、Storyのcanvasだけでなく同じiframeのbodyを対象に操作を確認する。入力検証・再試行・検索・Escape・入力保持には`storybook/test`のplay関数を使用する。
+
+`npm run build-storybook`で`storybook-static/`へ静的ビルドする。CIでも同じビルドを実行するが、公開・デプロイはしない。Storyと設定は型チェック・Lintの対象とする。play関数はStoryをブラウザーで表示した際に実行する。CIでの一括ブラウザーテスト、画像差分の自動判定、PlaywrightやVitest addonは今回の導入範囲に含めない。Storybookでの成功を、認証済みの全業務フローの確認と取り違えない。
+
 ## 共通部品
 
 | 用途 | 部品 |
@@ -41,6 +76,7 @@
 | お客様の本文枠・下部操作欄 | components/ui/customer-page-layout.tsx のCustomerPageFrame／CustomerPageActions。詳細はcustomer-screen-standard.md |
 | 予約申請の手順 | components/ui/booking-steps.tsx のBookingSteps。5列で幅に合わせてラベルを折り返す |
 | 文字入力・操作・状態 | 既存Input／Textarea／Label／Button／Badge／Alert／Card／Tableを優先 |
+| 予約の状態 | ReservationStatusBadge。条件付きの注意にはStatusBadge |
 | 単一入力欄のラベル・必須・エラー | FormFieldとInput。生成したidで関連付け、aria-invalid／aria-describedby／aria-requiredを共用。エラーの有無で横並びのラベル位置をずらさない |
 | 中央詳細・確認 | Dialogを使用。予約の詳細はReservationDetailsDialogを使用 |
 
@@ -68,7 +104,8 @@
 
 - Tailwindを標準にし、shadcn/uiの構成とRadixのダイアログを利用する。
 - globals.cssの通常要素の初期値はbaseレイヤーに置き、共通部品の文字・余白・アイコン指定を上書きしない。
-- 旧来の予約表、ウィザード、詳細編集には互換CSSが残る。今回、極小文字・過剰な角丸・主要な色と共通部品との競合を整理した。互換CSSの全削除や一括の構造変更はしていない。
+- 旧来の予約表、ウィザード、詳細編集の互換CSSは`app/legacy.css`へ分離し、globals.cssから読み込む。移動時は未移行ルールの順序・値を維持。旧色別名は同値の意味別トークンへ置き換える。互換CSSの全削除や一括の構造変更はしない。
+- 新しい部品の通常スタイルをlegacy.cssへ追加しない。改修する画面から共通部品へ移行し、全参照を確認して不要になったルールだけを削除する。旧フォームの互換セレクターは`data-ui`付きの共通入力を上書きしない。
 - 画面ごとの取得件数・抽出条件・ページ単位・更新間隔を、見た目の共通化のために統一しない。
 
 ## 確認
@@ -76,3 +113,20 @@
 変更箇所と影響する操作をPC1280px・スマートフォン390pxで確認する。共有レイアウト・レスポンシブ挙動の変更ではタブレット768pxと該当する境界幅も比較する。横はみ出し、表内スクロール、ボタンの到達性、文字サイズ、入力保持、中央表示・閉じる、0件・エラー・再試行のうち変更が影響する項目を確認する。認証・実メール・外部カレンダーの実操作は通常の隔離UI検証と区別する。
 
 検証コマンドは[変更範囲別の検証仕様](validation.md)で選び、実行結果と適用範囲を記録する。文言・見た目のみの変更で通常テスト・ビルドを一律に必須としない。画面確認の証跡は必要に応じて残す。全体統一時の記録は[全体の画面統一](56-system-design-alignment-2026-10-25.md)を参照。
+
+### 2026-11-15基盤整備時の確認記録（Storybook導入前）
+
+- 共有CSSと部品に広く影響するため、型チェック・Lint・通常テスト・PGlite・認証契約・検証ビルドを組み合わせて確認。通常テスト228件成功、入力部品等の最終調整後に関連12件も再確認。PGliteは91件成功・PostgreSQL専用13件スキップ、Authエミュレーターの契約1件成功。検証ビルド成功、開発カタログの本番生成結果は404。
+- 旧CSSとの構文解析比較では、移行対象・意味別トークンへの同値置換を除く763セレクターの宣言を維持していることを確認。globals.cssは約4,500行から136行へ整理し、旧レイアウトはlegacy.cssへ移動した。
+- ブラウザーは代表UIをPC1280px・モバイル390pxで確認し、顧客共通レイアウトは768px・320pxでも確認。通常入力44px／14px／角丸6px、PC検索幅320px、モバイル主要操作44px、表内横スクロール、下部操作の折り返しを確認した。
+- カタログで項目エラー→修正→成功、無効・処理中、一覧の取得中／失敗→再試行／0件、詳細の開閉、入力破棄確認からの入力継続を確認。実際の管理ログインと未認証予約の画面も確認し、予約の手順移動・人数の入力保持を確認した。
+- 実際の予約画面のメニュー・受付期限は隔離DBへ接続できない設定のため取得失敗として確認。ログイン後の全管理操作・予約申請完了はブラウザーで未実施。業務・DB・認証の回帰は上記の既存テストで確認し、実メール・本番DB・実Google認証は使用していない。画像はローカルの`.tmp/design-system-review/`へ保存し、コミット対象に含めない。
+- サンドボックス内の依存導入・ビルド出力・ローカルポート制限による失敗は、同じ隔離設定の許可された実行環境で再実行して解消。不要な依存更新やテストの無効化は行っていない。
+
+### 2026-11-15 Storybook導入の確認記録
+
+- 開発ツール・依存設定・表示例の変更として、型チェック・Lint・通常テスト228件・既存アプリの検証ビルド・Storybookの静的ビルドが成功。47件のStoryと8件のDocsを生成した。アプリの実行時依存の指定と共通部品の実装は維持している。
+- ブラウザーでDocs・Controlsと既存のprimary色、文字14px、角丸6pxを確認。PC1280pxの一覧、390pxの入力・一覧、320pxの下部操作の折り返しを確認し、モバイル操作44pxと表内横スクロールを確認した。
+- playの6例（Buttonの無効状態、FormFieldの項目エラーから成功、DialogのEscapeとフォーカス復帰、一覧の再試行・検索、顧客フォームの入力保持）はInteractionsの成功表示を確認。入力破棄によるリセットも画面で確認した。静的ビルドのみを操作テスト成功の根拠にはしていない。
+- DB・認証・API・メール処理は今回の変更対象外のため、それらの専用テストは再実行しない。Storybookは架空データのみを使い、実DB・実宛先・実Google認証へ接続していない。CIには静的ビルドを追加したが、リモートCIの実行・外部公開は行っていない。
+- 静的ビルドには、ブラウザー専用バンドルでの`use client`指示に関するViteの警告が残る。アプリ側の指示は変更していない。型・ビルドと上記の代表動作は成功している。確認画像とビルドログはローカルの`.tmp/storybook-review/`・`.tmp/storybook-final-build.log`へ保存した。

@@ -31,12 +31,15 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
     ".next/types/**/*.ts",
     "next-env.d.ts",
     ".next-dev/types/**/*.ts",
     ".next-check/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "storybook-static"
   ]
 }

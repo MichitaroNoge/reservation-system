@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Mail, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ManagementPage, ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
 import { ListFilter } from "@/components/ui/select";
@@ -19,7 +20,6 @@ import { InquiryAvailabilityCalendar } from "./inquiry-availability-calendar";
 import { ReplyTemplatePicker } from "./reply-template-picker";
 import { insertReplyTemplateText } from "@/lib/inquiries/reply-template-insertion";
 import { InquiryReplyDraftStore } from "./reply-drafts";
-import { controlClass } from "./shared";
 import { InquiryAdminSupport } from "./inquiry-admin-support";
 import { InquiryReplyResult } from "./inquiry-reply-delivery";
 import { isReplyDeliveryComplete, repliesForDeliveryResult } from "@/lib/inquiries/reply-delivery-presentation";
@@ -235,7 +235,7 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
           <div>
             <Label htmlFor="reply-body">回答本文 <span className="text-xs text-muted-foreground">必須</span>
             </Label>
-            <textarea id="reply-body" {...replyBodyField} ref={input => { replyBodyField.ref(input); replyBodyRef.current = input; }} onFocus={() => { replyBodyPositioned.current = true; }} className={`${controlClass} mt-2 min-h-40`} maxLength={10000} disabled={busy || pending.length > 0} aria-required="true" aria-invalid={!!form.formState.errors.body} aria-describedby={form.formState.errors.body ? "reply-body-error" : undefined} />{form.formState.errors.body && <p id="reply-body-error" role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.body.message}</p>}
+            <Textarea id="reply-body" {...replyBodyField} ref={input => { replyBodyField.ref(input); replyBodyRef.current = input; }} onFocus={() => { replyBodyPositioned.current = true; }} className="mt-2 min-h-40" maxLength={10000} disabled={busy || pending.length > 0} aria-required="true" aria-invalid={!!form.formState.errors.body} aria-describedby={form.formState.errors.body ? "reply-body-error" : undefined} />{form.formState.errors.body && <p id="reply-body-error" role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.body.message}</p>}
             <ReplyTemplatePicker getAdminToken={() => tokenRef.current()} onInsert={insertTemplate} disabled={busy || confirm || pending.length > 0} />
           </div>
         </form>

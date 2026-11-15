@@ -5,7 +5,7 @@ import { useFormField } from "./form-field";
 
 export const Select = React.forwardRef<HTMLSelectElement, React.ComponentProps<"select">>(({ className, ...props }, ref) => {
   const field = useFormField();
-  return <select ref={ref} {...props} id={props.id ?? field?.id} aria-invalid={props["aria-invalid"] ?? (field?.invalid || undefined)} aria-describedby={[props["aria-describedby"], field?.errorId].filter(Boolean).join(" ") || undefined} aria-required={props["aria-required"] ?? (field?.required || undefined)} className={cn("h-11 w-full min-w-0 rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive", className)} />;
+  return <select ref={ref} {...props} data-ui="select" id={props.id ?? field?.id} aria-invalid={props["aria-invalid"] ?? (field?.invalid || undefined)} aria-describedby={[props["aria-describedby"], field?.errorId].filter(Boolean).join(" ") || undefined} aria-required={props["aria-required"] ?? (field?.required || undefined)} className={cn("h-11 w-full min-w-0 rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive", className)} />;
 });
 Select.displayName = "Select";
 

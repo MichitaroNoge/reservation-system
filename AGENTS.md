@@ -9,7 +9,7 @@
 - Tables must remain scannable on desktop and horizontally scroll on narrow screens. Keep primary row actions visible and avoid shrinking text below 12px.
 - Every screen must account for loading, error, empty, success, and disabled states where applicable.
 - Destructive actions require confirmation. Preserve existing business rules and API behavior when changing UI.
-- Verify important customer and management flows at desktop and mobile widths. Run `npm test` and `npm run build` before completion.
+- Verify affected customer and management flows at desktop and mobile widths. Select tests and builds by change scope using `docs/validation.md`; do not require the full suite for every UI edit.
 
 # Standard specification reference
 
@@ -28,6 +28,8 @@
 - 指示範囲外の変更は最小限にする。
 - 必要な調査・実装・テストは途中で停止せず継続する。
 - 計画の提示だけで作業を終了しない。
+- 調査と検証は変更の影響範囲に絞る。関係のない仕様書の通読、全体テストの反復、軽微な変更のための大掛かりな検証環境の新設を標準手順にしない。
+- 適した既存のworktree・導入済み依存・検証環境を優先して再利用する。`npm ci`は初回、lockfileの変更、依存の不整合など必要な場合に限る。既存変更や稼働中の環境を壊さない。
 
 ## ブランチ・worktreeの運用
 - 開発作業を始める前に、現在のブランチと未コミット変更を確認する。
@@ -43,10 +45,10 @@
 2. 既存コードと依存関係を調査する。
 3. 実装方針を決める。
 4. 必要なコードを変更する。
-5. 関連するテストを追加・更新する。
-6. 型チェック・Lint・テストを実行する。
+5. 動作や業務ルールを変更する場合は、必要な関連テストを追加・更新する。
+6. 下記の検証区分に従い、必要なチェックを実行する。
 7. エラーがあれば原因を分析して修正する。
-8. 再検証を行う。
+8. 修正の影響を受けるチェックを再実行する。無関係な成功済みチェックは繰り返さない。
 9. 変更差分を確認する。
 10. 実装結果と検証結果を報告する。
 
@@ -59,10 +61,16 @@
 - テストを無効化して成功扱いにしない。
 
 ## 検証
-- package.jsonに定義された検証コマンドを利用する。
-- 型チェック、Lint、関連テストを実行する。
-- 必要に応じてビルドも検証する。
-- 実行できなかった検証は明確に報告する。
+- 詳細とコマンドの選び方は`docs/validation.md`を正本とする。複数区分に該当する場合は、必要なチェックを組み合わせる。
+- 文書のみ: 差分、参照リンク、指示の整合性を確認する。型チェック・Lint・テスト・ビルドは原則不要。
+- 文言・見た目のみ: 型チェック・Lintと、影響する箇所のPC／モバイル表示を確認する。動作が変わらなければテスト・ビルドは原則不要。
+- UIの操作・状態・入力検証: 上記に加え、関連テストと`npm run build:check`を実行する。DB・認証テストは関連箇所を変更した場合に追加する。
+- API・業務ロジック: 型チェック・Lint・通常テスト・検証ビルドを実行する。DB・認証に影響する場合はそれぞれのテストも追加する。
+- DB・永続化・マイグレーション: APIの検証に加え`npm run test:db`を実行する。認証・認可・セッション: APIの検証に加え`npm run test:auth`を実行し、DBの所有権・権限制御に影響する場合はDBテストも実行する。
+- 広範囲の変更、影響範囲を特定できない変更、アプリの公開前は`npm run verify`と`npm run test:auth`で全体を検証する。CIの全体検証は維持する。
+- package.jsonの既存コマンドと隔離設定を使う。関連テストを安全に絞る既存手順がなければ`npm test`を使い、テストのために実DB・実メールへ接続しない。
+- 同じ最終コード・関連設定で成功済みのチェックは、新しい変更や失敗の調査で必要にならない限り再実行しない。
+- 報告には検証区分・実行結果・対象外とした検証の理由を簡潔に記載する。必要だが実行できなかった検証は、対象外と区別して明記する。
 
 ## 承認が必要な操作
 - 本番環境へのデプロイ

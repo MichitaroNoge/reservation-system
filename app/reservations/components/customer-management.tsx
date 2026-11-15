@@ -4,13 +4,13 @@ import { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { AdminFormDialog, useAdminInteractions } from "@/components/ui/admin-interactions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Customer, CustomerForm } from "../types";
 
@@ -24,10 +24,12 @@ type CustomerManagementProps = {
   notify: (message: string) => void;
 };
 
-export function CustomerManagement({ customers, inactiveCustomers, onSaveCustomer, onDeleteCustomer, onReactivateCustomer, notify }: CustomerManagementProps) {
+export function CustomerManagement({ customers, inactiveCustomers, onSaveCustomer, onDeleteCustomer, onReactivateCustomer }: CustomerManagementProps) {
+  const { confirm } = useAdminInteractions();
+  const baseline = useRef("");
+  const saving = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CustomerForm>({ name: "", contact: "", phone: "", address: "", accountType: "individual" });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState("");
   const validation = useForm<CustomerForm>({
     values: form,
@@ -51,7 +53,7 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
     if (!customer.id) return;
     setEditingId(customer.id);
     setSaveError("");
-    setForm({
+    const input = {
       id: customer.id,
       name: customer.name,
       contact: customer.contact,
@@ -61,36 +63,29 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
       companyBranchName: customer.companyBranchName,
       contactPersonName: customer.contactPersonName,
       originalContact: customer.contact,
-    });
+    };
+    baseline.current = JSON.stringify(input);
+    setForm(input);
   };
 
   const cancel = () => setEditingId(null);
 
   const save = validation.handleSubmit(async (values) => {
     const editingCustomer = customers.find(customer => customer.id === editingId);
-    if (!editingCustomer || !form.id) return;
+    if (!editingCustomer || !form.id || saving.current) return;
+    saving.current = true;
     setSaveError("");
     try {
       await onSaveCustomer(editingCustomer.name, values);
       cancel();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "アカウント情報の保存に失敗しました");
-    }
+    } finally { saving.current = false; }
   });
 
-  const remove = async (customer: Customer) => {
-    if (!customer.id || deletingId) return;
-    const ok = window.confirm(`${customer.name} のログインアカウントを無効化します。過去の予約情報は変更されません。よろしいですか？`);
-    if (!ok) return;
-    setDeletingId(customer.id);
-    try {
-      await onDeleteCustomer(customer.id);
-      if (editingId === customer.id) cancel();
-    } catch (error) {
-      notify(error instanceof Error ? error.message : "アカウントの無効化に失敗しました");
-    } finally {
-      setDeletingId(null);
-    }
+  const remove = (customer: Customer) => {
+    if (!customer.id) return;
+    void confirm({ title: "アカウントを無効にしますか？", description: "このアカウントでログインできなくなります。過去の予約情報は保持されます。", details: <p className="break-words text-sm">{customer.name} / {customer.contact}</p>, confirmLabel: "無効にする", destructive: true, onConfirm: () => onDeleteCustomer(customer.id!) });
   };
 
   const reactivate = async (customer: Customer) => {
@@ -103,6 +98,7 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
       setReactivationResult({ id: customer.id, success: `${customer.name}様を有効にしました。` });
     } catch (error) {
       setReactivationResult({ id: customer.id, error: error instanceof Error ? error.message : "アカウントの有効化に失敗しました" });
+      return false;
     } finally {
       reactivationPending.current = false;
       setReactivatingId(null);
@@ -110,11 +106,9 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
   };
 
   const editField = (key: "name" | "phone" | "address" | "companyBranchName" | "contactPersonName", label: string) => (
-    <div className="grid min-w-40 gap-1">
-      <Label htmlFor={`customer-edit-${key}`}>{label}</Label>
-      <Input id={`customer-edit-${key}`} type={key === "phone" ? "tel" : "text"} value={form[key] ?? ""} disabled={validation.formState.isSubmitting} aria-invalid={Boolean(validation.formState.errors[key])} onChange={(event) => setForm({ ...form, [key]: event.target.value })} />
-      {validation.formState.errors[key] && <p className="text-xs text-destructive">{validation.formState.errors[key]?.message}</p>}
-    </div>
+    <FormField label={label} required={key === "name" || key === "phone"} error={validation.formState.errors[key]?.message}>
+      <Input type={key === "phone" ? "tel" : "text"} value={form[key] ?? ""} disabled={validation.formState.isSubmitting} onChange={event => setForm({ ...form, [key]: event.target.value })} />
+    </FormField>
   );
 
   return (
@@ -134,22 +128,12 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
       </ListToolbar>
 
       <div>
-        {saveError && <Alert className="m-5 border-destructive/40 text-destructive">{saveError}</Alert>}
         <Table className="min-w-[960px]">
           <TableHeader><TableRow><TableHead>アカウント名</TableHead><TableHead>メールアドレス</TableHead><TableHead>電話番号</TableHead><TableHead>住所</TableHead><TableHead>種別</TableHead><TableHead className="sticky right-0 bg-card">操作</TableHead></TableRow></TableHeader>
           <TableBody>
-            {customers.map((customer) => editingId === customer.id ? (
-              <TableRow key={(customer.id ?? customer.name) + "-edit"} className="bg-muted/30">
-                <TableCell><div className="grid gap-3">{editField("name", "アカウント名")}{form.accountType === "travel_agency" && <>{editField("companyBranchName", "会社・支店名")}{editField("contactPersonName", "担当者名")}</>}</div></TableCell>
-                <TableCell><p>{customer.contact}</p><p className="mt-1 text-xs text-muted-foreground">メール変更は本人のアカウント画面から行います。</p></TableCell>
-                <TableCell>{editField("phone", "電話番号")}</TableCell>
-                <TableCell>{editField("address", "住所")}</TableCell>
-                <TableCell>{form.accountType === "travel_agency" ? "旅行会社" : "一般"}</TableCell>
-                <TableCell className="sticky right-0 border-l bg-card"><div className="flex justify-end gap-2"><Button type="button" variant="ghost" size="sm" disabled={validation.formState.isSubmitting} onClick={cancel}>キャンセル</Button><Button type="button" size="sm" disabled={!form.id || validation.formState.isSubmitting} onClick={() => void save()}>{validation.formState.isSubmitting ? "保存中" : "保存"}</Button></div></TableCell>
-              </TableRow>
-            ) : (
-              <TableRow key={customer.id ?? customer.name + "-" + customer.contact}>
-                <TableCell><strong>{customer.name}</strong></TableCell><TableCell>{customer.contact}</TableCell><TableCell>{customer.phone || "-"}</TableCell><TableCell>{customer.address || "-"}</TableCell><TableCell><Badge variant="secondary">{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</Badge></TableCell><TableCell className="sticky right-0 border-l bg-card"><div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" disabled={!customer.id || validation.formState.isSubmitting || Boolean(deletingId)} onClick={() => startEdit(customer)}>編集</Button><Button type="button" variant="ghost" size="sm" disabled={!customer.id || Boolean(deletingId)} className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => remove(customer)}>{deletingId === customer.id ? "無効化中" : "無効化"}</Button></div></TableCell>
+            {customers.map((customer) => (
+              <TableRow key={customer.id ?? customer.name + "-" + customer.contact} className="cursor-pointer" onClick={() => { if (!window.getSelection()?.toString()) startEdit(customer); }}>
+                <TableCell><strong>{customer.name}</strong></TableCell><TableCell>{customer.contact}</TableCell><TableCell>{customer.phone || "-"}</TableCell><TableCell>{customer.address || "-"}</TableCell><TableCell><Badge variant="secondary">{customer.accountType === "travel_agency" ? "旅行会社" : "一般"}</Badge></TableCell><TableCell className="sticky right-0 border-l bg-card"><div className="flex justify-end gap-2" onClick={event => event.stopPropagation()}><Button type="button" variant="outline" size="sm" disabled={!customer.id || validation.formState.isSubmitting} onClick={() => startEdit(customer)}>編集</Button><Button type="button" variant="ghost" size="sm" disabled={!customer.id} className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => remove(customer)}>無効にする</Button></div></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -170,7 +154,7 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
                   <TableCell>{customer.contact}</TableCell>
                   <TableCell><Badge variant="secondary">{customer.lifecycleStatus === "deleted" ? "本人による削除済み" : customer.lifecycleStatus === "deleting" ? "削除処理中" : customer.lifecycleStatus === "disabled" ? "管理者による無効化" : "状態確認が必要"}</Badge></TableCell>
                   <TableCell className="sticky right-0 w-44 min-w-44 max-w-44 border-l bg-card whitespace-normal sm:w-72 sm:min-w-72 sm:max-w-72">
-                    {customer.lifecycleStatus === "disabled" && <Button type="button" size="sm" variant="outline" disabled={!customer.id || Boolean(reactivatingId) || Boolean(customer.reactivationBlockedReason)} onClick={() => void reactivate(customer)}>{reactivatingId === customer.id ? "有効化中…" : "有効にする"}</Button>}
+                    {customer.lifecycleStatus === "disabled" && <Button type="button" size="sm" variant="outline" disabled={!customer.id || Boolean(reactivatingId) || Boolean(customer.reactivationBlockedReason)} onClick={() => void confirm({ title: "アカウントを有効にしますか？", description: "このアカウントで再びログインできるようにします。本人による削除済み・削除処理中のアカウントは有効化できません。", details: <p className="text-sm">{customer.name} / {customer.contact}</p>, confirmLabel: "有効にする", onConfirm: () => reactivate(customer) })}>{reactivatingId === customer.id ? "有効化中…" : "有効にする"}</Button>}
                     {customer.reactivationBlockedReason && <p className="mt-2 text-xs text-muted-foreground">{customer.reactivationBlockedReason}</p>}
                     {reactivationResult && reactivationResult.id === customer.id && reactivationResult.error && <p role="alert" className="mt-2 text-sm text-destructive">{reactivationResult.error}</p>}
                   </TableCell>
@@ -180,6 +164,15 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
           </Table>
         </div>
       ) : null}
+      {editingId && <AdminFormDialog title="顧客情報を編集" onClose={cancel} dirty={JSON.stringify(form) !== baseline.current} busy={validation.formState.isSubmitting} actions={<Button type="submit" form="customer-editor" disabled={validation.formState.isSubmitting}>{validation.formState.isSubmitting ? "保存中…" : "保存する"}</Button>}>
+        <form id="customer-editor" onSubmit={save} noValidate className="grid gap-5">
+          {editField("name", "アカウント名")}
+          <FormField label="メールアドレス"><Input value={form.contact} readOnly /><p className="mt-1 text-xs text-muted-foreground">メール変更は本人のアカウント画面から行います。</p></FormField>
+          {editField("phone", "電話番号")}{editField("address", "住所")}
+          {form.accountType === "travel_agency" && <>{editField("companyBranchName", "会社・支店名")}{editField("contactPersonName", "担当者名")}</>}
+          {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+        </form>
+      </AdminFormDialog>}
     </ListPanel>
   );
 }

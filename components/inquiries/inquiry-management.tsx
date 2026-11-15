@@ -21,6 +21,8 @@ import { insertReplyTemplateText } from "@/lib/inquiries/reply-template-insertio
 import { InquiryReplyDraftStore } from "./reply-drafts";
 import { controlClass } from "./shared";
 import { InquiryAdminSupport } from "./inquiry-admin-support";
+import { InquiryReplyResult } from "./inquiry-reply-delivery";
+import { isReplyDeliveryComplete, repliesForDeliveryResult } from "@/lib/inquiries/reply-delivery-presentation";
 
 export function InquiryManagement({ getAdminToken, onOpenReservation, onChanged, draftStore }: { getAdminToken: () => Promise<string>; onOpenReservation: (number: string) => void; onChanged?: () => void; draftStore?: InquiryReplyDraftStore }) {
   const [localDrafts] = useState(() => new InquiryReplyDraftStore());
@@ -83,6 +85,9 @@ export function InquiryManagement({ getAdminToken, onOpenReservation, onChanged,
 const replyFormSchema = inquiryReplySchema.pick({ subject: true, body: true });
 function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation, onChanged, drafts }: { number: string; getAdminToken: () => Promise<string>; onClose: () => void; onOpenReservation: (number: string) => void; onChanged?: () => void; drafts: InquiryReplyDraftStore }) {
   const [detail, setDetail] = useState<InquiryDetail | null>(null), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(""), [success, setSuccess] = useState(""), [confirm, setConfirm] = useState(false);
+  const [composing, setComposing] = useState(true), [historyOpen, setHistoryOpen] = useState(false);
+  const resultRef = useRef<HTMLElement | null>(null);
+  const bodyContentRef = useRef<HTMLDivElement | null>(null);
   const [supportFeedback, setSupportFeedback] = useState({ error: "", success: "" });
   const [closeAction, setCloseAction] = useState<{ reservation?: string } | null>(null);
   const baseSubject = useRef("");
@@ -141,25 +146,29 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
     finally { if (sequence === loadSequence.current) { refreshInFlight.current = false; setRefreshing(false); } }
   }, [number]);
   useEffect(() => () => { loadSequence.current++; }, []);
-  useEffect(() => { let cancelled = false; void (async () => { try { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}`, { authToken: await tokenRef.current() }); if (!cancelled) { setDetail(result); baseSubject.current = `Re: ${result.inquiry.subject}`.slice(0, 200); const draft = drafts.get(number); requestKey.current = draft?.requestKey ?? ""; form.reset(draft ? { subject: draft.subject, body: draft.body } : { subject: baseSubject.current, body: "" }); } } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "取得できませんでした。"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [number, form, drafts]);
-  const mutate = async (path: string, body: unknown, method = "POST") => {
-    if (sending.current) return; sending.current = true; loadSequence.current++; refreshInFlight.current = false; setRefreshing(false); setBusy(true); setError(""); setSuccess(""); setSupportFeedback({ error: "", success: "" });
+  useEffect(() => { let cancelled = false; void (async () => { try { const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}`, { authToken: await tokenRef.current() }); if (!cancelled) { setDetail(result); baseSubject.current = `Re: ${result.inquiry.subject}`.slice(0, 200); const draft = drafts.get(number); setComposing(!!draft || result.replies.length === 0); requestKey.current = draft?.requestKey ?? ""; form.reset(draft ? { subject: draft.subject, body: draft.body } : { subject: baseSubject.current, body: "" }); } } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "取得できませんでした。"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [number, form, drafts]);
+  const mutate = async (path: string, body: unknown, feedbackTarget: "main" | "support" = "support") => {
+    if (sending.current) return false; sending.current = true; loadSequence.current++; refreshInFlight.current = false; setRefreshing(false); setBusy(true); setError(""); setSuccess(""); setSupportFeedback({ error: "", success: "" });
     try {
-      const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}${path}`, { method, authToken: await tokenRef.current(), headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      setDetail(result); onChanged?.();
-      const message = path.endsWith("/resolve") ? "送信結果の確認を記録しました。" : path.includes("replies") ? "回答を公開し、メール送信を受け付けました。" : path.includes("receipt") ? "受付メールの再送を受け付けました。" : "処理を受け付けました。";
+      const result = await requestJson<InquiryDetail>(`/api/admin/inquiries/${number}${path}`, { method: "POST", authToken: await tokenRef.current(), headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      detailRef.current = result; setDetail(result); onChanged?.();
+      const message = path.endsWith("/resolve") ? "送信結果の確認を記録しました。" : path.includes("replies") ? "同じ通知メールの再試行を受け付けました。" : path.includes("receipt") ? "受付メールの再送を受け付けました。" : "処理を受け付けました。";
       if (path === "/replies") {
-        setSuccess(message); drafts.delete(number); requestKey.current = ""; baseSubject.current = `Re: ${result.inquiry.subject}`.slice(0, 200); form.reset({ subject: baseSubject.current, body: "" });
-      } else setSupportFeedback({ error: "", success: message });
+        setSuccess("回答を保存しました。"); setComposing(false); drafts.delete(number); requestKey.current = ""; baseSubject.current = `Re: ${result.inquiry.subject}`.slice(0, 200); form.reset({ subject: baseSubject.current, body: "" });
+      } else if (feedbackTarget === "main") setSuccess(message);
+      else setSupportFeedback({ error: "", success: message });
+      setConfirm(false);
+      return true;
     }
     catch (e) {
       const message = e instanceof Error ? e.message : "処理できませんでした。";
-      if (path === "/replies") setError(message); else setSupportFeedback({ error: message, success: "" });
+      if (path === "/replies" || feedbackTarget === "main") setError(message); else setSupportFeedback({ error: message, success: "" });
       try { await load(); onChanged?.(); } catch {/* Keep the prior view and the original safe error. */ }
+      return false;
     }
-    finally { setBusy(false); sending.current = false; setConfirm(false); }
+    finally { setBusy(false); sending.current = false; }
   };
-  const pending = detail?.replies.filter(r => !["sent", "not_sent"].includes(r.emailStatus)) ?? [];
+  const pending = detail?.replies.filter(r => !isReplyDeliveryComplete(r.emailStatus)) ?? [];
   const deliveryPending = pending.length > 0 || Boolean(detail && detail.inquiry.receiptEmailStatus !== "sent");
   useEffect(() => {
     const refresh = () => {
@@ -170,7 +179,10 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
     window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh);
     return () => { if (timer) clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
   }, [deliveryPending, load]);
-  const send = form.handleSubmit(values => { if (!detail) return; requestKey.current ||= crypto.randomUUID(); saveDraft(); void mutate("/replies", { ...values, revision: detail.inquiry.revision, requestKey: requestKey.current }); });
+  const showResult = !!detail?.replies.length && (!composing || pending.length > 0);
+  useEffect(() => { if (success === "回答を保存しました。") { resultRef.current?.focus({ preventScroll: true }); bodyContentRef.current?.scrollTo({ top: 0 }); } }, [success]);
+  const refreshDelivery = () => void load().catch(() => setRefreshError("最新の送信状況を取得できませんでした。再読み込みしてください。"));
+  const send = form.handleSubmit(values => { if (!detail || pending.length > 0) return; requestKey.current ||= crypto.randomUUID(); saveDraft(); void mutate("/replies", { ...values, revision: detail.inquiry.revision, requestKey: requestKey.current }); });
   return <Dialog open onOpenChange={open => { if (!open) requestClose(); }}>
     <DialogContent className="flex max-w-3xl flex-col overflow-hidden p-0" onInteractOutside={e => { if (busy) e.preventDefault(); }}>
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
@@ -183,13 +195,14 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
           <X className="size-5" />
         </Button></div>
       </div>
-      <div className="min-h-0 overflow-y-auto p-5 sm:p-6">
+      <div ref={bodyContentRef} className="min-h-0 overflow-y-auto p-5 sm:p-6">
       {refreshError && <p role="alert" className="mb-4 text-sm text-destructive">{refreshError}</p>}
       {error && <p role="alert" className="mb-4 rounded-md border border-destructive/30 p-3 text-sm text-destructive">{error}</p>}{success && <p role="status" className="mb-4 text-sm text-success">{success}</p>}
       {loading ? <p role="status">読み込み中…</p> : !detail ? <Button variant="outline" onClick={() => void load().then(() => setError("")).catch(() => setError("取得できませんでした。"))}>再読み込み</Button> : <>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-sm"><span className="font-medium text-muted-foreground">{number}</span><Badge variant={detail.inquiry.status === "unhandled" ? "warning" : "success"}>{inquiryStatuses[detail.inquiry.status]}</Badge></div>
           <InquiryAdminSupport detail={detail} busy={busy} error={supportFeedback.error} success={supportFeedback.success}
+            historyOpen={historyOpen} onHistoryOpenChange={setHistoryOpen}
             onOpen={() => setSupportFeedback({ error: "", success: "" })}
             onRetryReceipt={() => mutate("/receipt/retry", {})}
             onRetryReply={id => mutate(`/replies/${id}/retry`, {})}
@@ -206,24 +219,32 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
           {!!detail.inquiry.body && <p className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap break-words text-sm leading-6">{detail.inquiry.category === "availability" && detail.inquiry.availability ? detail.inquiry.body : inquiryMessageText(detail.inquiry)}</p>}
           {detail.inquiry.category === "availability" && detail.inquiry.availability && <InquiryAvailabilityCalendar availability={detail.inquiry.availability} getAdminToken={() => tokenRef.current()} />}
         </section>
-        {pending.length > 0 && <p role="status" className="mb-4 text-sm text-warning">送信未完了の回答があるため、新しい回答は送信できません。「回答履歴」から確認してください。</p>}
-        <form id="inquiry-reply-form" aria-label="回答を作成" onSubmit={form.handleSubmit(() => setConfirm(true))} noValidate className="space-y-4">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"><span className="font-medium">宛先</span><span className="break-words">{detail.inquiry.name}</span><span id="reply-to" className="min-w-0 break-all text-muted-foreground">{detail.inquiry.email}</span></div>
+        <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"><span className="font-medium">宛先</span><span className="break-words">{detail.inquiry.name}</span><span id="reply-to" className="min-w-0 break-all text-muted-foreground">{detail.inquiry.email}</span></div>
+        {showResult ? <>
+          <InquiryReplyResult replies={repliesForDeliveryResult(detail.replies)} busy={busy} refreshing={refreshing} error={error} resultRef={resultRef}
+            onRefresh={refreshDelivery} onHistory={() => { setSupportFeedback({ error: "", success: "" }); setHistoryOpen(true); }}
+            onRetry={id => mutate(`/replies/${id}/retry`, {}, "main")}
+            onResolve={(id, outcome) => mutate(`/replies/${id}/resolve`, { outcome, revision: detail.inquiry.revision, confirmed: true }, "main")} />
+          {hasDraft && <p className="mt-4 text-sm text-muted-foreground">入力中の下書きは保持しています。メールの送信完了、または送信結果の確認・記録後に入力を再開できます。</p>}
+        </> : <>
+        <form id="inquiry-reply-form" aria-label="回答を作成" onSubmit={form.handleSubmit(() => { if (!busy && pending.length === 0) setConfirm(true); })} noValidate className="space-y-4">
           <div>
             <Label htmlFor="reply-subject">件名 <span className="text-xs text-muted-foreground">必須</span>
             </Label>
-            <Input id="reply-subject" {...form.register("subject")} maxLength={200} className="mt-2" disabled={busy || pending.length > 0} aria-invalid={!!form.formState.errors.subject} />{form.formState.errors.subject && <p role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.subject.message}</p>}</div>
+            <Input id="reply-subject" {...form.register("subject")} maxLength={200} className="mt-2" disabled={busy || pending.length > 0} aria-required="true" aria-invalid={!!form.formState.errors.subject} aria-describedby={form.formState.errors.subject ? "reply-subject-error" : undefined} />{form.formState.errors.subject && <p id="reply-subject-error" role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.subject.message}</p>}</div>
           <div>
             <Label htmlFor="reply-body">回答本文 <span className="text-xs text-muted-foreground">必須</span>
             </Label>
-            <textarea id="reply-body" {...replyBodyField} ref={input => { replyBodyField.ref(input); replyBodyRef.current = input; }} onFocus={() => { replyBodyPositioned.current = true; }} className={`${controlClass} mt-2 min-h-40`} maxLength={10000} disabled={busy || pending.length > 0} aria-invalid={!!form.formState.errors.body} />{form.formState.errors.body && <p role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.body.message}</p>}
+            <textarea id="reply-body" {...replyBodyField} ref={input => { replyBodyField.ref(input); replyBodyRef.current = input; }} onFocus={() => { replyBodyPositioned.current = true; }} className={`${controlClass} mt-2 min-h-40`} maxLength={10000} disabled={busy || pending.length > 0} aria-required="true" aria-invalid={!!form.formState.errors.body} aria-describedby={form.formState.errors.body ? "reply-body-error" : undefined} />{form.formState.errors.body && <p id="reply-body-error" role="alert" className="mt-1 text-sm text-destructive">{form.formState.errors.body.message}</p>}
             <ReplyTemplatePicker getAdminToken={() => tokenRef.current()} onInsert={insertTemplate} disabled={busy || confirm || pending.length > 0} />
           </div>
         </form>
+        </>}
         <Dialog open={confirm} onOpenChange={open => { if (!busy) setConfirm(open); }}>
-          <DialogContent className="p-5">
+          <DialogContent className="p-5" onCloseAutoFocus={event => { if (showResult) { event.preventDefault(); resultRef.current?.focus({ preventScroll: true }); } }}>
             <DialogTitle className="font-semibold">回答メールを送信しますか？</DialogTitle>
             <DialogDescription className="mt-2 break-all text-sm text-muted-foreground">{detail.inquiry.email} に以下の回答を送信します。メール送信に失敗した場合も回答は保存され、ログイン済みのお客様は履歴画面で確認できます。</DialogDescription>
+            {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
             <p className="mt-4 break-words font-medium">{form.getValues("subject")}</p>
             <p className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm">{form.getValues("body")}</p>
             <div className="mt-5 flex justify-end gap-3">
@@ -234,9 +255,9 @@ function InquiryAdminDetail({ number, getAdminToken, onClose, onOpenReservation,
         </Dialog>
       </>}
       </div>
-      {!loading && detail && <div className="flex shrink-0 justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
+      {!loading && detail && <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-border px-5 py-4 sm:px-6">
         <Button type="button" variant="outline" disabled={busy} onClick={() => requestClose()}>閉じる</Button>
-        <Button type="submit" form="inquiry-reply-form" disabled={busy || pending.length > 0}>{busy ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <Mail className="mr-2 size-4" />}{busy ? "送信中…" : "回答を確認"}</Button>
+        {showResult ? pending.length === 0 && <Button key="compose-reply" type="button" disabled={busy} onClick={event => { event.preventDefault(); form.reset(form.getValues()); setComposing(true); setSuccess(""); setError(""); requestAnimationFrame(() => form.setFocus("subject")); }}><Mail aria-hidden="true" />追加の回答を作成</Button> : <Button key="confirm-reply" type="submit" form="inquiry-reply-form" disabled={busy || pending.length > 0}>{busy ? <LoaderCircle className="mr-2 size-4 animate-spin" /> : <Mail className="mr-2 size-4" />}{busy ? "送信中…" : "回答を確認"}</Button>}
       </div>}
       <Dialog open={closeAction !== null} onOpenChange={open => { if (!open) setCloseAction(null); }}>
         <DialogContent className="p-5 sm:p-6">

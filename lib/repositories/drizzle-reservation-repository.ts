@@ -1,3 +1,4 @@
+import type { ReservationHistory, HistoryQuery } from "../reservation-history";
 import { consumeDatabaseLimits } from "../db/abuse-limit-store";
 import { reservationNotificationSnapshot } from "../services/reservation-notification-state";
 import { assertReservationChangeAllowed } from "../domain";
@@ -73,6 +74,38 @@ export class DrizzleReservationRepository implements ReservationRepository {
   }
   async getReservationSubmission(firebaseUid: string, requestKey: string) {
     return await this.db.query.reservationSubmission.findFirst({ where: and(eq(s.reservationSubmission.firebaseUid, firebaseUid), eq(s.reservationSubmission.requestKey, requestKey)), columns: { requestHash: true, reservationCode: true } }) ?? null;
+  }
+  async listReservationHistory(reservationCode?: string): Promise<ReservationHistory[]> {
+    const rows = await this.db.select({ entry: s.reservationApplicationHistory, code: s.reservation.reservationCode, customer: s.reservation.reserverName }).from(s.reservationApplicationHistory).innerJoin(s.reservation, eq(s.reservationApplicationHistory.reservationId, s.reservation.id)).where(reservationCode ? eq(s.reservation.reservationCode, reservationCode) : undefined).orderBy(desc(s.reservationApplicationHistory.requestedAt));
+    return rows.map(({ entry, code, customer }) => ({ ...entry, reservationCode: code, customerDisplay: entry.requested?.customer ?? entry.before?.customer ?? customer ?? "氏名未記録", customerFromCurrent: !entry.requested?.customer && !entry.before?.customer }));
+  }
+  async queryReservationHistory(query: HistoryQuery) {
+    const h = s.reservationApplicationHistory;
+    const date = sql`coalesce(${h.processedAt}, ${h.requestedAt})`;
+    const conditions = query.reservationId ? [] : [sql`${h.status} <> 'requested'`];
+    if (query.reservationId) conditions.push(eq(s.reservation.reservationCode, query.reservationId));
+    if (query.kind) conditions.push(eq(h.kind, query.kind));
+    if (query.status) conditions.push(eq(h.status, query.status));
+    if (query.keyword) conditions.push(sql`position(${query.keyword.toLocaleLowerCase()} in lower(concat_ws(' ', ${s.reservation.reservationCode}, ${h.requested}->>'customer', ${h.before}->>'customer', ${s.reservation.reserverName}))) > 0`);
+    if (query.from) conditions.push(sql`${date} >= ${query.from + "T00:00:00+09:00"}::timestamptz`);
+    if (query.to) conditions.push(sql`${date} < (${query.to + "T00:00:00+09:00"}::timestamptz + interval '1 day')`);
+    const where = and(...conditions);
+    const [{ total }] = await this.db.select({ total: sql<number>`count(*)::int` }).from(h).innerJoin(s.reservation, eq(h.reservationId, s.reservation.id)).where(where);
+    const rows = await this.db.select({ entry: h, code: s.reservation.reservationCode, customer: s.reservation.reserverName }).from(h).innerJoin(s.reservation, eq(h.reservationId, s.reservation.id)).where(where).orderBy(sql`${date} desc nulls last`, desc(h.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
+    return { items: rows.map(({ entry, code, customer }) => ({ ...entry, reservationCode: code, customerDisplay: entry.requested?.customer ?? entry.before?.customer ?? customer ?? "氏名未記録", customerFromCurrent: !entry.requested?.customer && !entry.before?.customer })), total, page: query.page, pageSize: query.pageSize, supported: true };
+  }
+  async createReservationHistory(entry: ReservationHistory) {
+    const reservation = await this.rawReservation(entry.reservationCode);
+    const { reservationCode: _code, customerDisplay: _customer, customerFromCurrent: _source, notification: _notification, ...values } = entry;
+    void _code; void _customer; void _source; void _notification;
+    await this.db.insert(s.reservationApplicationHistory).values({ ...values, reservationId: reservation.id }).onConflictDoNothing({ target: s.reservationApplicationHistory.eventKey });
+    const row = await this.db.query.reservationApplicationHistory.findFirst({ where: eq(s.reservationApplicationHistory.eventKey, entry.eventKey) });
+    if (!row) throw new Error("申請履歴を保存できませんでした。");
+    return { ...row, reservationCode: entry.reservationCode };
+  }
+  async completeReservationHistory(id: string, result: Pick<ReservationHistory, "status" | "processedAt" | "processedBy" | "appliedBefore" | "after">) {
+    const rows = await this.db.update(s.reservationApplicationHistory).set(result).where(and(eq(s.reservationApplicationHistory.id, id), eq(s.reservationApplicationHistory.status, "requested"))).returning({ id: s.reservationApplicationHistory.id });
+    if (!rows.length) throw Object.assign(new Error("この申請は処理済みです。一覧を再読み込みしてください。"), { statusCode: 409 });
   }
   async recordReservationSubmission(input: { firebaseUid: string; requestKey: string; requestHash: string; reservationCode: string }) {
     await this.db.insert(s.reservationSubmission).values(input);
@@ -499,6 +532,10 @@ export class DrizzleReservationRepository implements ReservationRepository {
 
   async listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]> {
     return (await this.db.query.approvalEmailDelivery.findMany({ with: { reservation: true }, orderBy: asc(s.approvalEmailDelivery.requestedAt) })).map(raw => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, snapshotKey: raw.snapshotKey, stoppedAt: iso(raw.stoppedAt), nextAttemptAt: iso(raw.nextAttemptAt), retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
+  }
+  async listApprovalEmailDeliveriesForReservations(codes: string[]): Promise<ApprovalEmailDelivery[]> {
+    if (!codes.length) return [];
+    return (await this.db.query.approvalEmailDelivery.findMany({ where: inArray(s.approvalEmailDelivery.reservationId, this.db.select({ id: s.reservation.id }).from(s.reservation).where(inArray(s.reservation.reservationCode, codes))), with: { reservation: true }, orderBy: asc(s.approvalEmailDelivery.requestedAt) })).map(raw => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, snapshotKey: raw.snapshotKey, stoppedAt: iso(raw.stoppedAt), nextAttemptAt: iso(raw.nextAttemptAt), retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
   }
   async createApprovalEmailDelivery(input: Parameters<ReservationRepository["createApprovalEmailDelivery"]>[0]): Promise<ApprovalEmailDelivery> {
     const reservation = await this.rawReservation(input.reservationId);

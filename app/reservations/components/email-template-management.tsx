@@ -1,366 +1,95 @@
 "use client";
-
 import { useEffect, useRef, useState } from "react";
-import { Eye, LoaderCircle, Mail, Save } from "lucide-react";
-import { Alert } from "@/components/ui/alert";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Eye, RefreshCw } from "lucide-react";
+import { AdminActions, AdminFormDialog, useAdminDraft, useAdminInteractions } from "@/components/ui/admin-interactions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ListToolbar, ResultCount } from "@/components/ui/management-layout";
 import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Select } from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  emailTemplateDefinitions,
-  isEmailTemplateKey,
-} from "@/lib/email/email-template-catalog";
+import { ListPanel, ListToolbar, ResultCount } from "@/components/ui/management-layout";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { emailTemplateDefinitions, isEmailTemplateKey } from "@/lib/email/email-template-catalog";
 import type { EmailSettings, EmailTemplate } from "../types";
 import { requestJson } from "../api-client";
 
-export function EmailTemplateManagement({
-  getAdminToken,
-  notify,
-}: {
-  getAdminToken: () => Promise<string>;
-  notify: (message: string, variant?: "success" | "error" | "info") => void;
-}) {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [settings, setSettings] = useState<EmailSettings | null>(null);
-  const [allowedFromEmails, setAllowedFromEmails] = useState<string[]>([]);
+type Props = { getAdminToken: () => Promise<string>; notify: (message: string, variant?: "success" | "error" | "info") => void };
+export function EmailTemplateManagement({ getAdminToken, notify }: Props) {
+  const token = useRef(getAdminToken); token.current = getAdminToken;
+  const { leave } = useAdminInteractions();
+  const [data, setData] = useState<{ templates: EmailTemplate[]; settings: EmailSettings; allowedFromEmails: string[] } | null>(null);
   const [selected, setSelected] = useState<EmailTemplate | null>(null);
-  const [draft, setDraft] = useState<EmailTemplate | null>(null);
-  const [preview, setPreview] = useState<{
-    subject: string;
-    body: string;
-  } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const auth = async () => ({ authToken: await getAdminToken() });
-  const tokenProvider = useRef(getAdminToken);
-  tokenProvider.current = getAdminToken;
+  const [loading, setLoading] = useState(true), [error, setError] = useState(""), [reload, setReload] = useState(0);
   useEffect(() => {
+    const controller = new AbortController(); setLoading(true); setError("");
     void (async () => {
       try {
-        const options = { authToken: await tokenProvider.current() };
-        const [templateResult, settingsResult] = await Promise.all([
-          requestJson<{ templates: EmailTemplate[] }>("/api/email-templates", options),
-          requestJson<{ settings: EmailSettings; allowedFromEmails: string[] }>("/api/email-settings", options),
-        ]);
-        setTemplates(templateResult.templates);
-        setSettings(settingsResult.settings);
-        setAllowedFromEmails(settingsResult.allowedFromEmails);
-      } catch (caught) {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "メールテンプレートを読み込めませんでした。",
-        );
-      } finally {
-        setLoading(false);
-      }
+        const options = { authToken: await token.current(), signal: controller.signal, cache: "no-store" as const };
+        const [templates, settings] = await Promise.all([requestJson<{ templates: EmailTemplate[] }>("/api/email-templates", options), requestJson<{ settings: EmailSettings; allowedFromEmails: string[] }>("/api/email-settings", options)]);
+        if (!controller.signal.aborted) setData({ ...templates, ...settings });
+      } catch (caught) { if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "メール設定を読み込めませんでした。"); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
     })();
-  }, []);
+    return () => controller.abort();
+  }, [reload]);
+  const open = (template: EmailTemplate) => setSelected(template);
+  return <div className="grid gap-5">
+    {error && <div role="alert" className="space-y-3 text-sm text-destructive"><p>{error}</p><Button variant="outline" onClick={() => leave(() => setReload(value => value + 1))}>再読み込み</Button></div>}
+    {loading && <p role="status" className="p-5 text-sm text-muted-foreground">メール設定を読み込み中…</p>}
+    {!loading && data && <><SenderSettings settings={data.settings} allowedFromEmails={data.allowedFromEmails} getAdminToken={() => token.current()} notify={notify} />
+      <ListPanel><ListToolbar><ResultCount count={data.templates.length} /><Button variant="outline" onClick={() => leave(() => setReload(value => value + 1))}><RefreshCw className="size-4" />再読み込み</Button></ListToolbar>
+        <Table className="min-w-[720px]"><TableHeader><TableRow><TableHead>テンプレート</TableHead><TableHead>件名</TableHead><TableHead>メール送信</TableHead><TableHead className="sticky right-0 bg-muted">操作</TableHead></TableRow></TableHeader><TableBody>{data.templates.map(template => <TableRow key={template.templateKey} className="cursor-pointer" onClick={() => { if (!window.getSelection()?.toString()) open(template); }}><TableCell><button type="button" className="min-h-11 rounded-sm text-left font-semibold focus-visible:ring-2 focus-visible:ring-ring" onClick={event => { event.stopPropagation(); open(template); }}>{template.name}</button></TableCell><TableCell>{template.subject}</TableCell><TableCell><Badge variant={template.isActive ? "success" : "secondary"}>{template.isActive ? "有効" : "停止中"}</Badge></TableCell><TableCell className="sticky right-0 bg-card"><Button variant="outline" onClick={event => { event.stopPropagation(); open(template); }}>編集</Button></TableCell></TableRow>)}</TableBody></Table>
+        {!data.templates.length && <EmptyState title="メールテンプレートはありません" />}
+      </ListPanel>
+    </>}
+    {selected && <TemplateEditor key={selected.templateKey} template={selected} getAdminToken={() => token.current()} onClose={() => setSelected(null)} onSaved={template => { setData(current => current && ({ ...current, templates: current.templates.map(item => item.templateKey === template.templateKey ? template : item) })); notify("メールテンプレートを保存しました。", "success"); setSelected(null); }} />}
+  </div>;
+}
 
-  const openEditor = (template: EmailTemplate) => {
-    setSelected(template);
-    setDraft({ ...template });
-    setPreview(null);
-    setError("");
-  };
-  const saveSettings = async () => {
-    if (!settings || saving) return;
-    setSaving(true);
-    setError("");
-    try {
-      const result = await requestJson<{ settings: EmailSettings }>("/api/email-settings", {
-        ...(await auth()), method: "PUT", body: JSON.stringify(settings),
-      });
-      setSettings(result.settings);
-      notify("メール送信設定を保存しました。");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "送信設定の保存に失敗しました。");
-    } finally {
-      setSaving(false);
-    }
-  };
-  const save = async () => {
-    if (!draft || saving) return;
-    setSaving(true);
-    setError("");
-    try {
-      const result = await requestJson<{ template: EmailTemplate }>(
-        `/api/email-templates/${draft.templateKey}`,
-        { ...(await auth()), method: "PUT", body: JSON.stringify(draft) },
-      );
-      setTemplates((items) =>
-        items.map((item) =>
-          item.templateKey === result.template.templateKey
-            ? result.template
-            : item,
-        ),
-      );
-      setSelected(result.template);
-      setDraft(result.template);
-      notify("メールテンプレートを保存しました。");
-    } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "保存に失敗しました。",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-  const showPreview = async () => {
-    if (!draft) return;
-    setError("");
-    try {
-      const result = await requestJson<{
-        preview: { subject: string; body: string };
-      }>("/api/email-templates/preview", {
-        ...(await auth()),
-        method: "POST",
-        body: JSON.stringify(draft),
-      });
-      setPreview(result.preview);
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "プレビューを作成できませんでした。",
-      );
-    }
-  };
+const senderSchema = z.object({ senderName: z.string().trim().min(1, "送信者名を入力してください。"), fromEmail: z.string().email("送信元メールアドレスを確認してください。"), replyToEnabled: z.boolean(), replyToEmail: z.string().nullable() }).superRefine((value, context) => { if (value.replyToEnabled && !z.string().email().safeParse(value.replyToEmail).success) context.addIssue({ code: "custom", path: ["replyToEmail"], message: "返信先メールアドレスを正しく入力してください。" }); });
+function SenderSettings({ settings, allowedFromEmails, getAdminToken, notify }: { settings: EmailSettings; allowedFromEmails: string[] } & Props) {
+  const form = useForm<EmailSettings>({ resolver: zodResolver(senderSchema), defaultValues: settings });
+  const [error, setError] = useState("");
+  useAdminDraft(form.formState.isDirty, form.formState.isSubmitting);
+  const enabled = form.watch("replyToEnabled");
+  const save = form.handleSubmit(async values => { setError(""); try { const result = await requestJson<{ settings: EmailSettings }>("/api/email-settings", { authToken: await getAdminToken(), method: "PUT", body: JSON.stringify(values) }); form.reset(result.settings); notify("メール送信設定を保存しました。", "success"); } catch (caught) { setError(caught instanceof Error ? caught.message : "保存できませんでした。"); } });
+  return <Card className="overflow-hidden"><div className="p-5"><h2 className="font-semibold">メール送信設定</h2></div><form onSubmit={save} noValidate><fieldset disabled={form.formState.isSubmitting} className="grid gap-5 px-5 pb-5 sm:grid-cols-2">
+    <FormField label="送信者名" required error={form.formState.errors.senderName?.message}><Input {...form.register("senderName")} /></FormField>
+    <FormField label="送信元メールアドレス" required error={form.formState.errors.fromEmail?.message}><Select {...form.register("fromEmail")}>{allowedFromEmails.map(email => <option key={email} value={email}>{email}</option>)}</Select></FormField>
+    <label className="flex items-center gap-3 text-sm sm:col-span-2"><input type="checkbox" {...form.register("replyToEnabled")} className="size-4 accent-primary" />指定したアドレスで返信を受け付ける</label>
+    {enabled && <FormField label="返信先メールアドレス" required error={form.formState.errors.replyToEmail?.message}><Input type="email" {...form.register("replyToEmail")} /></FormField>}
+    {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}
+  </fieldset><AdminActions><Button type="submit" disabled={form.formState.isSubmitting || !form.formState.isDirty}>{form.formState.isSubmitting ? "保存中…" : "送信設定を保存する"}</Button></AdminActions></form></Card>;
+}
 
-  if (loading)
-    return (
-      <Card role="status" className="grid min-h-56 place-items-center text-sm text-muted-foreground">
-        <LoaderCircle className="mr-2 size-4 animate-spin" />
-        読み込み中
-      </Card>
-    );
-  if (!selected || !draft)
-    return (
-      <div className="grid gap-5">
-      {settings && (
-        <Card className="p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <div><h2 className="font-semibold">メール送信設定</h2><p className="mt-1 text-sm text-muted-foreground">送信者と返信先を設定します。APIキーは環境変数で管理されます。</p></div>
-            <Mail className="size-5 text-muted-foreground" />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div><Label htmlFor="sender-name">送信者名</Label><Input id="sender-name" value={settings.senderName} onChange={(event) => setSettings({ ...settings, senderName: event.target.value })} /></div>
-            <div><Label htmlFor="from-email">送信元メールアドレス</Label><Select id="from-email" className="mt-2" value={settings.fromEmail} onChange={(event) => setSettings({ ...settings, fromEmail: event.target.value })}>{allowedFromEmails.map((email) => <option key={email} value={email}>{email}</option>)}</Select></div>
-          </div>
-          <div className="mt-4 grid gap-3 rounded-md border p-4">
-            <label className="flex items-center gap-3 text-sm font-medium"><input type="checkbox" checked={settings.replyToEnabled} onChange={(event) => setSettings({ ...settings, replyToEnabled: event.target.checked })} />指定したアドレスで返信を受け付ける</label>
-            {settings.replyToEnabled && <div><Label htmlFor="reply-to-email">返信先メールアドレス</Label><Input id="reply-to-email" type="email" value={settings.replyToEmail ?? ""} onChange={(event) => setSettings({ ...settings, replyToEmail: event.target.value })} /></div>}
-            {!settings.replyToEnabled && <p className="text-sm text-muted-foreground">Reply-Toは設定されません。メール本文では店舗へのお問い合わせをご案内します。</p>}
-          </div>
-          <div className="mt-5 flex justify-end"><Button onClick={saveSettings} disabled={saving}><Save className="size-4" />{saving ? "保存中" : "送信設定を保存"}</Button></div>
-        </Card>
-      )}
-      <Card className="overflow-hidden">
-        <ListToolbar>
-          <div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              送信メールの件名と本文を管理します。
-            </p>
-          </div>
-          <ResultCount count={templates.length} loading={loading} />
-        </ListToolbar>
-        {error && (
-          <div className="p-5">
-            <Alert className="border-destructive/40 text-destructive">{error}</Alert>
-          </div>
-        )}
-        {templates.length ? (
-          <Table className="min-w-[760px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>テンプレート名</TableHead>
-                <TableHead>templateKey</TableHead>
-                <TableHead>状態</TableHead>
-                <TableHead>最終更新日時</TableHead>
-                <TableHead className="sticky right-0 bg-background">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.map((template) => (
-                <TableRow
-                  key={template.templateKey}
-                  className="cursor-pointer"
-                  onClick={() => { if (!window.getSelection()?.toString()) openEditor(template); }}
-                >
-                  <TableCell className="font-medium"><button type="button" className="min-h-8 rounded-sm text-left font-semibold focus-visible:ring-2 focus-visible:ring-ring" onClick={event=>{event.stopPropagation();openEditor(template);}}>{template.name}</button></TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {template.templateKey}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={template.isActive ? "success" : "secondary"}
-                    >
-                      {template.isActive ? "有効" : "無効"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {template.updatedAt
-                      ? new Date(template.updatedAt).toLocaleString("ja-JP")
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="sticky right-0 bg-card"><Button type="button" variant="outline" size="sm" onClick={event=>{event.stopPropagation();openEditor(template);}}>編集</Button></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <EmptyState
-            title="テンプレートがありません"
-            description="初期テンプレートを登録できませんでした。"
-          />
-        )}
-      </Card>
-      </div>
-    );
-
-  const definition = isEmailTemplateKey(draft.templateKey)
-    ? emailTemplateDefinitions[draft.templateKey]
-    : null;
-  return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Card className="p-5">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mb-4"
-          onClick={() => {
-            setSelected(null);
-            setDraft(null);
-            setPreview(null);
-          }}
-        >
-          一覧へ戻る
-        </Button>
-        <div className="grid gap-5">
-          <div>
-            <Label>テンプレート</Label>
-            <p className="mt-1 font-semibold">{draft.name}</p>
-            <p className="font-mono text-xs text-muted-foreground">
-              {draft.templateKey}
-            </p>
-          </div>
-          <div>
-            <Label htmlFor="email-template-subject">件名</Label>
-            <Input
-              id="email-template-subject"
-              value={draft.subject}
-              onChange={(event) =>
-                setDraft({ ...draft, subject: event.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="email-template-body">本文</Label>
-            <Textarea
-              id="email-template-body"
-              className="min-h-80 font-mono leading-6"
-              value={draft.body}
-              onChange={(event) =>
-                setDraft({ ...draft, body: event.target.value })
-              }
-            />
-          </div>
-          <div className="grid gap-2 rounded-md border bg-muted/30 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="email-template-delivery">メール送信</Label>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  このテンプレートを使用するメールの送信状態です。
-                </p>
-              </div>
-              <button
-                id="email-template-delivery"
-                type="button"
-                role="switch"
-                aria-checked={draft.isActive}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                  draft.isActive
-                    ? "border-primary bg-primary"
-                    : "border-input bg-muted-foreground/30"
-                }`}
-                onClick={() =>
-                  setDraft({ ...draft, isActive: !draft.isActive })
-                }
-              >
-                <span
-                  aria-hidden="true"
-                  className={`block size-5 rounded-full bg-background shadow-sm transition-transform ${
-                    draft.isActive ? "translate-x-6" : "translate-x-1"
-                  }`}
-                />
-              </button>
-            </div>
-            <strong className="text-sm">
-              {draft.isActive ? "メールを送信する" : "メールを送信しない"}
-            </strong>
-            {!draft.isActive && (
-              <Alert className="border-warning/50 bg-warning/10 text-foreground">
-                この種類のメールは送信されません。送信処理では未送信として扱われます。
-              </Alert>
-            )}
-          </div>
-          {error && <Alert className="border-destructive/40 text-destructive">{error}</Alert>}
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={showPreview}>
-              <Eye className="size-4" />
-              プレビュー
-            </Button>
-            <Button onClick={save} disabled={saving}>
-              <Save className="size-4" />
-              {saving ? "保存中" : "保存"}
-            </Button>
-          </div>
-        </div>
-      </Card>
-      <div className="grid content-start gap-5">
-        <Card className="p-5">
-          <h3 className="font-semibold">利用可能な変数</h3>
-          <div className="mt-4 grid gap-3">
-            {definition &&
-              Object.entries(definition.variables).map(([key, label]) => (
-                <div
-                  key={key}
-                  className="grid grid-cols-[1fr_auto] gap-3 text-sm"
-                >
-                  <code className="rounded bg-muted px-2 py-1">{`{{${key}}}`}</code>
-                  <span className="text-muted-foreground">{label}</span>
-                </div>
-              ))}
-          </div>
-        </Card>
-        {preview && (
-          <Card className="overflow-hidden">
-            <div className="border-b p-4">
-              <span className="text-xs text-muted-foreground">件名</span>
-              <strong className="mt-1 block text-sm">{preview.subject}</strong>
-            </div>
-            <div className="whitespace-pre-wrap p-5 text-sm leading-7">
-              {preview.body}
-            </div>
-          </Card>
-        )}
-      </div>
-    </div>
-  );
+const templateSchema = z.object({ subject: z.string().trim().min(1, "件名を入力してください。"), body: z.string().min(1, "本文を入力してください。"), isActive: z.boolean() });
+function TemplateEditor({ template, getAdminToken, onClose, onSaved }: { template: EmailTemplate; getAdminToken: () => Promise<string>; onClose: () => void; onSaved: (template: EmailTemplate) => void }) {
+  const form = useForm<z.infer<typeof templateSchema>>({ resolver: zodResolver(templateSchema), defaultValues: template });
+  const { confirm } = useAdminInteractions();
+  const [error, setError] = useState(""), [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<{ subject: string; body: string } | null>(null);
+  const saveValues = async (values: z.infer<typeof templateSchema>) => { const result = await requestJson<{ template: EmailTemplate }>(`/api/email-templates/${template.templateKey}`, { authToken: await getAdminToken(), method: "PUT", body: JSON.stringify({ ...template, ...values }) }); onSaved(result.template); };
+  const save = form.handleSubmit(async values => { setError(""); try {
+    if (template.isActive && !values.isActive) await confirm({ title: "この種類のメールを停止しますか？", description: "このテンプレートを使用するメールが送信されなくなります。編集した件名・本文も保存します。", details: <p className="text-sm">{template.name}</p>, confirmLabel: "停止して保存する", destructive: true, onConfirm: () => saveValues(values) });
+    else await saveValues(values);
+  } catch (caught) { setError(caught instanceof Error ? caught.message : "保存できませんでした。"); } });
+  const showPreview = form.handleSubmit(async values => { setError(""); setPreviewing(true); try { const result = await requestJson<{ preview: { subject: string; body: string } }>("/api/email-templates/preview", { authToken: await getAdminToken(), method: "POST", body: JSON.stringify({ ...template, ...values }) }); setPreview(result.preview); } catch (caught) { setError(caught instanceof Error ? caught.message : "プレビューを作成できませんでした。"); } finally { setPreviewing(false); } });
+  const definition = isEmailTemplateKey(template.templateKey) ? emailTemplateDefinitions[template.templateKey] : null;
+  return <AdminFormDialog title={`${template.name}を編集`} dirty={form.formState.isDirty} busy={form.formState.isSubmitting} onClose={onClose} actions={<><Button type="button" variant="outline" disabled={previewing || form.formState.isSubmitting} onClick={() => void showPreview()}><Eye className="size-4" />{previewing ? "作成中…" : "プレビュー"}</Button><Button type="submit" form="email-template-editor" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "保存中…" : "保存する"}</Button></>}>
+    <form id="email-template-editor" noValidate onSubmit={save} className="grid gap-5"><fieldset disabled={form.formState.isSubmitting} className="grid min-w-0 gap-5">
+      <FormField label="件名" required error={form.formState.errors.subject?.message}><Input {...form.register("subject")} /></FormField>
+      <FormField label="本文" required error={form.formState.errors.body?.message}><Textarea className="min-h-64" {...form.register("body")} /></FormField>
+      <label className="flex items-center gap-3 text-sm"><input type="checkbox" {...form.register("isActive")} className="size-4 accent-primary" />この種類のメールを送信する</label>
+      {!form.watch("isActive") && <p className="text-sm text-warning">保存すると、この種類のメールは送信されません。</p>}
+      {definition && <details className="border-t border-border pt-4"><summary className="cursor-pointer text-sm font-medium">利用可能な変数</summary><dl className="mt-3 grid gap-2">{Object.entries(definition.variables).map(([key, label]) => <div key={key} className="flex flex-wrap justify-between gap-2 text-sm"><dt><code>{`{{${key}}}`}</code></dt><dd className="text-muted-foreground">{label}</dd></div>)}</dl></details>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    </fieldset></form>
+    {preview && <section aria-label="メールプレビュー" className="mt-5 space-y-3 border-t border-border pt-5"><h3 className="text-sm font-semibold">{preview.subject}</h3><p className="whitespace-pre-wrap break-words text-sm leading-7">{preview.body}</p></section>}
+  </AdminFormDialog>;
 }

@@ -1,3 +1,4 @@
+import { historyActor } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateUpdateReservationInput, validateReservationRevision } from "@/lib/api-validation";
@@ -8,12 +9,12 @@ export const runtime = "nodejs";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin(request);
+    const user = await requireAdmin(request);
     const { id } = await context.params;
     const body = await readJsonObject(request);
     const expectedRevision = validateReservationRevision(body.expectedRevision);
     const input = validateUpdateReservationInput(body);
-    const reservation = await saveReservationDetails((await getReservationRepository()), id, input, expectedRevision);
+    const reservation = await saveReservationDetails((await getReservationRepository()), id, input, expectedRevision, historyActor(user, "admin"));
     return NextResponse.json({ reservation });
   } catch (error) {
     return apiErrorResponse(error);

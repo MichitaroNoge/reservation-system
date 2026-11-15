@@ -1,3 +1,5 @@
+import { reservationSnapshot, type HistoryActor } from "../reservation-history";
+import { recordAdminEdit } from "./reservation-history-service";
 import { getAutomaticReservationStatus, type Reservation, type UpdateReservationInput } from "../domain";
 import { validateStoreAssignments } from "../api-validation";
 import type { ReservationRepository } from "../repositories/reservation-repository";
@@ -8,17 +10,20 @@ export async function reconcileReservationReadiness(repository: ReservationRepos
   return status === reservation.status ? reservation : repository.updateReservationStatus(reservation.id, status);
 }
 
-export async function saveReservationDetails(repository: ReservationRepository, id: string, input: UpdateReservationInput, expectedRevision?: number) {
+export async function saveReservationDetails(repository: ReservationRepository, id: string, input: UpdateReservationInput, expectedRevision?: number, actor?: HistoryActor) {
   return repositoryTransaction(repository, `reservation:${id}`, async repo => {
     const current = (await repo.listReservations()).find(item => item.id === id);
     if (!current) throw new Error(`Reservation not found: ${id}`);
     if (expectedRevision !== undefined && expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("他の画面で予約内容が更新されました。入力内容は保持しています。最新の予約を開き直し、変更内容を確認してください。"), { statusCode: 409 });
+    const before = { ...current, ...reservationSnapshot(current) };
     const resetAssignments = (input.people !== undefined && input.people !== current.people)
       || (input.date !== undefined && input.date !== current.date)
       || (input.startTime !== undefined && input.startTime !== current.startTime);
     let reservation = await repo.updateReservation(id, input);
     if (resetAssignments) reservation = await repo.assignStores(id, []);
-    return reconcileReservationReadiness(repo, reservation);
+    const saved = await reconcileReservationReadiness(repo, reservation);
+    if (actor) await recordAdminEdit(repo, before, saved, actor, "admin_edit");
+    return saved;
   });
 }
 

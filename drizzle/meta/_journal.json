@@ -155,6 +155,13 @@
       "when": 1793922357655,
       "tag": "0021_account_login_email",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794398670657,
+      "tag": "0022_reservation_application_history",
+      "breakpoints": true
     }
   ]
 }

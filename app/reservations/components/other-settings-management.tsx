@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AdminActions, useAdminDraft, useAdminInteractions } from "@/components/ui/admin-interactions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { systemSettingsSchema } from "@/lib/system-settings";
 import type { SystemSettings } from "@/lib/domain";
 
 export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () => Promise<string> }) {
+  const { confirm, leave } = useAdminInteractions();
   const token = useRef(getAdminToken); token.current = getAdminToken;
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -17,7 +19,7 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
   const [attempt, setAttempt] = useState(0);
   const { register, handleSubmit, reset, control, formState: { errors, isSubmitting, isDirty } } = useForm<SystemSettings>({ resolver: zodResolver(systemSettingsSchema), defaultValues: { acceptanceCapacity: null, reservationLeadDays: 3, blockedPeriods: [] } });
   const { fields, append, remove } = useFieldArray({ control, name: "blockedPeriods" });
-  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  useAdminDraft(isDirty, isSubmitting);
   useEffect(() => {
     let cancelled = false;
     setLoading(true); setLoaded(false); setError(""); setSuccess(false);
@@ -38,7 +40,7 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
       const response = await fetch("/api/system-settings", { method: "PUT", headers: { Authorization: `Bearer ${await token.current()}`, "Content-Type": "application/json" }, body: JSON.stringify(settings) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "設定を保存できませんでした。");
-      reset({ ...body.settings, reservationLeadDays: body.settings.reservationLeadDays ?? 3, blockedPeriods: body.settings.blockedPeriods ?? [] }); setRemoveIndex(null); setSuccess(true);
+      reset({ ...body.settings, reservationLeadDays: body.settings.reservationLeadDays ?? 3, blockedPeriods: body.settings.blockedPeriods ?? [] }); setSuccess(true);
     } catch (e) { setError(e instanceof Error ? e.message : "設定を保存できませんでした。"); }
   });
   return <section aria-label="その他の設定" className="rounded-lg border border-border bg-card p-5 text-card-foreground">
@@ -60,14 +62,14 @@ export function OtherSettingsManagement({ getAdminToken }: { getAdminToken: () =
             {errors.blockedPeriods?.[index]?.[key] && <p id={`block-${field.id}-${key}-error`} role="alert" className="text-sm text-destructive">{errors.blockedPeriods[index]?.[key]?.message}</p>}
           </div>)}</div>
           <div className="grid gap-2"><label htmlFor={`block-${field.id}-reason`} className="text-sm font-medium">理由（任意）</label><Input id={`block-${field.id}-reason`} maxLength={200} disabled={isSubmitting} aria-invalid={!!errors.blockedPeriods?.[index]?.reason} {...register(`blockedPeriods.${index}.reason`, { onChange: () => setSuccess(false) })} />{errors.blockedPeriods?.[index]?.reason && <p role="alert" className="text-sm text-destructive">{errors.blockedPeriods[index]?.reason?.message}</p>}</div>
-          {removeIndex === index ? <div role="alert" className="flex flex-wrap items-center gap-2 text-sm"><span>この期間を削除しますか？保存すると反映されます。</span><Button type="button" variant="destructive" className="min-h-11" disabled={isSubmitting} onClick={() => { remove(index); setRemoveIndex(null); setSuccess(false); }}>削除する</Button><Button type="button" variant="outline" className="min-h-11" disabled={isSubmitting} onClick={() => setRemoveIndex(null)}>戻る</Button></div> : <Button type="button" variant="outline" className="min-h-11 justify-self-start text-destructive" disabled={isSubmitting} onClick={() => setRemoveIndex(index)}><Trash2 className="size-4" />この期間を削除</Button>}
+          <Button type="button" variant="outline" className="min-h-11 justify-self-start text-destructive" disabled={isSubmitting} onClick={() => void confirm({ title: "受入不可の期間を削除しますか？", description: "編集内容からこの期間を削除します。「変更を保存する」で設定に反映されます。", details: <p className="text-sm">{field.start}〜{field.end}</p>, confirmLabel: "期間を削除する", destructive: true, onConfirm: () => { remove(index); setSuccess(false); } })}><Trash2 className="size-4" />この期間を削除</Button>
         </div>)}</div>
         {errors.blockedPeriods?.root?.message && <p role="alert" className="text-sm text-destructive">{errors.blockedPeriods.root.message}</p>}
         <Button type="button" variant="outline" className="mt-3 min-h-11" disabled={isSubmitting || fields.length >= 200} onClick={() => { append({ start: "", end: "", reason: "" }); setSuccess(false); }}><Plus className="size-4" />日時を追加</Button>
       </section>
-      <Button type="submit" disabled={isSubmitting || !isDirty} className="min-h-11 justify-self-start">{isSubmitting ? "保存中…" : "保存"}</Button>
+      <div role="status" className="text-sm text-muted-foreground">{isDirty ? "保存していない変更があります。" : "保存済みの設定を表示しています。"}</div><AdminActions><Button type="submit" disabled={isSubmitting || !isDirty}>{isSubmitting ? "保存中…" : "変更を保存する"}</Button></AdminActions>
     </form>}
-    {error && <div role="alert" className="mt-4 text-sm text-destructive"><p>{error}</p><Button type="button" variant="outline" className="mt-2 min-h-11" disabled={isSubmitting} onClick={() => setAttempt(value => value + 1)}>再読み込み</Button></div>}
+    {error && <div role="alert" className="mt-4 text-sm text-destructive"><p>{error}</p><Button type="button" variant="outline" className="mt-2 min-h-11" disabled={isSubmitting} onClick={() => leave(() => setAttempt(value => value + 1))}>再読み込み</Button></div>}
     {success && <p role="status" className="mt-4 text-sm text-success">設定を保存しました。</p>}
   </section>;
 }

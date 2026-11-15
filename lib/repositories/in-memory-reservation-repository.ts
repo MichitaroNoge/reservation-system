@@ -1,3 +1,4 @@
+import type { ReservationHistory } from "../reservation-history";
 import { reservationNotificationSnapshot } from "../services/reservation-notification-state";
 import { assertReservationChangeAllowed } from "../domain";
 import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
@@ -9,6 +10,7 @@ import type { ReservationRepository } from "./reservation-repository";
 
 export type InMemoryReservationDatabase = {
   reservations: Reservation[];
+  reservationHistory?: ReservationHistory[];
   reservationChangeRequests?: ReservationChangeRequest[];
   menus: Menu[];
   stores: Store[];
@@ -83,6 +85,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
   constructor(initial?: Partial<InMemoryReservationDatabase>) {
     this.database = structuredClone({
       reservations: initial?.reservations ?? seedReservations,
+      reservationHistory: initial?.reservationHistory ?? [],
       reservationChangeRequests: initial?.reservationChangeRequests ?? [],
       menus: initial?.menus ?? seedMenus,
       stores: initial?.stores ?? seedStores,
@@ -92,6 +95,18 @@ export class InMemoryReservationRepository implements ReservationRepository {
     this.database.reservations = this.database.reservations.map((reservation) => normalizeReservation(reservation, this.database.menus));
   }
 
+  async listReservationHistory(reservationCode?: string) { return structuredClone((this.database.reservationHistory ?? []).filter(row => !reservationCode || row.reservationCode === reservationCode).sort((a,b) => (b.requestedAt ?? "").localeCompare(a.requestedAt ?? ""))); }
+  async createReservationHistory(entry: ReservationHistory) {
+    this.database.reservationHistory ??= [];
+    const existing = this.database.reservationHistory.find(row => row.eventKey === entry.eventKey);
+    if (existing) return structuredClone(existing);
+    this.database.reservationHistory.push(structuredClone(entry)); return structuredClone(entry);
+  }
+  async completeReservationHistory(id: string, result: Pick<ReservationHistory, "status" | "processedAt" | "processedBy" | "appliedBefore" | "after">) {
+    const row = this.database.reservationHistory?.find(item => item.id === id && item.status === "requested");
+    if (!row) throw Object.assign(new Error("この申請は処理済みです。"), { statusCode: 409 });
+    Object.assign(row, structuredClone(result));
+  }
   private async readDatabase() { return this.database; }
   private async writeDatabase(database: InMemoryReservationDatabase) { this.database = database; }
 

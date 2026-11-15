@@ -191,6 +191,25 @@ export const reservationChangeRequest = pgTable("reservation_change_request", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" }),
 }, (table) => [index("reservation_change_request_reservation_id_idx").on(table.reservationId), index("reservation_change_request_requested_at_idx").on(table.requestedAt)]);
 
+export const reservationApplicationHistory = pgTable("reservation_application_history", {
+  id: uuid("id").primaryKey(),
+  eventKey: text("event_key").notNull().unique(),
+  reservationId: uuid("reservation_id").references(() => reservation.id).notNull(),
+  kind: varchar("kind", { length: 40 }).notNull().$type<import("../reservation-history").HistoryKind>(),
+  status: varchar("status", { length: 20 }).notNull().$type<import("../reservation-history").HistoryStatus>(),
+  referenceId: text("reference_id"),
+  requestedAt: timestamp("requested_at", { withTimezone: true, mode: "string" }),
+  requestedBy: jsonb("requested_by").$type<import("../reservation-history").HistoryActor>(),
+  before: jsonb("before_snapshot").$type<import("../reservation-history").ReservationSnapshot>(),
+  requested: jsonb("requested_snapshot").$type<import("../reservation-history").ReservationSnapshot>(),
+  processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
+  processedBy: jsonb("processed_by").$type<import("../reservation-history").HistoryActor>(),
+  appliedBefore: jsonb("applied_before_snapshot").$type<import("../reservation-history").ReservationSnapshot>(),
+  after: jsonb("after_snapshot").$type<import("../reservation-history").ReservationSnapshot>(),
+  reason: text("reason"),
+  legacy: boolean("legacy").notNull().default(false),
+}, table => [index("reservation_history_reservation_idx").on(table.reservationId), index("reservation_history_kind_processed_idx").on(table.kind, table.processedAt)]);
+
 export const approvalEmailDelivery = pgTable("approval_email_delivery", {
   id: uuid("id").primaryKey().defaultRandom(),
   deliveryKey: varchar("delivery_key", { length: 180 }).notNull().unique(),

@@ -1,3 +1,5 @@
+import { requestHistory } from "@/lib/services/reservation-history-service";
+import { historyActor } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { ApiAuthError, isAdminToken, requireAdmin, requireVerifiedFirebaseUser } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateCreateReservationInput } from "@/lib/api-validation";
@@ -59,7 +61,9 @@ export async function POST(request: Request) {
 
       if (needsPolicyConsent) requireCancellationPolicyAgreement(input.cancellationPolicyAgreement);
       const created = await repository.createReservation(input);
-      return needsPolicyConsent ? recordPolicyConsent(repository, created.id, user.uid, "confirmed_request") : created;
+      const saved = needsPolicyConsent ? await recordPolicyConsent(repository, created.id, user.uid, "confirmed_request") : created;
+      if (["temporary_requested", "confirmed_requested"].includes(saved.status)) await requestHistory(repository, saved, { kind: "reservation", actor: historyActor(user, input.customerAccountMode === "admin" ? "admin" : "customer"), requestedAt: new Date().toISOString() });
+      return saved;
     });
     let receiptEmail: { status: "not_requested" | "pending" | "sent" | "failed"; error?: string } = { status: "not_requested" };
     if (reservation.receiptEmailRequestedAt && repository.queueTransactionalEmail) receiptEmail = { status: reservation.receiptEmailSentAt ? "sent" : (reservation.receiptEmailRetryCount ?? 0) >= 5 ? "failed" : "pending" };

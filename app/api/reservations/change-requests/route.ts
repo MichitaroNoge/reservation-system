@@ -1,3 +1,6 @@
+import { requireVerifiedFirebaseUser } from "@/lib/auth";
+import { requestHistory } from "@/lib/services/reservation-history-service";
+import { historyActor, reservationSnapshot, requestedChangeSnapshot } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, validateFeeAcknowledgement, readJsonObject, validateReservationChangeRequestInput } from "@/lib/api-validation";
@@ -24,6 +27,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await requireVerifiedFirebaseUser(request);
     const body = await readJsonObject(request);
     const repository = (await getReservationRepository());
     const acknowledged = validateFeeAcknowledgement(body.cancellationFeeAcknowledged);
@@ -44,7 +48,9 @@ export async function POST(request: Request) {
       const context = reservationChangeFeeContext(ownedReservation, input.requestedPeople);
       if (context && body.cancellationFeeContext !== context) return NextResponse.json({ error: "予約内容またはキャンセル料の条件が更新されています。予約一覧を再読み込みし、最新のキャンセル料の案内を確認して再申請してください。" }, { status: 409 });
       const feeAcknowledgement = context && acknowledged ? { context, acceptedAt: new Date().toISOString() } : null;
+      const beforeSnapshot = reservationSnapshot(ownedReservation);
       const changeRequest = await repository.createReservationChangeRequest({ ...input, email: ownedReservation.email, phone: ownedReservation.phone, feeAcknowledgement });
+      await requestHistory(repository, ownedReservation, { kind: "change", actor: historyActor(user, "customer"), before: beforeSnapshot, requested: { ...requestedChangeSnapshot(ownedReservation, changeRequest), feeAcknowledgement: changeRequest.feeAcknowledgement }, referenceId: changeRequest.id, reason: changeRequest.reason, requestedAt: changeRequest.requestedAt, eventKey: `change:${changeRequest.id}` });
       return NextResponse.json({ request: changeRequest }, { status: existingRequest ? 200 : 201 });
     });
   } catch (error) {

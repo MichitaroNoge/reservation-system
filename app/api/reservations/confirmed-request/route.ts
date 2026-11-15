@@ -1,3 +1,5 @@
+import { requestHistory } from "@/lib/services/reservation-history-service";
+import { historyActor, reservationSnapshot } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { apiErrorResponse, validateCancellationPolicyAgreement, readJsonObject, validateConfirmedReservationRequestInput } from "@/lib/api-validation";
 import { findOwnedReservationByAuthenticatedCustomer } from "@/lib/customer-reservation-access";
@@ -36,10 +38,12 @@ export async function POST(request: Request) {
       }
 
       assertReservationLeadTime(current.date, (await repository.getSystemSettings()).reservationLeadDays);
+      const beforeSnapshot = reservationSnapshot(current);
       await repository.updateReservationStatus(current.id, reservationStatusCodes.confirmedRequested, {
         requestType: "confirmed_from_temporary",
       });
       const reservation = await recordPolicyConsent(repository, current.id, user.uid, "confirmed_change_request");
+      await requestHistory(repository, reservation, { kind: "confirmed_conversion", actor: historyActor(user, "customer"), before: beforeSnapshot });
       return NextResponse.json({ reservation });
     });
   } catch (error) {

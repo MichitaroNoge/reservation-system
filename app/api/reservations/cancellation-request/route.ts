@@ -1,3 +1,5 @@
+import { requestHistory } from "@/lib/services/reservation-history-service";
+import { historyActor, reservationSnapshot } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { apiErrorResponse, validateFeeAcknowledgement, readJsonObject, validateCancellationRequestInput } from "@/lib/api-validation";
 import { findOwnedReservationByAuthenticatedCustomer } from "@/lib/customer-reservation-access";
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
     const repository = (await getReservationRepository());
     const acknowledged = validateFeeAcknowledgement(body.cancellationFeeAcknowledged);
     const input = validateCancellationRequestInput(body, { allowMissingContact: true });
-    await requireVerifiedFirebaseUser(request);
+    const user = await requireVerifiedFirebaseUser(request);
     return await repositoryTransaction(repository, `reservation:${input.reservationId.trim().toUpperCase()}`, async (repository) => {
       const current = await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
       if (!current) return NextResponse.json({ error: "予約が見つかりません。予約IDを確認してください。" }, { status: 404 });
@@ -28,7 +30,9 @@ export async function POST(request: Request) {
       }
       const notice = cancellationFeeNotice(current);
       if (notice && !acknowledged) return NextResponse.json({ error: `${notice.message} 内容を確認してから申請してください。` }, { status: 409 });
+      const beforeSnapshot = reservationSnapshot(current);
       const reservation = await repository.updateReservationStatus(current.id, reservationStatusCodes.cancellationRequested);
+      await requestHistory(repository, reservation, { kind: "cancellation", actor: historyActor(user, "customer"), before: beforeSnapshot, requested: { ...reservationSnapshot(reservation), ...(notice && acknowledged ? { cancellationFeeAcknowledged: true, cancellationFeeAcknowledgedAt: new Date().toISOString(), cancellationFeeNotice: notice.message } : {}) } });
       return NextResponse.json({ reservation });
     });
   } catch (error) {

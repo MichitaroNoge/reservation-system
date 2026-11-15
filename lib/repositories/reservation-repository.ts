@@ -1,6 +1,10 @@
 import type { Account, AccountContactEmail, ApprovalEmailDelivery, ApprovalEmailType, CreateReservationChangeRequestInput, CreateReservationInput, EmailDelivery, EmailSettings, EmailTemplate, Menu, Reservation, ReservationChangeRequest, ReservationRequestType, ReservationStatus, SaveAccountInput, SaveMenuInput, SaveStoreInput, Store, StoreAssignment, UpdateReservationInput } from "../domain";
 
 export type ReservationRepository = {
+  listReservationHistory?(reservationId?: string): Promise<import("../reservation-history").ReservationHistory[]>;
+  queryReservationHistory?(query: import("../reservation-history").HistoryQuery): Promise<import("../reservation-history").HistoryPage>;
+  createReservationHistory?(entry: import("../reservation-history").ReservationHistory): Promise<import("../reservation-history").ReservationHistory>;
+  completeReservationHistory?(id: string, result: Pick<import("../reservation-history").ReservationHistory, "status" | "processedAt" | "processedBy" | "appliedBefore" | "after">): Promise<void>;
   consumeEmailLimits?(limits: import("../abuse-limits").Limit[]): Promise<{ count: number }[]>;
   getSystemSettings(): Promise<import("../domain").SystemSettings>;
   saveSystemSettings(input: import("../domain").SystemSettings): Promise<import("../domain").SystemSettings>;
@@ -23,6 +27,7 @@ export type ReservationRepository = {
   updateConfirmationContact(id: string, contactedAt: string | null): Promise<Reservation>;
   updateReceiptEmailDelivery(id: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null; nextAttemptAt?: string | null }): Promise<Reservation>;
   listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]>;
+  listApprovalEmailDeliveriesForReservations?(codes: string[]): Promise<ApprovalEmailDelivery[]>;
   createApprovalEmailDelivery(input: { deliveryKey: string; reservationId: string; type: ApprovalEmailType; referenceId?: string | null; requestedAt: string; snapshotKey?: string | null }): Promise<ApprovalEmailDelivery>;
   updateApprovalEmailDelivery(deliveryKey: string, input: { sentAt?: string | null; lastAttemptAt: string; retryCount: number; lastError?: string | null; nextAttemptAt?: string | null; stoppedAt?: string | null }): Promise<ApprovalEmailDelivery>;
   listEmailTemplates(): Promise<EmailTemplate[]>;

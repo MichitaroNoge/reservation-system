@@ -1,21 +1,26 @@
 "use client";
+import { ApprovalHistoryTabs, ReservationHistoryButton } from "./components/reservation-history";
 import { ReplyTemplateManagement } from "@/components/inquiries/reply-template-management";
 import { InquiryManagement } from "@/components/inquiries/inquiry-management";
 import { InquiryReplyDraftStore } from "@/components/inquiries/reply-drafts";
 import { ReservationInquiryHistoryButton } from "@/components/inquiries/reservation-inquiry-history";
+import { AdminInteractionProvider, AdminFormDialog, AdminActions, useAdminInteractions, useAdminDraft } from "@/components/ui/admin-interactions";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ManagementPage as ManagementLayout, ResultCount } from "@/components/ui/management-layout";
 import { ListPagination } from "@/components/ui/list-pagination";
 import { ListSearchField } from "@/components/ui/list-search-field";
 import { ReservationDetailsDialog } from "@/components/ui/reservation-details-dialog";
 import { Toaster } from "@/components/ui/sonner";
+import { retryableAdminBatch } from "@/lib/admin-interactions";
 import type { AdminScreenData,AdminSummary } from "@/lib/admin-read-model";
 import { type CancellationPolicyAgreementInput } from "@/lib/cancellation-policy-consent";
 import {
   defaultPaymentCondition,
-  duplicateAssignmentStores,
   getAutomaticReservationStatus,
   isConfirmedReservation,
   paymentConditionLabel,
@@ -37,6 +42,7 @@ import {
 } from "react";
 import { toast as sonnerToast } from "sonner";
 import { ApiRequestError,requestJson } from "./api-client";
+import { AdminBookingForm } from "./components/admin-booking-form";
 import { AdminAuthShell,AdminLogin } from "./components/auth";
 import { Icon,InfoMetric,Task,TaskGrid } from "./components/common";
 import { CustomerManagement } from "./components/customer-management";
@@ -53,7 +59,7 @@ import { ReservationNotificationManagement } from "./components/reservation-noti
 import { ReservationReminderPage } from "./components/reservation-reminder-page";
 import { ReservationSearchToolbar } from "./components/reservation-worklist";
 import { StoreAssignmentPage } from "./components/store-assignment-page";
-import { StoreAssignmentOptions } from "./components/store-assignment-options";
+import { StoreAssignmentForm } from "./components/store-assignment-form";
 import { StoreManagement } from "./components/store-management";
 import {
   cancellationApprovalStatuses,
@@ -65,14 +71,12 @@ import {
 } from "./constants";
 import {
   assignmentLabel,
-  bookingFormDateTimeLabel,
   bookingFormEndTime,
   dateHeadingLabel,
   dateTimeMinuteLabel,
   daysUntilVisit,
   fullDateHeadingLabel,
   isConfirmationContactDue,
-  menuSelectionLabel,
   monthIso,
   policyAgreementLabel,
   reservationBookingTypeLabel,
@@ -82,13 +86,12 @@ import {
   reservationDisplayLabel,
   reservationMenuLabel,
   reservationStartTime,
-  selectedMenuTotal,
   statusLabel,
   todayIso,
 } from "./formatters";
 import { useAdminSession } from "./hooks/use-admin-session";
 import { useReservationPage } from "./hooks/use-reservation-page";
-import { emptyReservationForm,GroupReservationContactFields,GroupReservationFields,GroupReservationPeopleFields,isConfirmedReservationChangeRequest,isGroupBooking,MenuPicker,PaymentAndRemarksFields,type CustomerPortalMode } from "./reservation-shared";
+import { emptyReservationForm,isConfirmedReservationChangeRequest,type CustomerPortalMode } from "./reservation-shared";
 import { ReservationSubmission } from "./reservation-submission";
 import type {
 BookingForm,
@@ -142,6 +145,11 @@ const customerPortalModeFromSearch = (
 
 
 export default function Home() {
+  return <AdminInteractionProvider><AdminApp /></AdminInteractionProvider>;
+}
+
+function AdminApp() {
+  const { confirm, leave } = useAdminInteractions();
   const pathname = usePathname();
   const directAuthMode = pathname === "/login" ? "login" : pathname === "/register" ? "register" : null;
   const [role, setRole] = useState<"admin" | "customer">(directAuthMode ? "customer" : "admin");
@@ -151,18 +159,20 @@ export default function Home() {
     authLoading,
     getAdminToken,
     loginAdmin,
-    signOutAdmin,
+    signOutAdmin: signOutSession,
   } = useAdminSession({ enabled: role === "admin" });
   const inquiryReplyDrafts = useMemo(() => new InquiryReplyDraftStore(adminSession?.user.uid), [adminSession?.user.uid]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [selected, setSelected] = useState<Reservation | null>(null);
   const [formStep, setFormStep] = useState(1);
-  const [view, setView] = useState<View>("dashboard");
+  const [view, changeView] = useState<View>("dashboard");
+  const setView = (next: View) => { if (next !== view) leave(() => changeView(next)); };
+  const signOutAdmin = () => leave(() => { void signOutSession(); });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const adminContent = useRef<HTMLDivElement>(null);
   const mobileMenuButton = useRef<HTMLButtonElement>(null);
   useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: "instant" }); }, [view]);
-  useEffect(() => { if (new URL(window.location.href).searchParams.has("googleCalendar")) setView("googleCalendarSettings"); }, []);
+  useEffect(() => { if (new URL(window.location.href).searchParams.has("googleCalendar")) changeView("googleCalendarSettings"); }, []);
   const [reservationFilter, setReservationFilter] =
     useState<ReservationFilter>("すべて");
   const [reservationDateFromFilter, setReservationDateFromFilter] =
@@ -175,6 +185,7 @@ export default function Home() {
   const [dataErrors, setDataErrors] = useState<Record<string, string>>({});
   const [dataReloadVersion, setDataReloadVersion] = useState(0);
   const [masterLoading, setMasterLoading] = useState(true);
+  const [privateMasterLoading, setPrivateMasterLoading] = useState(false);
   const [adminDataLoading, setAdminDataLoading] = useState(false);
   const [adminSummary, setAdminSummary] = useState<AdminSummary | null>(null);
   const [inactiveStoreList, setInactiveStoreList] = useState<Store[]>([]);
@@ -258,15 +269,23 @@ export default function Home() {
     finally{if(!controller.signal.aborted)setAdminDataLoading(false);}})();
     return()=>controller.abort();
   },[adminSession,dataReloadVersion,view,confirmationContactWindowDays]);
-  useEffect(()=>{
-    if(!adminSession)return;const controller=new AbortController();
-    const load=async<T,>(url:string,apply:(v:T)=>void)=>{try{const result=await requestJson<T>(url,{authToken:await adminSession.user.getIdToken(),signal:controller.signal});if(!controller.signal.aborted)apply(result);}catch(e){if(!controller.signal.aborted)setDataErrors(v=>({...v,"マスタ":e instanceof Error?e.message:"取得できませんでした。"}));}};
-    if(view==="customers"||isNewReservationOpen)void load<{customers:Customer[]}>("/api/customers",r=>setCustomerList(r.customers));
-    if(view==="customers")void load<{customers:Customer[]}>("/api/customers/inactive",r=>setInactiveCustomerList(r.customers));
-    if(view==="stores")void load<{stores:Store[]}>("/api/stores/inactive",r=>setInactiveStoreList(r.stores));
-    if(view==="menus")void load<{menus:Menu[]}>("/api/menus/inactive",r=>setInactiveMenuList(r.menus));
-    return()=>controller.abort();
-  },[adminSession,view,isNewReservationOpen,dataReloadVersion]);
+  useEffect(() => {
+    if (!adminSession) return;
+    const controller = new AbortController();
+    const load = async <T,>(label: string, url: string, apply: (value: T) => void) => {
+      try { const result = await requestJson<T>(url, { authToken: await adminSession.user.getIdToken(), signal: controller.signal }); if (!controller.signal.aborted) { apply(result); setDataErrors(current => ({ ...current, [label]: "" })); } }
+      catch (error) { if (!controller.signal.aborted) setDataErrors(current => ({ ...current, [label]: error instanceof Error ? error.message : "取得できませんでした。" })); }
+    };
+    const tasks: Promise<void>[] = [];
+    if (view === "customers" || isNewReservationOpen) tasks.push(load<{ customers: Customer[] }>("顧客", "/api/customers", result => setCustomerList(result.customers)));
+    if (view === "customers") tasks.push(load<{ customers: Customer[] }>("無効な顧客", "/api/customers/inactive", result => setInactiveCustomerList(result.customers)));
+    if (view === "stores") tasks.push(load<{ stores: Store[] }>("無効な店舗", "/api/stores/inactive", result => setInactiveStoreList(result.stores)));
+    if (view === "menus") tasks.push(load<{ menus: Menu[] }>("無効なメニュー", "/api/menus/inactive", result => setInactiveMenuList(result.menus)));
+    setPrivateMasterLoading(tasks.length > 0);
+    void Promise.all(tasks).finally(() => { if (!controller.signal.aborted) setPrivateMasterLoading(false); });
+    return () => controller.abort();
+  }, [adminSession, view, isNewReservationOpen, dataReloadVersion]);
+
   const customers = customerList;
   const taskCounts = useMemo(
     () => adminSummary?.tasks ?? ({
@@ -343,15 +362,8 @@ export default function Home() {
         reservationStartTime(a).localeCompare(reservationStartTime(b)),
       );
   }, [reservations]);
-  const notify = (message: string, variant?: "success" | "error" | "info") => {
-    const resolvedVariant =
-      variant ??
-      (/失敗|できません|正しくありません|確認してください|入力してください|未完了|まだ完了/.test(
-        message,
-      )
-        ? "error"
-        : "success");
-    sonnerToast[resolvedVariant](message);
+  const notify = (message: string, variant: "success" | "error" | "info" = "success") => {
+    sonnerToast[variant](message);
   };
   const adminRequestJson = async <T,>(url: string, init?: RequestInit) => {
     const result=await requestJson<T>(url, { ...init, authToken: await getAdminToken() });
@@ -572,7 +584,7 @@ export default function Home() {
       );
       notify("予約変更を却下しました");
     } catch {
-      notify("予約変更却下の保存に失敗しました");
+      throw new Error("予約変更却下の保存に失敗しました。再読み込みして結果を確認してください。");
     }
   };
   const updateReservation = async (id: string, input: BookingForm, expectedRevision: number) => {
@@ -668,32 +680,23 @@ export default function Home() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "確認連絡の更新に失敗しました";
-      notify(message);
+      notify(message, "error");
+      throw error;
     }
   };
   const bulkUpdateConfirmationContacts = async () => {
     if (!confirmationContactTargets.length || isBulkContacting) return;
-    const ok = window.confirm(
-      `${confirmationContactTargets.length}件を確認連絡済みにします。よろしいですか？`,
-    );
-    if (!ok) return;
+    const batch = retryableAdminBatch(confirmationContactTargets, reservation => saveConfirmationContact(reservation.id, new Date().toISOString()));
+    await confirm({ title: "確認メールを一括送信しますか？", description: confirmationContactTargets.length + "件へ確認メールを送信し、連絡済みとして記録します。条件がそろった予約は来店待ちになります。", confirmLabel: "確認メールを送信する", onConfirm: async () => {
     setIsBulkContacting(true);
     try {
-      const contactedAt = new Date().toISOString();
-      const updated = await Promise.allSettled(
-        confirmationContactTargets.map((reservation) =>
-          saveConfirmationContact(reservation.id, contactedAt),
-        ),
-      );
-      const sent = updated.filter(result => result.status === "fulfilled").length;
-      const failed = updated.length - sent;
-      notify(failed ? `${sent}件の確認連絡が完了し、${failed}件が失敗しました。時間をおいて未送信分を再実行してください。` : `${sent}件の確認メールを送信しました`, failed ? "error" : "success");
-    } catch {
-      notify("確認メールの一括送信に失敗しました");
-    } finally {
-      setIsBulkContacting(false);
-    }
+      const { completed: sent, failed } = await batch.run();
+      if (failed) throw new Error(sent + "件が完了し、" + failed + "件が失敗しました。戻って一覧を確認し、未送信分だけを再実行してください。");
+      notify(sent + "件の確認メールを送信しました", "success");
+    } finally { setIsBulkContacting(false); }
+    } });
   };
+
   const saveMenu = async (input: MenuForm, originalName?: string) => {
     const url = originalName
       ? `/api/menus/${encodeURIComponent(originalName)}`
@@ -742,7 +745,7 @@ export default function Home() {
       return items.filter((item) => item.name !== name);
     });
     notify(
-      "メニューを新規選択肢から削除しました。既存予約の履歴は保持されます",
+      "メニューを無効にしました。既存予約の履歴は保持されます",
     );
   };
   const reactivateMenu = async (menu: Menu) => {
@@ -945,13 +948,17 @@ export default function Home() {
     });
     notify(`${name}を新規選択肢から削除しました。既存予約の履歴は保持されます`);
   };
-  const submitAdminReservation = async () => {
+  const [creatingReservation, setCreatingReservation] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const creatingReservationRef = useRef(false);
+  const submitAdminReservation = async (values: BookingForm) => {
+    if (creatingReservationRef.current) return;
+    creatingReservationRef.current = true; setCreatingReservation(true); setCreateError("");
     try {
       const reservation = await createReservation(
         {
-          ...adminForm,
-          endTime:
-            adminForm.endTime ?? bookingFormEndTime(adminForm, menuCatalog),
+          ...values,
+          endTime: values.endTime ?? bookingFormEndTime(values, menuCatalog),
         },
         { forceAdmin: true },
       );
@@ -960,12 +967,12 @@ export default function Home() {
       setReservationFilter("すべて");
       setReservationDateFromFilter("");
       setReservationDateToFilter("");
-      setView("reservations");
+      changeView("reservations");
       setSelected(reservation);
       notify(`予約を登録しました（${reservation.id}）`);
-    } catch {
-      notify("予約登録に失敗しました");
-    }
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "予約登録に失敗しました。入力内容を確認してください。");
+    } finally { creatingReservationRef.current = false; setCreatingReservation(false); }
   };
 
   const openReservations = (nextFilter: ReservationFilter, nextDate = "") => {
@@ -1134,14 +1141,14 @@ export default function Home() {
             onClick={() => setView("masters")}
           >
             <Icon name="settings" />
-            マスタ管理
+            マスタ・設定
           </button>
         <Button type="button" variant="ghost" className="min-h-11 shrink-0 text-inherit hover:bg-accent hover:text-accent-foreground lg:hidden" onClick={signOutAdmin}><LogOut className="size-4" />ログアウト</Button></nav>
         <div className="mt-auto hidden border-t border-white/10 pt-5 lg:grid lg:gap-2">
           <Button
             variant="ghost"
             className="justify-between text-slate-300 hover:bg-white/10 hover:text-white"
-            onClick={() => openCustomerPortal()}
+            onClick={() => leave(() => openCustomerPortal())}
           >
             顧客画面を表示 <Icon name="arrow" />
           </Button>
@@ -1185,7 +1192,7 @@ export default function Home() {
                 reservationNotifications: "予約通知メール",
                 bookingReminders: "本予約の催促",
                 menuReminders: "メニュー確定の催促",
-                masters: "マスタ管理",
+                masters: "マスタ・設定",
                 customers: "顧客管理",
                 stores: "店舗管理",
                 otherSettings: "その他",
@@ -1394,7 +1401,9 @@ export default function Home() {
           <StoreAssignmentPage reservations={reservations} stores={stores} loading={masterLoading || adminDataLoading} error={Boolean(dataErrors["予約"] || dataErrors["店舗"])} onAssign={assignStores} />
         ) : (
           <ManagementPage
-            loading={masterLoading || adminDataLoading}
+            loading={masterLoading || privateMasterLoading || adminDataLoading}
+            masterError={Boolean(view === "customers" ? dataErrors["顧客"] || dataErrors["無効な顧客"] : view === "stores" ? dataErrors["店舗"] || dataErrors["無効な店舗"] : view === "menus" ? dataErrors["メニュー"] || dataErrors["無効なメニュー"] : false)}
+            error={Boolean(dataErrors["予約"])}
             view={view}
             onSelectMasterView={setView}
             getAdminToken={getAdminToken}
@@ -1443,8 +1452,10 @@ export default function Home() {
         <NewReservationDrawer
           form={adminForm}
           setForm={setAdminForm}
-          onClose={() => setIsNewReservationOpen(false)}
+          onClose={() => { setIsNewReservationOpen(false); setAdminForm(emptyReservationForm(STATUS.confirmed)); setCreateError(""); }}
           onSubmit={submitAdminReservation}
+          busy={creatingReservation}
+          error={createError}
           menuCatalog={menuCatalog}
         />
       )}
@@ -1472,6 +1483,8 @@ export default function Home() {
 
 function ManagementPage({
   loading,
+  error,
+  masterError,
   refreshVersion,
   view,
   onSelectMasterView,
@@ -1515,6 +1528,8 @@ function ManagementPage({
   onRejectChangeRequest,
 }: {
   loading?: boolean;
+  error?: boolean;
+  masterError?: boolean;
   refreshVersion: number;
   view: Exclude<View, "dashboard">;
   onSelectMasterView: (
@@ -1546,7 +1561,7 @@ function ManagementPage({
     id: string,
     status: Status,
     options?: { manualReason?: string },
-  ) => void;
+  ) => Promise<boolean>;
   notify: (s: string) => void;
   onSaveMenu: (input: MenuForm, originalName?: string) => Promise<void>;
   onDeleteMenu: (name: string) => Promise<void>;
@@ -1641,11 +1656,13 @@ function ManagementPage({
           className="breadcrumb-back"
           onClick={() => onSelectMasterView("masters")}
         >
-          ← マスタ管理
+          ← マスタ・設定
         </button>
       )}
       {view === "confirmationContacts" && (
         <ConfirmationContactPage
+          loading={loading}
+          error={error}
           reservations={confirmationContactTargets}
           windowDays={confirmationContactWindowDays}
           setWindowDays={setConfirmationContactWindowDays}
@@ -1655,30 +1672,38 @@ function ManagementPage({
         />
       )}
       {view === "reservationApprovals" && (
+        <ApprovalHistoryTabs kind="reservation" getAdminToken={getAdminToken}>
         <ReservationApprovalPage
           loading={loading}
+          error={error}
           reservations={pendingReservationApprovalReservations}
           onSelect={onSelect}
           updateStatus={updateStatus}
         />
+        </ApprovalHistoryTabs>
       )}
       {view === "cancellationApprovals" && (
+        <ApprovalHistoryTabs kind="cancellation" getAdminToken={getAdminToken}>
         <CancellationApprovalPage
           loading={loading}
           reservations={pendingCancellationApprovalReservations}
           onSelect={onSelect}
           updateStatus={updateStatus}
         />
+        </ApprovalHistoryTabs>
       )}
       {view === "confirmedReservationRequests" && (
+        <ApprovalHistoryTabs kind="confirmed_conversion" getAdminToken={getAdminToken}>
         <ConfirmedReservationRequestPage
           loading={loading}
           reservations={pendingConfirmedReservationRequests}
           onSelect={onSelect}
           updateStatus={updateStatus}
         />
+        </ApprovalHistoryTabs>
       )}
       {view === "reservationChangeRequests" && (
+        <ApprovalHistoryTabs kind="change" getAdminToken={getAdminToken}>
         <ReservationChangeRequestPage
           loading={loading}
           getAdminToken={getAdminToken}
@@ -1687,6 +1712,7 @@ function ManagementPage({
           onApproveChangeRequest={onApproveChangeRequest}
           onRejectChangeRequest={onRejectChangeRequest}
         />
+        </ApprovalHistoryTabs>
       )}
       {view === "reservationNotifications" && <ReservationNotificationManagement getAdminToken={getAdminToken} />}
       {view === "otherSettings" && <OtherSettingsManagement getAdminToken={getAdminToken} />}
@@ -1926,7 +1952,8 @@ function ManagementPage({
           <ListPagination page={reservationPage.page} pageSize={50} total={reservationTotal} loading={reservationPage.loading} error={!!reservationPage.error} onPageChange={reservationPage.setPage} />
         </section>
       )}
-      {view === "customers" && (
+      {["customers", "stores", "menus"].includes(view) && (loading || masterError) && <div role={masterError ? "alert" : "status"} className="rounded-lg border border-border bg-card p-5 text-sm">{masterError ? "データを取得できませんでした。上部の再読み込みから再試行してください。" : "データを読み込み中…"}</div>}
+      {view === "customers" && !loading && !masterError && (
         <CustomerManagement
           customers={customers}
           inactiveCustomers={inactiveCustomers}
@@ -1937,7 +1964,7 @@ function ManagementPage({
           notify={notify}
         />
       )}
-      {view === "stores" && (
+      {view === "stores" && !loading && !masterError && (
         <StoreManagement
           stores={stores}
           inactiveStores={inactiveStores}
@@ -1948,7 +1975,7 @@ function ManagementPage({
           notify={notify}
         />
       )}
-      {view === "menus" && (
+      {view === "menus" && !loading && !masterError && (
         <MenuManagement
           menus={menus}
           inactiveMenus={inactiveMenus}
@@ -1985,6 +2012,8 @@ function ReservationBookingTypeCell({
 
 
 function ConfirmationContactPage({
+  loading,
+  error,
   reservations,
   windowDays,
   setWindowDays,
@@ -1992,6 +2021,8 @@ function ConfirmationContactPage({
   onBulkConfirmationContact,
   onSelect,
 }: {
+  loading?: boolean;
+  error?: boolean;
   reservations: Reservation[];
   windowDays: number;
   setWindowDays: (days: number) => void;
@@ -2039,17 +2070,17 @@ function ConfirmationContactPage({
             30日未満
           </button>
         </div>
-        <ResultCount count={reservations.length} />
+        <ResultCount count={reservations.length} loading={loading} error={error} />
         <button
           className="confirmation-bulk-button"
-          disabled={!reservations.length || isBulkContacting}
+          disabled={loading || error || !reservations.length || isBulkContacting}
           onClick={onBulkConfirmationContact}
         >
           <Icon name="check" />
           {isBulkContacting ? "送信中" : "確認メール一括送信"}
         </button>
       </div>
-      <div className="table-wrap">
+      {loading || error ? <p role={error ? "alert" : "status"} className="p-5 text-sm text-muted-foreground">{error ? "予約を取得できませんでした。上部の再読み込みから再試行してください。" : "予約を読み込み中…"}</p> : <div className="table-wrap">
         <table className="large-table">
           <thead>
             <tr>
@@ -2105,9 +2136,7 @@ function ConfirmationContactPage({
                       {windowDays}日未満
                     </span>
                   </td>
-                  <td>
-                    <Icon name="arrow" />
-                  </td>
+                  <td className="sticky right-0 bg-card"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); onSelect(reservation); }}>詳細を確認</Button></td>
                 </tr>
               );
             })}
@@ -2116,7 +2145,7 @@ function ConfirmationContactPage({
         {!reservations.length && (
           <div className="empty-table">確認連絡が必要な予約はありません。</div>
         )}
-      </div>
+      </div>}
     </section>
   );
 }
@@ -2124,6 +2153,7 @@ function ConfirmationContactPage({
 
 function ReservationChangeRequestPage({
   loading,
+  error,
   getAdminToken,
   requests,
   reservations,
@@ -2131,6 +2161,7 @@ function ReservationChangeRequestPage({
   onRejectChangeRequest,
 }: {
   loading?: boolean;
+  error?: boolean;
   getAdminToken: () => Promise<string>;
   requests: ReservationChangeRequest[];
   reservations: Reservation[];
@@ -2138,12 +2169,6 @@ function ReservationChangeRequestPage({
   onRejectChangeRequest: (id: string) => Promise<void>;
 }) {
   const [actionError, setActionError] = useState("");
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const busyRef = useRef(false);
-  const approve = async (id: string) => {
-    if (busyRef.current) return; busyRef.current = true; setBusyId(id); setActionError("");
-    try { setActionError((await onApproveChangeRequest(id)) ?? ""); } finally { busyRef.current = false; setBusyId(null); }
-  };
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [detail,setDetail]=useState<Reservation>();
   const [detailLoading,setDetailLoading]=useState(false);
@@ -2155,12 +2180,12 @@ function ReservationChangeRequestPage({
   const filteredRows = requests.filter(row => [row.reservationId, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <ReservationSearchToolbar count={filteredRows.length} loading={loading} search={search} onSearch={setSearch} />
+      <ReservationSearchToolbar count={filteredRows.length} loading={loading} error={error} search={search} onSearch={setSearch} />
       {detailLoading&&<p role="status" className="px-5 py-3">予約の詳細を読み込み中…</p>}
       {actionError && <p role="alert" className="border-b border-destructive/30 px-5 py-4 text-sm text-destructive">{actionError}</p>}
-      {loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
+      {error ? <p role="alert" className="p-5 text-sm text-destructive">予約を取得できませんでした。上部の再読み込みから再試行してください。</p> : loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
         <div className="table-wrap">
-          <table className="large-table change-request-table">
+          <table className="large-table change-request-table [&_tr>th:last-child]:sticky [&_tr>th:last-child]:right-0 [&_tr>th:last-child]:bg-muted [&_tr>td:last-child]:sticky [&_tr>td:last-child]:right-0 [&_tr>td:last-child]:bg-card">
             <thead>
               <tr>
                 <th>予約ID / 申請日時</th>
@@ -2180,7 +2205,7 @@ function ReservationChangeRequestPage({
                 return (
                   <tr
                     key={request.id}
-                    onClick={() => void openChange(request)}
+                    onClick={() => { if (!window.getSelection()?.toString()) void openChange(request); }}
                   >
                     <td>
                       <button type="button" className="font-semibold text-primary underline-offset-4 hover:underline" onClick={(event) => { event.stopPropagation(); void openChange(request); }} aria-label={`${request.reservationId}の変更内容を確認`}>{request.reservationId}</button>
@@ -2223,28 +2248,7 @@ function ReservationChangeRequestPage({
                     </td>
                     <td>{request.reason || "-"}</td>
                     <td>
-                      <div className="row-actions compact">
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onRejectChangeRequest(request.id);
-                          }}
-                        >
-                          却下
-                        </button>
-                        <button
-                          type="button"
-                          className="primary"
-                          disabled={!!busyId}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void approve(request.id);
-                          }}
-                        >
-                          {busyId === request.id ? "処理中…" : "承認"}
-                        </button>
-                      </div>
+                      <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); void openChange(request); }}>内容を確認</Button></div>
                     </td>
                   </tr>
                 );
@@ -2262,6 +2266,9 @@ function ReservationChangeRequestPage({
           request={selectedRequest}
           reservation={detail}
           onClose={() => setSelectedRequestId(null)}
+          getAdminToken={getAdminToken}
+          onApprove={onApproveChangeRequest}
+          onReject={onRejectChangeRequest}
         />
       )}
     </section>
@@ -2276,7 +2283,7 @@ function MasterManagementPage({
   onSelectMasterView: (view: "customers" | "stores" | "menus" | "emailTemplates" | "inquiryReplyTemplates" | "otherSettings" | "googleCalendarSettings" | "reservationNotifications") => void;
 }) {
   return (
-    <section aria-label="マスタ管理">
+    <section aria-label="マスタ・設定">
       <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <button className="flex min-h-20 min-w-0 items-center gap-3 rounded-lg border border-border bg-card px-5 py-4 text-left text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>span]:min-w-0 [&>span]:flex-1 [&>span]:break-words" type="button" onClick={() => onSelectMasterView("otherSettings")}><Icon name="settings" /><span><strong>その他</strong></span><Icon name="arrow" /></button>
         <button className="flex min-h-20 min-w-0 items-center gap-3 rounded-lg border border-border bg-card px-5 py-4 text-left text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&>span]:min-w-0 [&>span]:flex-1 [&>span]:break-words" type="button" onClick={() => onSelectMasterView("customers")}>
@@ -2316,27 +2323,29 @@ function MasterManagementPage({
 
 function ConfirmedReservationRequestPage({
   loading,
+  error,
   reservations,
   onSelect,
 }: {
   loading?: boolean;
+  error?: boolean;
   reservations: Reservation[];
   onSelect: (reservation: Reservation) => void;
   updateStatus: (
     id: string,
     status: Status,
     options?: { manualReason?: string },
-  ) => void;
+  ) => Promise<boolean>;
 }) {
   const [search, setSearch] = useState("");
   const keyword = search.trim().toLocaleLowerCase();
   const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <ReservationSearchToolbar count={filteredRows.length} loading={loading} search={search} onSearch={setSearch} />
-      {loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} loading={loading} error={error} search={search} onSearch={setSearch} />
+      {error ? <p role="alert" className="p-5 text-sm text-destructive">予約を取得できませんでした。上部の再読み込みから再試行してください。</p> : loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
         <div className="table-wrap">
-          <table className="large-table change-request-table">
+          <table className="large-table change-request-table [&_tr>th:last-child]:sticky [&_tr>th:last-child]:right-0 [&_tr>th:last-child]:bg-muted [&_tr>td:last-child]:sticky [&_tr>td:last-child]:right-0 [&_tr>td:last-child]:bg-card">
             <thead>
               <tr>
                 <th>予約ID / 受付日時</th>
@@ -2387,27 +2396,7 @@ function ConfirmedReservationRequestPage({
                     )}
                   </td>
                   <td>
-                    <div className="row-actions compact">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onSelect(reservation);
-                        }}
-                      >
-                        却下
-                      </button>
-                      <button
-                        type="button"
-                        className="primary"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onSelect(reservation);
-                        }}
-                      >
-                        承認
-                      </button>
-                    </div>
+                    <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); onSelect(reservation); }}>内容を確認</Button></div>
                   </td>
                 </tr>
               ))}
@@ -2426,41 +2415,29 @@ function ConfirmedReservationRequestPage({
 
 function ReservationApprovalPage({
   loading,
+  error,
   reservations,
   onSelect,
 }: {
   loading?: boolean;
+  error?: boolean;
   reservations: Reservation[];
   onSelect: (reservation: Reservation) => void;
   updateStatus: (
     id: string,
     status: Status,
     options?: { manualReason?: string },
-  ) => void;
+  ) => Promise<boolean>;
 }) {
-  const approveStatus = (reservation: Reservation): Status | null =>
-    reservation.status === STATUS.temporaryRequested
-      ? STATUS.temporaryConfirmed
-      : reservation.status === STATUS.confirmedRequested
-        ? STATUS.confirmed
-        : null;
-  const rejectStatus = (reservation: Reservation): Status | null =>
-    reservation.status === STATUS.temporaryRequested
-      ? STATUS.temporaryRejected
-      : reservation.status === STATUS.confirmedRequested
-        ? isConfirmedReservationChangeRequest(reservation)
-          ? STATUS.temporaryConfirmed
-          : STATUS.confirmedRejected
-        : null;
   const [search, setSearch] = useState("");
   const keyword = search.trim().toLocaleLowerCase();
   const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <ReservationSearchToolbar count={filteredRows.length} loading={loading} search={search} onSearch={setSearch} />
-      {loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} loading={loading} error={error} search={search} onSearch={setSearch} />
+      {error ? <p role="alert" className="p-5 text-sm text-destructive">予約を取得できませんでした。上部の再読み込みから再試行してください。</p> : loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
         <div className="table-wrap">
-          <table className="large-table change-request-table">
+          <table className="large-table change-request-table [&_tr>th:last-child]:sticky [&_tr>th:last-child]:right-0 [&_tr>th:last-child]:bg-muted [&_tr>td:last-child]:sticky [&_tr>td:last-child]:right-0 [&_tr>td:last-child]:bg-card">
             <thead>
               <tr>
                 <th>予約ID / 受付日時</th>
@@ -2475,12 +2452,10 @@ function ReservationApprovalPage({
             </thead>
             <tbody>
               {filteredRows.map((reservation) => {
-                const nextApprovalStatus = approveStatus(reservation);
-                const nextRejectStatus = rejectStatus(reservation);
                 return (
                   <tr
                     key={reservation.id}
-                    onClick={() => onSelect(reservation)}
+                    onClick={() => { if (!window.getSelection()?.toString()) onSelect(reservation); }}
                   >
                     <td>
                       <strong>{reservation.id}</strong>
@@ -2518,31 +2493,7 @@ function ReservationApprovalPage({
                       )}
                     </td>
                     <td>
-                      <div className="row-actions compact">
-                        {nextRejectStatus && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onSelect(reservation);
-                            }}
-                          >
-                            却下
-                          </button>
-                        )}
-                        {nextApprovalStatus && (
-                          <button
-                            type="button"
-                            className="primary"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onSelect(reservation);
-                            }}
-                          >
-                            承認
-                          </button>
-                        )}
-                      </div>
+                      <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); onSelect(reservation); }}>内容を確認</Button></div>
                     </td>
                   </tr>
                 );
@@ -2562,28 +2513,29 @@ function ReservationApprovalPage({
 
 function CancellationApprovalPage({
   loading,
+  error,
   reservations,
   onSelect,
-  updateStatus,
 }: {
   loading?: boolean;
+  error?: boolean;
   reservations: Reservation[];
   onSelect: (reservation: Reservation) => void;
   updateStatus: (
     id: string,
     status: Status,
     options?: { manualReason?: string },
-  ) => void;
+  ) => Promise<boolean>;
 }) {
   const [search, setSearch] = useState("");
   const keyword = search.trim().toLocaleLowerCase();
   const filteredRows = reservations.filter(row => [row.id, row.customer].some(value => value.toLocaleLowerCase().includes(keyword)));
   return (
     <section className="panel management-panel change-request-screen">
-      <ReservationSearchToolbar count={filteredRows.length} loading={loading} search={search} onSearch={setSearch} />
-      {loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
+      <ReservationSearchToolbar count={filteredRows.length} loading={loading} error={error} search={search} onSearch={setSearch} />
+      {error ? <p role="alert" className="p-5 text-sm text-destructive">予約を取得できませんでした。上部の再読み込みから再試行してください。</p> : loading ? <p role="status" className="p-5 text-sm text-muted-foreground">予約を読み込み中…</p> : filteredRows.length > 0 ? (
         <div className="table-wrap">
-          <table className="large-table change-request-table">
+          <table className="large-table change-request-table [&_tr>th:last-child]:sticky [&_tr>th:last-child]:right-0 [&_tr>th:last-child]:bg-muted [&_tr>td:last-child]:sticky [&_tr>td:last-child]:right-0 [&_tr>td:last-child]:bg-card">
             <thead>
               <tr>
                 <th>予約ID / 受付日時</th>
@@ -2633,18 +2585,7 @@ function CancellationApprovalPage({
                     )}
                   </td>
                   <td>
-                    <div className="row-actions compact">
-                      <button
-                        type="button"
-                        className="primary"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          updateStatus(reservation.id, STATUS.cancelled);
-                        }}
-                      >
-                        キャンセル確定
-                      </button>
-                    </div>
+                    <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={event => { event.stopPropagation(); onSelect(reservation); }}>内容を確認</Button></div>
                   </td>
                 </tr>
               ))}
@@ -2679,17 +2620,18 @@ function ReservationDrawer({
     id: string,
     status: Status,
     options?: { manualReason?: string },
-  ) => void;
+  ) => Promise<boolean>;
   updateConfirmationContact: (
     id: string,
     contactedAt: string | null,
     options?: { sendEmail?: boolean },
   ) => Promise<void>;
-  assignStores: (id: string, assignments: StoreAssignment[]) => void;
+  assignStores: (id: string, assignments: StoreAssignment[]) => Promise<boolean>;
   updateReservation: (id: string, form: BookingForm, expectedRevision: number) => Promise<Reservation>;
   menuCatalog: Menu[];
   stores: Store[];
 }) {
+  const { confirm, leave } = useAdminInteractions();
   const initialEditForm = (): BookingForm => ({
     menuItems: r.menuItems ?? (r.menu ? [r.menu] : []),
     date: r.date,
@@ -2731,29 +2673,9 @@ function ReservationDrawer({
   const [editError, setEditError] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [isManualStatusOpen, setIsManualStatusOpen] = useState(false);
-  const [isConfirmingConfirmationEmail, setIsConfirmingConfirmationEmail] =
-    useState(false);
-  const [isSendingConfirmationEmail, setIsSendingConfirmationEmail] =
-    useState(false);
   const [manualStatus, setManualStatus] = useState<Status>(r.status);
   const [manualStatusReason, setManualStatusReason] = useState("");
-  const [assignmentDraft, setAssignmentDraft] = useState<StoreAssignment[]>(
-    reservationAssignments(r).length
-      ? reservationAssignments(r)
-      : [{ store: "", people: r.people }],
-  );
-  const assignedPeople = assignmentDraft.reduce(
-    (total, assignment) => total + Number(assignment.people || 0),
-    0,
-  );
-  const duplicateStores = duplicateAssignmentStores(assignmentDraft);
-  const allAssignmentStoresUsed = stores.every(store=>assignmentDraft.some(a=>a.store===store.name));
-  const canSaveAssignments =
-    assignmentDraft.length === 0 ||
-    (duplicateStores.length === 0 && assignedPeople === r.people &&
-      assignmentDraft.every(
-        (assignment) => assignment.store && assignment.people > 0,
-      ));
+  const [isSavingAssignments, setIsSavingAssignments] = useState(false);
   const canSaveReservation =
     Boolean(
       editForm.name &&
@@ -2792,36 +2714,19 @@ function ReservationDrawer({
     setIsEditingReservation(false);
     setIsAssigning(false);
     setIsManualStatusOpen(false);
-    setIsConfirmingConfirmationEmail(false);
-    setIsSendingConfirmationEmail(false);
     setManualStatus(r.status);
     setManualStatusReason("");
   }, [r.id, r.status]);
-  const updateAssignment = (index: number, patch: Partial<StoreAssignment>) =>
-    setAssignmentDraft((items) =>
-      items.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, ...patch } : item,
-      ),
-    );
-  const removeAssignment = (index: number) =>
-    setAssignmentDraft((items) =>
-      items.filter((_, itemIndex) => itemIndex !== index),
-    );
-  const addAssignment = () =>
-    setAssignmentDraft((items) => [
-      ...items,
-      { store: "", people: Math.max(r.people - assignedPeople, 1) },
-    ]);
   const cancelReservationEdit = () => {
     setEditForm(initialEditForm());
     setIsEditingReservation(false);
   };
-  const saveReservationEdit = async () => {
+  const saveReservationEdit = async (values: BookingForm) => {
     if (!canSaveReservation) return;
     setIsSavingReservation(true);
     setEditError("");
     try {
-      await updateReservation(r.id, editForm, editBaseRevision);
+      await updateReservation(r.id, values, editBaseRevision);
       setIsEditingReservation(false);
     } catch (error) {
       setEditError(error instanceof Error ? error.message : "保存できませんでした。入力内容を確認し、再度お試しください。");
@@ -2829,36 +2734,25 @@ function ReservationDrawer({
       setIsSavingReservation(false);
     }
   };
-  const saveAssignments = () => {
-    if (!canSaveAssignments) return;
-    assignStores(r.id, assignmentDraft);
-    setIsAssigning(false);
-  };
-  const saveManualStatus = () => {
-    if (!canSaveManualStatus) return;
-    updateStatus(r.id, manualStatus, {
-      manualReason: manualStatusReason.trim(),
-    });
-    setIsManualStatusOpen(false);
-    setManualStatusReason("");
-  };
-  const sendConfirmationEmail = async () => {
-    if (isSendingConfirmationEmail) return;
-    setIsSendingConfirmationEmail(true);
-    try {
-      await updateConfirmationContact(r.id, new Date().toISOString());
-      setIsConfirmingConfirmationEmail(false);
-    } finally {
-      setIsSendingConfirmationEmail(false);
-    }
-  };
-  const markConfirmationContactManually = () =>
-    updateConfirmationContact(r.id, new Date().toISOString(), {
-      sendEmail: false,
-    });
+  const leaveDraft = useAdminDraft((isEditingReservation && JSON.stringify(editForm) !== JSON.stringify(initialEditForm())) || (isManualStatusOpen && (manualStatus !== r.status || manualStatusReason.length > 0)), isSavingReservation || isSavingAssignments);
+  const closeDetail = () => leave(onClose);
+  const target = <p className="break-words text-sm">{r.id} / {r.customer}<br />{reservationDateTimeLabel(r)}・{r.people}名</p>;
+  const decideStatus = (status: Status, options?: { manualReason?: string }) => void confirm({
+    title: status === STATUS.cancelled ? "キャンセルを確定しますか？" : "予約の状態を変更しますか？",
+    description: <>{statusLabel(r.status)} → {statusLabel(status)}{options?.manualReason && <p className="mt-2">理由：{options.manualReason}</p>}<p className="mt-2">通知メールは既存の送信設定に従って処理されます。</p></>,
+    details: target, confirmLabel: status === STATUS.cancelled ? "キャンセルを確定する" : status === STATUS.visited ? "来店済みにする" : "状態を変更する", destructive: status === STATUS.cancelled,
+    onConfirm: async () => { if (!await updateStatus(r.id, status, options)) return false; setIsManualStatusOpen(false); setManualStatusReason(""); if (status === STATUS.cancelled) onClose(); },
+  });
+  const saveManualStatus = () => { if (canSaveManualStatus) decideStatus(manualStatus, { manualReason: manualStatusReason.trim() }); };
+  const contact = (mode: "send" | "manual" | "reset") => void confirm({
+    title: mode === "send" ? "確認メールを送信しますか？" : mode === "manual" ? "手動で連絡済みにしますか？" : "未連絡に戻しますか？",
+    description: mode === "send" ? "確認メールを送信し、連絡済みとして記録します。条件がそろった予約は来店待ちになります。" : mode === "manual" ? "メールは送信せず、連絡済みとして記録します。条件がそろった予約は来店待ちになります。" : "確認連絡の記録を解除します。来店待ちの予約は本予約確定に戻ります。",
+    details: <>{target}{mode === "send" && <p className="break-all text-sm">宛先：{r.email}</p>}</>, confirmLabel: mode === "send" ? "確認メールを送信する" : mode === "manual" ? "連絡済みを記録する" : "未連絡に戻す", destructive: mode === "reset",
+    onConfirm: () => updateConfirmationContact(r.id, mode === "reset" ? null : new Date().toISOString(), { sendEmail: mode === "send" }),
+  });
 
   return (
-    <ReservationDetailsDialog title={`予約詳細 ${r.id}`} busy={isSavingReservation} onClose={onClose}>
+    <ReservationDetailsDialog title={`予約詳細 ${r.id}`} busy={isSavingReservation || isSavingAssignments} onClose={closeDetail}>
         <header>
           <div>
             <span className={"badge " + statusClass[r.status]}>
@@ -2867,290 +2761,37 @@ function ReservationDrawer({
             </span>
             <h2>{r.id}</h2>
           </div>
-          <button type="button" aria-label="閉じる" disabled={isSavingReservation} onClick={onClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label="閉じる" disabled={isSavingReservation || isSavingAssignments} onClick={closeDetail}>
             <Icon name="close" />
-          </button>
+          </Button>
         </header>
-        <div className="drawer-body">
-          <section className="border-b border-border pb-4"><ReservationInquiryHistoryButton reservationNumber={r.id} audience="admin" getToken={getAdminToken} /></section>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [&>section]:border-b [&>section]:border-border [&>section]:px-5 [&>section]:py-5">
+          <section className="flex flex-wrap gap-2 border-b border-border pb-4"><ReservationInquiryHistoryButton reservationNumber={r.id} audience="admin" getToken={getAdminToken} /><ReservationHistoryButton reservationId={r.id} getAdminToken={getAdminToken} disabled={isSavingReservation || isSavingAssignments} /></section>
           {isEditingReservation ? (
-            <section className="drawer-primary-action">
-              <p className="section-label">予約内容を編集</p>
-              <div className="drawer-form single">
-                <label>
-                  予約区分
-                  <select
-                    value={editForm.bookingType ?? "individual"}
-                    onChange={(event) =>
-                      setEditForm({
-                        ...editForm,
-                        bookingType: event.target
-                          .value as BookingForm["bookingType"],
-                        accountType:
-                          event.target.value === "travel_agency_group"
-                            ? "travel_agency"
-                            : "individual",
-                        tcCount:
-                          event.target.value === "travel_agency_group"
-                            ? (editForm.tcCount ?? 0)
-                            : 0,
-                        dgCount:
-                          event.target.value === "travel_agency_group"
-                            ? (editForm.dgCount ?? 0)
-                            : 0,
-                      })
-                    }
-                  >
-                    <option value="individual">一般予約</option>
-                    <option value="travel_agency_group">
-                      旅行会社様専用 団体予約
-                    </option>
-                  </select>
-                </label>
-                <label>
-                  {isGroupBooking(editForm) ? "会社・支店名" : "お名前"}
-                  <input
-                    value={editForm.name}
-                    onChange={(event) =>
-                      setEditForm({
-                        ...editForm,
-                        name: event.target.value,
-                        companyBranchName: isGroupBooking(editForm)
-                          ? event.target.value
-                          : editForm.companyBranchName,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  電話番号
-                  <input
-                    value={editForm.phone}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, phone: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  メールアドレス
-                  <input
-                    type="email"
-                    value={editForm.email}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, email: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  住所
-                  <input
-                    value={editForm.address}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, address: event.target.value })
-                    }
-                  />
-                </label>
-              </div>
-              {isGroupBooking(editForm) && (
-                <GroupReservationContactFields
-                  form={editForm}
-                  setForm={setEditForm}
-                />
-              )}
-              <div className="drawer-form">
-                <label>
-                  利用日
-                  <input
-                    type="date"
-                    value={editForm.date}
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, date: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  開始時間
-                  <input
-                    type="time"
-                    value={editForm.startTime}
-                    onChange={(event) => {
-                      const startTime = event.target.value;
-                      setEditForm({
-                        ...editForm,
-                        startTime,
-                        endTime: bookingFormEndTime(
-                          { ...editForm, startTime, endTime: undefined },
-                          menuCatalog,
-                        ),
-                      });
-                    }}
-                  />
-                </label>
-                <label>
-                  終了時間
-                  <input
-                    type="time"
-                    value={
-                      editForm.endTime ??
-                      bookingFormEndTime(editForm, menuCatalog)
-                    }
-                    onChange={(event) =>
-                      setEditForm({ ...editForm, endTime: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  人数
-                  <input
-                    type="number"
-                    min="1"
-                    max="999"
-                    value={editForm.people}
-                    onChange={(event) =>
-                      setEditForm({
-                        ...editForm,
-                        people: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-              </div>
-              {isGroupBooking(editForm) && (
-                <GroupReservationPeopleFields
-                  form={editForm}
-                  setForm={setEditForm}
-                />
-              )}
-              <MenuPicker
-                menuCatalog={menuCatalog}
-                selected={editForm.menuItems}
-                onChange={(menuItems) =>
-                  setEditForm({
-                    ...editForm,
-                    menuItems,
-                    endTime: bookingFormEndTime(
-                      { ...editForm, menuItems, endTime: undefined },
-                      menuCatalog,
-                    ),
-                  })
-                }
-              />
-              <PaymentAndRemarksFields form={editForm} setForm={setEditForm} />
-              {editError && <p role="alert" className="text-sm text-destructive">{editError}</p>}
-              {isGroupBooking(editForm) && (
-                <GroupReservationFields form={editForm} setForm={setEditForm} />
-              )}
-              <div className="reservation-summary">
-                <strong>{menuSelectionLabel(editForm.menuItems)}</strong>
-                <span>
-                  {bookingFormDateTimeLabel({
-                    ...editForm,
-                    endTime:
-                      editForm.endTime ??
-                      bookingFormEndTime(editForm, menuCatalog),
-                  })}
-                  ・{editForm.people}名
-                </span>
-                <small>
-                  {"¥"}
-                  {selectedMenuTotal(
-                    editForm.menuItems,
-                    menuCatalog,
-                  ).toLocaleString()}
-                </small>
-              </div>
-              <div className="drawer-actions">
-                <button
-                  onClick={cancelReservationEdit}
-                  disabled={isSavingReservation}
-                >
-                  キャンセル
-                </button>
-                <button
-                  className="approve"
-                  disabled={!canSaveReservation}
-                  onClick={saveReservationEdit}
-                >
-                  <Icon name="check" />
-                  {isSavingReservation ? "保存中" : "保存する"}
-                </button>
-              </div>
-            </section>
+            <section className="p-5"><h3 className="mb-5 text-base font-semibold">予約内容を編集</h3><AdminBookingForm id="reservation-editor" value={editForm} onChange={setEditForm} menuCatalog={menuCatalog} busy={isSavingReservation} error={editError} onSubmit={saveReservationEdit} /></section>
           ) : !isAssigning ? (
             <>
-              <section className="drawer-next-action">
-                <p className="section-label">次のアクション</p>
-                {r.status === STATUS.temporaryRequested && (
-                  <button
-                    className="full-action"
-                    onClick={() =>
-                      updateStatus(r.id, STATUS.temporaryConfirmed)
-                    }
-                  >
-                    <Icon name="check" />
-                    仮予約を承認する
-                  </button>
-                )}
-                {r.status === STATUS.temporaryRequested && (
-                  <button
-                    className="full-action danger"
-                    onClick={() => updateStatus(r.id, STATUS.temporaryRejected)}
-                  >
-                    <Icon name="close" />
-                    仮予約を却下する
-                  </button>
-                )}
-                {r.status === STATUS.confirmedRequested && (
-                  <button
-                    className="full-action"
-                    onClick={() => updateStatus(r.id, STATUS.confirmed)}
-                  >
-                    <Icon name="check" />
-                    本予約を承認する
-                  </button>
-                )}
-                {r.status === STATUS.confirmedRequested && (
-                  <button
-                    className="full-action danger"
-                    onClick={() =>
-                      updateStatus(
-                        r.id,
-                        isConfirmedReservationChangeRequest(r)
-                          ? STATUS.temporaryConfirmed
-                          : STATUS.confirmedRejected,
-                      )
-                    }
-                  >
-                    <Icon name="close" />
-                    {isConfirmedReservationChangeRequest(r)
-                      ? "本予約変更を却下する"
-                      : "本予約を却下する"}
-                  </button>
-                )}
+              <section className="bg-muted/20">
+                <p className="mb-3 text-sm font-semibold text-muted-foreground">次のアクション</p>
                 {r.status === STATUS.waitingForVisit && (
-                  <button
-                    className="full-action"
-                    onClick={() => updateStatus(r.id, STATUS.visited)}
+                  <Button type="button"
+                    onClick={() => decideStatus(STATUS.visited)}
                   >
                     <Icon name="check" />
                     来店済みにする
-                  </button>
+                  </Button>
                 )}
                 {r.status === STATUS.cancellationRequested && (
-                  <button
-                    className="full-action danger"
-                    onClick={() => {
-                      updateStatus(r.id, STATUS.cancelled);
-                      onClose();
-                    }}
+                  <Button type="button" variant="destructive"
+                    onClick={() => decideStatus(STATUS.cancelled)}
                   >
                     キャンセルを確定する
-                  </button>
+                  </Button>
                 )}
                 {nextActionComments.length > 0 && (
-                  <div className="next-action-notes">
+                  <div className="mt-4 space-y-3">
                     {nextActionComments.map((comment) => (
-                      <div className="next-action-note" key={comment.title}>
+                      <div className="grid gap-1 border-l-2 border-warning pl-3 text-sm" key={comment.title}>
                         <strong>{comment.title}</strong>
                         <span>{comment.text}</span>
                       </div>
@@ -3159,7 +2800,7 @@ function ReservationDrawer({
                 )}
               </section>
               <section>
-                <p className="section-label">予約内容</p>
+                <p className="mb-3 text-sm font-semibold text-muted-foreground">予約内容</p>
                 <dl>
                   <div>
                     <dt>予約区分</dt>
@@ -3241,7 +2882,7 @@ function ReservationDrawer({
               </section>
               {r.bookingType === "travel_agency_group" && (
                 <section>
-                  <p className="section-label">団体情報</p>
+                  <p className="mb-3 text-sm font-semibold text-muted-foreground">団体情報</p>
                   <dl>
                     <div>
                       <dt>団体名</dt>
@@ -3264,15 +2905,14 @@ function ReservationDrawer({
               )}
               <PolicyConsentHistory consents={r.policyConsents ?? []} />
               <section>
-                <button
-                  className="edit-reservation-button"
+                <Button type="button" variant="outline"
                   onClick={() => { setEditForm(initialEditForm()); setEditBaseRevision(r.revision ?? 0); setEditError(""); setIsEditingReservation(true); }}
                 >
                   予約内容を編集
-                </button>
+                </Button>
               </section>
               <section>
-                <p className="section-label">店舗割当</p>
+                <p className="mb-3 text-sm font-semibold text-muted-foreground">店舗割当</p>
                 <dl>
                   <div>
                     <dt>割当状況</dt>
@@ -3289,16 +2929,15 @@ function ReservationDrawer({
                     </dd>
                   </div>
                 </dl>
-                <button
-                  className="edit-reservation-button"
+                <Button type="button" variant="outline"
                   onClick={() => setIsAssigning(true)}
                 >
                   店舗割当を編集
-                </button>
+                </Button>
               </section>
               {canUpdateConfirmationContact && (
                 <section>
-                  <p className="section-label">確認連絡</p>
+                  <p className="mb-3 text-sm font-semibold text-muted-foreground">確認連絡</p>
                   <dl>
                     <div>
                       <dt>連絡状況</dt>
@@ -3307,62 +2946,17 @@ function ReservationDrawer({
                       </dd>
                     </div>
                   </dl>
-                  {r.confirmationContactedAt ? (
-                    <button
-                      className="edit-reservation-button"
-                      onClick={() => updateConfirmationContact(r.id, null)}
-                    >
-                      未連絡に戻す
-                    </button>
-                  ) : isConfirmingConfirmationEmail ? (
-                    <div className="confirmation-send-confirm">
-                      <strong>確認メールを送信しますか？</strong>
-                      <div>
-                        <button
-                          type="button"
-                          disabled={isSendingConfirmationEmail}
-                          onClick={() =>
-                            setIsConfirmingConfirmationEmail(false)
-                          }
-                        >
-                          キャンセル
-                        </button>
-                        <button
-                          type="button"
-                          className="approve"
-                          disabled={isSendingConfirmationEmail || !r.email}
-                          onClick={sendConfirmationEmail}
-                        >
-                          <Icon name="check" />
-                          {isSendingConfirmationEmail ? "送信中" : "送信する"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="confirmation-contact-actions">
-                      <button
-                        className="full-action"
-                        onClick={() => setIsConfirmingConfirmationEmail(true)}
-                      >
-                        <Icon name="check" />
-                        確認メール送信
-                      </button>
-                      <button
-                        className="edit-reservation-button"
-                        onClick={markConfirmationContactManually}
-                      >
-                        手動で確認済みにする
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {r.confirmationContactedAt ? <Button type="button" variant="outline" onClick={() => contact("reset")}>未連絡に戻す</Button> : <><Button type="button" disabled={!r.email} onClick={() => contact("send")}>確認メールを送信</Button><Button type="button" variant="outline" onClick={() => contact("manual")}>手動で連絡済みにする</Button></>}
+                  </div>
                 </section>
               )}
               <section>
-                <p className="section-label">例外操作</p>
+                <p className="mb-3 text-sm font-semibold text-muted-foreground">例外操作</p>
                 <button
                   className="exception-toggle"
                   type="button"
-                  onClick={() => setIsManualStatusOpen((current) => !current)}
+                  onClick={() => { if (isManualStatusOpen) leaveDraft(() => { setIsManualStatusOpen(false); setManualStatus(r.status); setManualStatusReason(""); }); else setIsManualStatusOpen(true); }}
                 >
                   <span>
                     <strong>任意のステータスに変更</strong>
@@ -3370,379 +2964,37 @@ function ReservationDrawer({
                   <Icon name="arrow" />
                 </button>
                 {isManualStatusOpen && (
-                  <div className="manual-status-panel drawer-form">
-                    <label>
-                      変更先ステータス
-                      <select
-                        value={manualStatus}
-                        onChange={(event) =>
-                          setManualStatus(event.target.value as Status)
-                        }
-                      >
-                        {statusOptions.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabel(status)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      変更理由
-                      <textarea
-                        value={manualStatusReason}
-                        onChange={(event) =>
-                          setManualStatusReason(event.target.value)
-                        }
-                        placeholder="例: お客様から電話で変更依頼があったため"
-                      />
-                    </label>
-                    <button
-                      className="full-action manual-status-submit"
-                      disabled={!canSaveManualStatus}
-                      onClick={saveManualStatus}
-                    >
-                      <Icon name="check" />
-                      ステータスを変更する
-                    </button>
+                  <div className="mt-4 grid gap-5">
+                    <FormField label="変更先ステータス" required><Select value={manualStatus} onChange={event => setManualStatus(event.target.value as Status)}>{statusOptions.map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}</Select></FormField>
+                    <FormField label="変更理由" required><Textarea value={manualStatusReason} onChange={event => setManualStatusReason(event.target.value)} placeholder="例: お客様から電話で変更依頼があったため" /></FormField>
+                    {!canSaveManualStatus && <p className="text-sm text-muted-foreground">現在と異なる状態を選び、変更理由を入力してください。</p>}
+                    <Button type="button" disabled={!canSaveManualStatus} onClick={saveManualStatus}>変更内容を確認</Button>
                   </div>
                 )}
               </section>
             </>
           ) : (
-            <section className="drawer-primary-action">
-              <p className="section-label">店舗割当を編集</p>
-              <div className="assignment-editor">
-                {assignmentDraft.map((assignment, index) => (
-                  <div className="assignment-row" key={index}>
-                    <select
-                      value={assignment.store}
-                      onChange={(event) =>
-                        updateAssignment(index, { store: event.target.value })
-                      }
-                    >
-                      <StoreAssignmentOptions stores={stores} assignments={assignmentDraft} index={index} />
-                    </select>
-                    <input
-                      type="number"
-                      min="1"
-                      max={r.people}
-                      value={assignment.people || ""}
-                      onChange={(event) =>
-                        updateAssignment(index, {
-                          people: Number(event.target.value),
-                        })
-                      }
-                    />
-                    <span>名</span>
-                    <button onClick={() => removeAssignment(index)}>
-                      削除
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button
-                className="edit-reservation-button"
-                disabled={allAssignmentStoresUsed}
-                onClick={addAssignment}
-              >
-                割当行を追加
-              </button>
-              <div
-                className={
-                  assignmentDraft.length === 0 || assignedPeople === r.people
-                    ? "assignment-total ok"
-                    : "assignment-total warn"
-                }
-              >
-                {assignmentDraft.length === 0 ? (
-                  "未割当として保存できます"
-                ) : (
-                  <>
-                    割当合計 {assignedPeople}名 / 予約人数 {r.people}名
-                  </>
-                )}
-              </div>
-              {duplicateStores.length>0&&isAssigning&&<p role="alert" className="text-sm text-destructive">同じ店舗は複数行に割り当てられません：{duplicateStores.join("、")}</p>}
-              <div className="drawer-actions">
-                <button onClick={() => setIsAssigning(false)}>
-                  キャンセル
-                </button>
-                <button
-                  className="approve"
-                  disabled={!canSaveAssignments}
-                  onClick={saveAssignments}
-                >
-                  <Icon name="check" />
-                  保存する
-                </button>
-              </div>
+            <section className="p-5">
+              <p className="mb-3 text-sm font-semibold text-muted-foreground">店舗割当を編集</p>
+              <StoreAssignmentForm reservation={r} stores={stores} allowUnassigned onClose={() => setIsAssigning(false)} onSave={async assignments => {
+                setIsSavingAssignments(true);
+                try {
+                  const ok = await assignStores(r.id, assignments);
+                  if (ok) setIsAssigning(false);
+                  return ok;
+                } finally { setIsSavingAssignments(false); }
+              }} />
             </section>
           )}
         </div>
+        {isEditingReservation ? <AdminActions><Button type="button" variant="outline" disabled={isSavingReservation} onClick={() => leaveDraft(cancelReservationEdit)}>キャンセル</Button><Button type="submit" form="reservation-editor" disabled={isSavingReservation}>{isSavingReservation ? "保存中…" : "保存する"}</Button></AdminActions> : !isAssigning && <AdminActions><Button type="button" variant="outline" onClick={closeDetail}>閉じる</Button></AdminActions>}
     </ReservationDetailsDialog>
   );
 }
 
 
-function NewReservationDrawer({
-  form,
-  setForm,
-  onClose,
-  onSubmit,
-  menuCatalog,
-}: {
-  form: BookingForm;
-  setForm: Dispatch<SetStateAction<BookingForm>>;
-  onClose: () => void;
-  onSubmit: () => void;
-  menuCatalog: Menu[];
-}) {
-  const groupReady =
-    !isGroupBooking(form) ||
-    Boolean(
-      form.bookingContactName &&
-      form.dayContactName &&
-      form.dayContactPhone &&
-      form.groupName &&
-      form.groupType,
-    );
-  const canSubmit = Boolean(
-    form.name &&
-    form.email &&
-    form.phone &&
-    form.date &&
-    form.startTime &&
-    form.people &&
-    groupReady,
-  );
-  const total = selectedMenuTotal(form.menuItems, menuCatalog);
-
-  return (
-    <>
-      <div className="drawer-shade" onClick={onClose} />
-      <aside className="drawer new-reservation-drawer">
-        <header>
-          <div>
-            <span className="badge blue">
-              <i />
-              新規登録
-            </span>
-            <h2>新規予約</h2>
-          </div>
-          <button onClick={onClose}>
-            <Icon name="close" />
-          </button>
-        </header>
-        <div className="drawer-body">
-          <section>
-            <p className="section-label">予約内容</p>
-            <div className="drawer-form">
-              <label>
-                登録時ステータス
-                <select
-                  value={form.status ?? STATUS.temporaryRequested}
-                  onChange={(event) =>
-                    setForm({ ...form, status: event.target.value as Status })
-                  }
-                >
-                  <option value={STATUS.confirmed}>
-                    {statusLabel(STATUS.confirmed)}
-                  </option>
-                  <option value={STATUS.temporaryRequested}>
-                    {statusLabel(STATUS.temporaryRequested)}
-                  </option>
-                  <option value={STATUS.temporaryConfirmed}>
-                    {statusLabel(STATUS.temporaryConfirmed)}
-                  </option>
-                  <option value={STATUS.confirmedRequested}>
-                    {statusLabel(STATUS.confirmedRequested)}
-                  </option>
-                </select>
-              </label>
-              <label>
-                予約区分
-                <select
-                  value={form.bookingType ?? "individual"}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      bookingType: event.target
-                        .value as BookingForm["bookingType"],
-                      accountType:
-                        event.target.value === "travel_agency_group"
-                          ? "travel_agency"
-                          : "individual",
-                      tcCount:
-                        event.target.value === "travel_agency_group"
-                          ? (form.tcCount ?? 0)
-                          : 0,
-                      dgCount:
-                        event.target.value === "travel_agency_group"
-                          ? (form.dgCount ?? 0)
-                          : 0,
-                    })
-                  }
-                >
-                  <option value="individual">一般予約</option>
-                  <option value="travel_agency_group">
-                    旅行会社様専用 団体予約
-                  </option>
-                </select>
-              </label>
-              <label>
-                利用日
-                <input
-                  type="date"
-                  value={form.date}
-                  onChange={(event) =>
-                    setForm({ ...form, date: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                開始時間
-                <input
-                  type="time"
-                  value={form.startTime}
-                  onChange={(event) => {
-                    const startTime = event.target.value;
-                    setForm({
-                      ...form,
-                      startTime,
-                      endTime: bookingFormEndTime(
-                        { ...form, startTime, endTime: undefined },
-                        menuCatalog,
-                      ),
-                    });
-                  }}
-                />
-              </label>
-              <label>
-                終了時間
-                <input
-                  type="time"
-                  value={form.endTime ?? bookingFormEndTime(form, menuCatalog)}
-                  onChange={(event) =>
-                    setForm({ ...form, endTime: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                人数
-                <input
-                  type="number"
-                  min="1"
-                  max="999"
-                  value={form.people || ""}
-                  onChange={(event) =>
-                    setForm({ ...form, people: Number(event.target.value) })
-                  }
-                />
-              </label>
-            </div>
-          </section>
-          <section>
-            <p className="section-label">お客様情報</p>
-            <div className="drawer-form single">
-              <label>
-                {isGroupBooking(form) ? "会社・支店名" : "お名前"}
-                <input
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      name: event.target.value,
-                      companyBranchName: isGroupBooking(form)
-                        ? event.target.value
-                        : form.companyBranchName,
-                    })
-                  }
-                />
-              </label>
-              <label>
-                メールアドレス
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) =>
-                    setForm({ ...form, email: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                電話番号
-                <input
-                  value={form.phone}
-                  onChange={(event) =>
-                    setForm({ ...form, phone: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                住所
-                <input
-                  value={form.address}
-                  onChange={(event) =>
-                    setForm({ ...form, address: event.target.value })
-                  }
-                />
-              </label>
-            </div>
-          </section>
-          {isGroupBooking(form) && (
-            <section>
-              <p className="section-label">予約担当者</p>
-              <GroupReservationContactFields form={form} setForm={setForm} />
-            </section>
-          )}
-          {isGroupBooking(form) && (
-            <section>
-              <GroupReservationFields form={form} setForm={setForm} />
-            </section>
-          )}
-          <section className="drawer-primary-action">
-            <p className="section-label">任意メニュー</p>
-            {isGroupBooking(form) && (
-              <GroupReservationPeopleFields form={form} setForm={setForm} />
-            )}
-            <MenuPicker
-              menuCatalog={menuCatalog}
-              selected={form.menuItems}
-              onChange={(menuItems) =>
-                setForm({
-                  ...form,
-                  menuItems,
-                  endTime: bookingFormEndTime(
-                    { ...form, menuItems, endTime: undefined },
-                    menuCatalog,
-                  ),
-                })
-              }
-            />
-            <PaymentAndRemarksFields form={form} setForm={setForm} />
-            <div className="reservation-summary">
-              <strong>{menuSelectionLabel(form.menuItems)}</strong>
-              <span>
-                {form.date && form.startTime && form.people
-                  ? `${bookingFormDateTimeLabel({ ...form, endTime: form.endTime ?? bookingFormEndTime(form, menuCatalog) })}・${form.people}名`
-                  : "日時・人数を入力してください"}
-              </span>
-              <small>
-                {"¥"}
-                {total.toLocaleString()}
-              </small>
-            </div>
-            <button
-              className="full-action"
-              disabled={!canSubmit}
-              onClick={onSubmit}
-            >
-              <Icon name="check" />
-              予約を登録する
-            </button>
-          </section>
-        </div>
-      </aside>
-    </>
-  );
+function NewReservationDrawer({ form, setForm, onClose, onSubmit, menuCatalog, busy, error }: { form: BookingForm; setForm: Dispatch<SetStateAction<BookingForm>>; onClose: () => void; onSubmit: (values: BookingForm) => Promise<void>; menuCatalog: Menu[]; busy: boolean; error: string }) {
+  return <AdminFormDialog title="新規予約" dirty={JSON.stringify(form) !== JSON.stringify(emptyReservationForm(STATUS.confirmed))} busy={busy} onClose={onClose} actions={<Button type="submit" form="admin-new-reservation" disabled={busy}>{busy ? "登録中…" : "予約を登録する"}</Button>}>
+    <AdminBookingForm id="admin-new-reservation" value={form} onChange={setForm} menuCatalog={menuCatalog} busy={busy} error={error} onSubmit={onSubmit} creating />
+  </AdminFormDialog>;
 }

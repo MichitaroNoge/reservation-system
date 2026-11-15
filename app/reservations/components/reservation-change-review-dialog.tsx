@@ -1,4 +1,6 @@
 "use client";
+import { AdminActions, useAdminInteractions } from "@/components/ui/admin-interactions";
+import { ReservationHistoryButton } from "./reservation-history";
 import { Button } from "@/components/ui/button";
 import { ReservationDetailsDialog } from "@/components/ui/reservation-details-dialog";
 import { policyConsentDetail } from "@/lib/cancellation-policy-consent";
@@ -7,11 +9,16 @@ import type { Reservation } from "../types";
 import { Icon } from "./common";
 import { assignmentLabel, dateTimeMinuteLabel, reservationBookingTypeLabel, reservationDateTimeLabel, reservationDisplayLabel } from "../formatters";
 
-export function ReservationChangeReviewDialog({ request, reservation: r, onClose }: {
+export function ReservationChangeReviewDialog({ request, reservation: r, onClose, onApprove, onReject, getAdminToken }: {
+  getAdminToken: () => Promise<string>;
   request: ReservationChangeRequest;
   reservation?: Reservation;
   onClose: () => void;
+  onApprove: (id: string) => Promise<string | undefined>;
+  onReject: (id: string) => Promise<void>;
 }) {
+  const { confirm } = useAdminInteractions();
+  const ask = (approve: boolean) => void confirm({ title: approve ? "予約変更を承認しますか？" : "予約変更を却下しますか？", description: approve ? "希望内容で予約を更新します。通知メールは既存の送信設定に従って処理されます。" : "変更申請を却下します。現在の予約内容は維持されます。", details: <p className="break-words text-sm">{request.reservationId} / {request.customer}<br />{request.requestedDate} {request.requestedStartTime}・{request.requestedPeople}名</p>, confirmLabel: approve ? "承認する" : "却下する", destructive: !approve, onConfirm: async () => { if (approve) { const message = await onApprove(request.id); if (message) throw new Error(message); } else await onReject(request.id); onClose(); } });
   const menuLabel = (items: string[]) => items.length ? items.join("、") : "メニュー未選択";
   const rows = [
     { label: "利用日", before: request.currentDate.replaceAll("-", "/"), after: request.requestedDate.replaceAll("-", "/"), changed: request.currentDate !== request.requestedDate },
@@ -34,10 +41,11 @@ export function ReservationChangeReviewDialog({ request, reservation: r, onClose
   return (
     <ReservationDetailsDialog title="予約変更内容の確認" onClose={onClose}>
         <header className="flex shrink-0 items-center justify-between border-b border-border px-5 py-4">
-          <div><p className="text-sm text-muted-foreground">予約変更内容の確認 · 閲覧のみ</p><h2 className="text-xl font-semibold">{request.reservationId}</h2>{r && <p className="mt-1 text-sm">{reservationDisplayLabel(r)}</p>}</div>
+          <div><p className="text-sm text-muted-foreground">予約変更内容の確認</p><h2 className="text-xl font-semibold">{request.reservationId}</h2>{r && <p className="mt-1 text-sm">{reservationDisplayLabel(r)}</p>}</div>
           <Button id="change-review-close" type="button" variant="ghost" size="icon" aria-label="閉じる" onClick={onClose}><Icon name="close" /></Button>
         </header>
         <div className="min-h-0 overflow-y-auto p-5">
+          <div className="mb-5"><ReservationHistoryButton reservationId={request.reservationId} getAdminToken={getAdminToken} /></div>
           <section aria-labelledby="change-review-heading">
             <h3 id="change-review-heading" className="font-semibold">変更前・変更後 <span className="text-sm text-primary">{rows.filter((row) => row.changed).length}項目の変更</span></h3>
             <p className="mt-1 text-sm text-muted-foreground">申請日時：{dateTimeMinuteLabel(request.requestedAt)}</p>
@@ -54,6 +62,7 @@ export function ReservationChangeReviewDialog({ request, reservation: r, onClose
             <dl className="mt-3">{details.map(([label, value]) => <div key={label} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 border-b border-border py-3 text-sm"><dt className="text-muted-foreground">{label}</dt><dd className="whitespace-pre-wrap break-words">{value || "-"}</dd></div>)}</dl>
           </section>
         </div>
+        <AdminActions><Button variant="outline" onClick={onClose}>閉じる</Button><Button variant="outline" className="text-destructive" disabled={!r} onClick={() => ask(false)}>却下内容を確認</Button><Button disabled={!r} onClick={() => ask(true)}>承認内容を確認</Button></AdminActions>
     </ReservationDetailsDialog>
   );
 }

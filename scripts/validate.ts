@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { testFiles } from "./test-files";
+import { selectedTestFiles } from "./test-files";
 import { validationEnvironment } from "./validation-environment";
 
 function main() {
@@ -9,11 +9,11 @@ function main() {
   let args: string[];
   switch (mode) {
     case "unit":
-      args = ["--test", ...testFiles("tests").map(file => join(".tmp/test-build", file.replace(/\.ts$/, ".js")))];
+      args = ["--test", ...selectedTestFiles("tests", process.argv.slice(3)).map(file => join(".tmp/test-build", file.replace(/\.ts$/, ".js")))];
       break;
     case "db":
       // A single PGlite process at a time bounds memory on development PCs and CI runners.
-      args = ["--conditions=react-server", "--import", "tsx", "--test", "--test-concurrency=1", ...testFiles("tests/db")];
+      args = ["--conditions=react-server", "--import", "tsx", "--test", "--test-concurrency=1", ...selectedTestFiles("tests/db", process.argv.slice(3))];
       break;
     case "build":
       if (!process.env.npm_execpath) throw new Error("Run through npm run build:check.");

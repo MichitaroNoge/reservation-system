@@ -26,7 +26,7 @@ export function InquiryConversation({ detail, admin = false, originalMessageActi
         <span className="min-w-0 break-words font-semibold">{message.author}{message.name && message.name !== message.author && <span className="ml-2 break-words font-normal text-muted-foreground">{message.name}</span>}</span>
         <time dateTime={message.at} className="text-xs text-muted-foreground">{inquiryDate(message.at)}</time>
       </div>
-      {message.status && <p className={`mt-1 text-xs ${message.status === "sent" ? "text-muted-foreground" : "text-warning"}`}>{admin ? `メール：${mailStatusLabels[message.status]}` : customerEmailLabels[message.status]}</p>}
+      {message.status && <p className={`mt-1 text-xs ${(admin ? message.status !== "failed" && message.status !== "unknown" : message.status === "sent") ? "text-muted-foreground" : "text-warning"}`}>{admin ? `メール：${mailStatusLabels[message.status]}` : customerEmailLabels[message.status]}</p>}
       <h3 className="mt-2 break-words font-medium">{message.subject}</h3>
       <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{message.body}</p>
       {message.action}

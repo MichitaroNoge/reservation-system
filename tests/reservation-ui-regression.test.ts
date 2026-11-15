@@ -1,3 +1,4 @@
+import { approvalDecision } from "../lib/reservation-availability";
 import {reservationPageSource} from "./reservation-page-source";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -29,15 +30,9 @@ test("customer pages expose direct entry links for the official website", async 
   }
 });
 
-test("reservation drawer rejects confirmed change requests back to temporary confirmation", async () => {
-  const pageSource = await reservationPageSource();
-
-  assert.match(
-    pageSource,
-    /isConfirmedReservationChangeRequest\(r\)\s*\?\s*STATUS\.temporaryConfirmed\s*:\s*STATUS\.confirmedRejected/,
-    "confirmed reservation change rejection in the drawer must return to temporary confirmation",
-  );
-  assert.match(pageSource, /本予約変更を却下する/);
+test("approval decisions reject confirmed conversion back to the existing temporary reservation", () => {
+  assert.deepEqual(approvalDecision("confirmed_requested", "confirmed_from_temporary"), { approve: "confirmed", reject: "temporary_confirmed" });
+  assert.deepEqual(approvalDecision("confirmed_requested"), { approve: "confirmed", reject: "confirmed_rejected" });
 });
 
 test("confirmed reservation request screen uses explicit request type", async () => {
@@ -111,20 +106,20 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.match(formatterSource, /export function fullDateHeadingLabel/);
   assert.match(formatterSource, /year.+month.+day.+weekday/s);
   assert.doesNotMatch(pageSource, /<nav><p>メニュー<\/p>/);
-  assert.match(pageSource, /マスタ管理/);
+  assert.match(pageSource, /マスタ・設定/);
   assert.match(commonSource, /settings:/);
-  assert.match(pageSource, /<Icon name="settings"\s*\/>[\s\S]*マスタ管理/);
+  assert.match(pageSource, /<Icon name="settings"\s*\/>[\s\S]*マスタ・設定/);
   assert.match(pageSource, /view === "masters"[\s\S]*view === "customers"[\s\S]*view === "stores"[\s\S]*view === "menus"/);
   assert.doesNotMatch(pageSource, /<Icon name="users"\/>顧客管理<\/button><button className=\{view === "stores"/);
   assert.match(pageSource, /sortedReservations\.map\([\s\S]*onClick=\{[\s\S]*onSelect\(r\)/);
-  assert.match(pageSource, /reservations\.map\([\s\S]*onClick=\{\(\) => onSelect\(reservation\)\}/);
-  assert.match(pageSource, /requests\.map\([\s\S]*onClick=\{\(\) => void openChange\(request\)\}/);
+  assert.match(pageSource, /reservations\.map\([\s\S]*onClick=\{[\s\S]*onSelect\(reservation\)/);
+  assert.match(pageSource, /filteredRows\.map\([\s\S]*void openChange\(request\)/);
   const changeReviewSource = await readFile(path.join(process.cwd(), "app/reservations/components/reservation-change-review-dialog.tsx"), "utf8");
   assert.match(changeReviewSource, /変更前・変更後/);
   assert.match(changeReviewSource, /予約の基本情報（現在）/);
   assert.doesNotMatch(changeReviewSource, /updateReservation|assignStores|updateStatus|updateConfirmationContact/);
-  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*updateStatus/);
-  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*void approve\(request\.id\)/);
+  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*onSelect\(reservation\)/);
+  assert.match(pageSource, /event\.stopPropagation\(\);[\s\S]*void openChange\(request\)/);
   assert.doesNotMatch(pageSource, /reservation-id-cell|reservation-list-table/);
   assert.doesNotMatch(pageSource, /管理者判断で通常の遷移以外にも変更できます/);
   assert.match(pageSource, /const\s*\[\s*reservationStatusFilters,\s*setReservationStatusFilters\s*\]\s*=\s*useState<\s*Status\[\]\s*>/);
@@ -149,7 +144,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(storeManagementSource, /<span>有効な店舗<\/span>|必要な店舗だけ有効に戻せます。/);
   assert.doesNotMatch(menuManagementSource, /<span>登録済みメニュー<\/span>|必要なメニューだけ有効に戻せます。/);
   assert.match(pageSource, /isMasterChildView =[\s\S]*view === "customers"[\s\S]*view === "stores"[\s\S]*view === "menus"/);
-  assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ管理/);
+  assert.match(pageSource, /className="breadcrumb-back"[\s\S]*マスタ・設定/);
   assert.match(pageSource, /onSelectMasterView\("masters"\)/);
   assert.match(styleSource, /\.breadcrumb-back/);
   assert.doesNotMatch(pageSource, /<h3>未対応の(?:予約承認|本予約変更承認|予約変更承認|キャンセル承認)<\/h3>/);
@@ -174,17 +169,19 @@ test("reservation and cancellation approval screens stay separated", async () =>
   assert.doesNotMatch(pageSource, /normalizedReservation = !contactedAt/, "confirmation status must be persisted by the API, not synthesized only in the browser");
   assert.doesNotMatch(pageSource, /const saveConfirmationContact[\s\S]*return applyAutomaticStatus\(reservation\);[\s\S]*const updateConfirmationContact/);
   assert.match(pageSource, /const updateConfirmationContact = async[\s\S]*try \{[\s\S]*catch \(error\)/);
-  assert.match(pageSource, /notify\(message\)/);
+  assert.match(pageSource, /notify\(message, "error"\)/);
   assert.match(pageSource, /確認メールを送信しました/);
-  assert.match(pageSource, /確認メールの一括送信に失敗しました/);
-  assert.match(pageSource, /確認メール送信/);
-  assert.match(pageSource, /手動で確認済みにする/);
-  assert.match(pageSource, /sendEmail: false/);
+  assert.match(pageSource, /件が失敗しました/);
+  assert.match(pageSource, /確認メールを送信/);
+  assert.match(pageSource, /手動で連絡済みにする/);
+  assert.match(pageSource, /sendEmail: mode === "send"/);
   assert.match(pageSource, /確認メール一括送信/);
   assert.match(pageSource, /送信中/);
   assert.match(pageSource, /確認メールを送信しますか？/);
-  assert.match(pageSource, /setIsConfirmingConfirmationEmail\(true\)/);
-  assert.match(pageSource, /confirmation-send-confirm/);
+  const interactionSource = await readFile(path.join(process.cwd(), "components/ui/admin-interactions.tsx"), "utf8");
+  assert.match(pageSource, /mode === "send"/);
+  assert.match(interactionSource, /confirmation\?\.confirmLabel/);
+  assert.match(interactionSource, /role="alert"/);
   assert.doesNotMatch(pageSource, /メールアドレス未登録|reservationDateTimeLabel\(r\)<\/small>/);
   assert.doesNotMatch(pageSource, /確認連絡済みにする|一括更新|更新中/);
   assert.match(resendClientSource, /メールの送信に失敗しました/);

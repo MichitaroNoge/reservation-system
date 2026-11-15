@@ -1,3 +1,5 @@
+import { finishHistory, recordAdminEdit, requestHistory } from "@/lib/services/reservation-history-service";
+import { historyActor, reservationSnapshot } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse, readJsonObject, validateReservationStatus } from "@/lib/api-validation";
@@ -13,7 +15,7 @@ export const runtime = "nodejs";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin(request);
+    const user = await requireAdmin(request);
     const { id } = await context.params;
     const body = await readJsonObject(request);
     const nextStatus = validateReservationStatus(body.status);
@@ -34,12 +36,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           throw new ApiValidationError("受入不可の日時と重なるため承認できません。");
         }
       }
+      const decisionAt = new Date().toISOString();
+      const before = { ...current, ...reservationSnapshot(current) };
       const reservation = await repository.updateReservationStatus(id, nextStatus);
-      const approvalEmailType = approvalEmailTypeForTransition(current.status, nextStatus, current.requestType);
-      if (approvalEmailType) await repository.createApprovalEmailDelivery({
+      const kind = before.status === "temporary_requested" || before.status === "confirmed_requested" ? before.requestType === "confirmed_from_temporary" ? "confirmed_conversion" : "reservation" : before.status === "cancellation_requested" ? "cancellation" : null;
+      const approvalEmailType = approvalEmailTypeForTransition(before.status, nextStatus, before.requestType);
+      const delivery = approvalEmailType ? await repository.createApprovalEmailDelivery({
         deliveryKey: approvalEmailDeliveryKey(id, approvalEmailType, nextStatus),
         reservationId: id, type: approvalEmailType, referenceId: nextStatus, requestedAt: new Date().toISOString(),
-      });
+      }) : null;
+      const notificationReference = delivery && Date.parse(delivery.requestedAt) >= Date.parse(decisionAt) ? { deliveryKey: delivery.deliveryKey, requestedAt: delivery.requestedAt } : undefined;
+      if (kind && before.status !== nextStatus) await finishHistory(repository, before, reservation, { kind, actor: historyActor(user, "admin"), notificationReference, status: nextStatus === "temporary_rejected" || nextStatus === "confirmed_rejected" || before.requestType === "confirmed_from_temporary" && nextStatus === "temporary_confirmed" ? "rejected" : manualReason ? "completed" : "approved" });
+      if (manualReason || !kind && before.status !== nextStatus) await recordAdminEdit(repository, before, reservation, historyActor(user, "admin"), "manual_status", manualReason || "管理画面から状態を変更", notificationReference);
+      if (manualReason && before.status !== nextStatus && ["temporary_requested", "confirmed_requested", "cancellation_requested"].includes(nextStatus)) await requestHistory(repository, reservation, { kind: nextStatus === "cancellation_requested" ? "cancellation" : reservation.requestType === "confirmed_from_temporary" ? "confirmed_conversion" : "reservation", actor: historyActor(user, "admin"), before: reservationSnapshot(before), reason: manualReason });
       return { reservation, approvalEmailType };
     });
     if (!updated) return NextResponse.json({ error: "Reservation not found" }, { status: 404 });

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { inquiryDate, type InquiryReply } from "@/lib/inquiries/types";
 import { isReplyDeliveryComplete, replyDeliveryPresentation } from "@/lib/inquiries/reply-delivery-presentation";
-import { controlClass } from "./shared";
+import { Select } from "@/components/ui/select";
 
 type ReplyActions = {
   busy: boolean;
@@ -72,7 +72,7 @@ function InquiryReplyResolution({ replyId, busy, error, onResolve, restoreFocus 
       <DialogTitle>メールの送信結果を記録</DialogTitle>
       <DialogDescription className="mt-2">Resendの送信履歴を確認してください。この操作ではメールを再送しません。保存した回答は回答履歴に残ります。</DialogDescription>
       {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
-      <label className="mt-4 grid gap-2 text-sm">確認した結果<select className={controlClass} value={outcome} disabled={busy} onChange={event => { setOutcome(event.target.value as "sent" | "not_sent"); setChecked(false); }}><option value="not_sent">メール送信を終了し、履歴での回答を継続する</option><option value="sent">Resendで送信済みであることを確認した</option></select></label>
+      <label className="mt-4 grid gap-2 text-sm">確認した結果<Select value={outcome} disabled={busy} onChange={event => { setOutcome(event.target.value as "sent" | "not_sent"); setChecked(false); }}><option value="not_sent">メール送信を終了し、履歴での回答を継続する</option><option value="sent">Resendで送信済みであることを確認した</option></Select></label>
       <label className="mt-4 flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 size-4" checked={checked} disabled={busy} onChange={event => setChecked(event.target.checked)} />送信履歴を確認しました。メールを再送せず、この結果を記録します。</label>
       <div className="mt-5 flex flex-wrap justify-end gap-3"><Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>戻る</Button><Button type="button" disabled={busy || !checked} onClick={async () => {
         if (busy || submitting.current) return;

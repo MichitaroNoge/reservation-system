@@ -1,4 +1,8 @@
 "use client";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import {
   defaultPaymentCondition,
@@ -6,6 +10,7 @@ import {
   paymentConditions
 } from "@/lib/domain";
 import {
+  useId,
   type Dispatch,
   type SetStateAction
 } from "react";
@@ -145,10 +150,9 @@ function GroupReservationContactFields({
   setForm: Dispatch<SetStateAction<BookingForm>>;
 }) {
   return (
-    <div className="drawer-form single">
-      <label>
-        予約担当者名
-        <input
+    <div className="grid min-w-0 gap-4">
+      <FormField label="予約担当者名">
+        <Input
           value={form.bookingContactName ?? ""}
           onChange={(event) =>
             setForm((current) => ({
@@ -158,10 +162,9 @@ function GroupReservationContactFields({
             }))
           }
         />
-      </label>
-      <label>
-        当日責任者名
-        <input
+      </FormField>
+      <FormField label="当日責任者名">
+        <Input
           value={form.dayContactName ?? ""}
           onChange={(event) =>
             setForm((current) => ({
@@ -170,10 +173,9 @@ function GroupReservationContactFields({
             }))
           }
         />
-      </label>
-      <label>
-        当日責任者携帯番号
-        <input
+      </FormField>
+      <FormField label="当日責任者携帯番号">
+        <Input
           value={form.dayContactPhone ?? ""}
           onChange={(event) =>
             setForm((current) => ({
@@ -182,7 +184,7 @@ function GroupReservationContactFields({
             }))
           }
         />
-      </label>
+      </FormField>
     </div>
   );
 }
@@ -195,11 +197,13 @@ function GroupReservationPeopleFields({
   form: BookingForm;
   setForm: Dispatch<SetStateAction<BookingForm>>;
 }) {
+  const tcHelpId = useId();
+  const dgHelpId = useId();
   return (
-    <div className="drawer-form single">
-      <label>
-        T/C
-        <input
+    <div className="grid min-w-0 gap-4">
+      <FormField label="T/C">
+        <Input
+          aria-describedby={tcHelpId}
           type="number"
           min="0"
           max="999"
@@ -211,13 +215,13 @@ function GroupReservationPeopleFields({
             }))
           }
         />
-        <small>
+        <small id={tcHelpId} className="text-xs font-normal leading-relaxed text-muted-foreground">
           添乗員・通訳ガイド様の現地でのお食事。（同食、同額となります。）
         </small>
-      </label>
-      <label>
-        D/G
-        <input
+      </FormField>
+      <FormField label="D/G">
+        <Input
+          aria-describedby={dgHelpId}
           type="number"
           min="0"
           max="999"
@@ -229,10 +233,10 @@ function GroupReservationPeopleFields({
             }))
           }
         />
-        <small>
+        <small id={dgHelpId} className="text-xs font-normal leading-relaxed text-muted-foreground">
           ドライバー・ガイド様の持ち帰り弁当1,000円（税込）（店舗にとりに来ていただくようになります。）
         </small>
-      </label>
+      </FormField>
     </div>
   );
 }
@@ -248,10 +252,9 @@ function GroupReservationFields({
   return (
     <div className="group-reservation-fields">
       <p className="section-label">団体情報</p>
-      <div className="drawer-form single">
-        <label>
-          団体名
-          <input
+      <div className="grid min-w-0 gap-4">
+        <FormField label="団体名">
+          <Input
             value={form.groupName ?? ""}
             onChange={(event) =>
               setForm((current) => ({
@@ -260,10 +263,9 @@ function GroupReservationFields({
               }))
             }
           />
-        </label>
-        <label>
-          団体ふりがな
-          <input
+        </FormField>
+        <FormField label="団体ふりがな">
+          <Input
             value={form.groupNameKana ?? ""}
             onChange={(event) =>
               setForm((current) => ({
@@ -272,10 +274,9 @@ function GroupReservationFields({
               }))
             }
           />
-        </label>
-        <label>
-          団体種別
-          <select
+        </FormField>
+        <FormField label="団体種別">
+          <Select
             value={form.groupType ?? ""}
             onChange={(event) =>
               setForm((current) => ({
@@ -290,12 +291,11 @@ function GroupReservationFields({
                 {option}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </FormField>
         {form.groupType === "その他" && (
-          <label>
-            団体種別 その他
-            <input
+          <FormField label="団体種別 その他">
+            <Input
               value={form.groupTypeOther ?? ""}
               onChange={(event) =>
                 setForm((current) => ({
@@ -304,7 +304,7 @@ function GroupReservationFields({
                 }))
               }
             />
-          </label>
+          </FormField>
         )}
       </div>
     </div>
@@ -320,10 +320,9 @@ function PaymentAndRemarksFields({
   setForm: Dispatch<SetStateAction<BookingForm>>;
 }) {
   return (
-    <div className="drawer-form single">
-      <label>
-        支払条件
-        <select
+    <div className="grid min-w-0 gap-4">
+      <FormField label="支払条件">
+        <Select
           value={form.paymentCondition ?? defaultPaymentCondition}
           onChange={(event) =>
             setForm((current) => ({
@@ -338,17 +337,16 @@ function PaymentAndRemarksFields({
               {option.label}
             </option>
           ))}
-        </select>
-      </label>
-      <label>
-        備考
-        <textarea
+        </Select>
+      </FormField>
+      <FormField label="備考">
+        <Textarea
           value={form.remarks ?? ""}
           onChange={(event) =>
             setForm((current) => ({ ...current, remarks: event.target.value }))
           }
         />
-      </label>
+      </FormField>
     </div>
   );
 }

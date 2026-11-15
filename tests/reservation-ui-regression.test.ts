@@ -78,7 +78,7 @@ test("reservation and cancellation approval screens stay separated", async () =>
   const pageSource = (await reservationPageSource()).replace(/\s+/g, " ");
   const commonSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "common.tsx"), "utf8");
   const formatterSource = await readFile(path.join(process.cwd(), "app", "reservations", "formatters.ts"), "utf8");
-  const styleSource = await readFile(path.join(process.cwd(), "app", "globals.css"), "utf8");
+  const styleSource = (await Promise.all(["globals.css", "legacy.css"].map(file => readFile(path.join(process.cwd(), "app", file), "utf8")))).join("\n");
   const typeSource = await readFile(path.join(process.cwd(), "app", "reservations", "types.ts"), "utf8");
   const customerManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "customer-management.tsx"), "utf8");
   const storeManagementSource = await readFile(path.join(process.cwd(), "app", "reservations", "components", "store-management.tsx"), "utf8");

@@ -6,13 +6,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CustomerPageActions } from "@/components/ui/customer-page-layout";
 import { useCustomerSession } from "@/app/reservations/hooks/use-customer-session";
 import { ApiRequestError, requestJson } from "@/app/reservations/api-client";
 import { inquiryFormSchema, generalInquiryCategories, reservationInquiryCategories, type InquiryFormInput } from "@/lib/inquiries/types";
-import { ContactShell, controlClass } from "./shared";
+import { ContactShell } from "./shared";
 import { AnonymousInquiryFormSession, type InquiryFormProof } from "./anonymous-form-session";
 import { availabilityDateError, inquiryToday, MAX_INQUIRY_PEOPLE } from "@/lib/inquiries/availability";
 
@@ -128,8 +130,8 @@ export function ContactForm({ reservationNumber }: { reservationNumber?: string 
       <div>
         <Label htmlFor="category">問い合わせ種別 <span className="text-xs text-muted-foreground">必須</span>
         </Label>
-        <select {...register("category")} id="category" className={`${controlClass} mt-2`} disabled={!!reservation || locked}>{Object.entries(categories).map(([key, label]) =>
-          <option key={key} value={key}>{label}</option>)}</select>{fieldError("category")}</div>
+        <Select {...register("category")} id="category" className="mt-2" disabled={!!reservation || locked}>{Object.entries(categories).map(([key, label]) =>
+          <option key={key} value={key}>{label}</option>)}</Select>{fieldError("category")}</div>
       {availability ? <fieldset className="space-y-4">
         <legend className="text-sm font-medium">ご希望の食事日時・人数</legend>
         <p className="text-xs text-muted-foreground">日時は日本時間で入力してください。</p>
@@ -147,7 +149,7 @@ export function ContactForm({ reservationNumber }: { reservationNumber?: string 
       </div>}
       <div>
         <Label htmlFor="body">{availability ? "その他質問" : "問い合わせ内容"} <span className="text-xs text-muted-foreground">{availability ? "任意" : "必須"}</span></Label>
-        <textarea {...register("body")} id="body" className={controlClass + " mt-2 min-h-48"} maxLength={5000} readOnly={locked} aria-invalid={!!errors.body} aria-describedby={errors.body ? "body-error" : undefined} />{fieldError("body")}
+        <Textarea {...register("body")} id="body" className="mt-2 min-h-48" maxLength={5000} readOnly={locked} aria-invalid={!!errors.body} aria-describedby={errors.body ? "body-error" : undefined} />{fieldError("body")}
       </div>
       <div className="hidden" aria-hidden="true">
         <label htmlFor="website">Website</label>

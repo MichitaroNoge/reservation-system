@@ -1,9 +1,12 @@
 "use client";
+import { ReservationStatusBadge } from "@/components/ui/reservation-status-badge";
+
 import { ReservationInquiryHistoryButton } from "@/components/inquiries/reservation-inquiry-history";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { Label } from "@/components/ui/label";
@@ -46,7 +49,6 @@ import { ReservationFeeReconfirmation } from "./components/reservation-fee-recon
 import {
   DEFAULT_START_TIME,
   STATUS,
-  statusClass
 } from "./constants";
 import { applyAccountToReservationForm } from "./customer-form";
 import {
@@ -903,12 +905,7 @@ function CustomerReservationDashboard({
                 >
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    <span
-                      className={"badge " + statusClass[reservation.status]}
-                    >
-                      <i />
-                      {reservationDisplayLabel(reservation)}
-                    </span>
+                    <ReservationStatusBadge status={reservation.status}>{reservationDisplayLabel(reservation)}</ReservationStatusBadge>
                     <h2 className="text-base font-semibold [overflow-wrap:anywhere]">{reservationDateTimeLabel(reservation)}</h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -1268,7 +1265,7 @@ function CustomerChangeRequestForm({
           <div className="form-fields reservation-date-fields">
             <label>
               変更希望日
-              <input
+              <Input className="mt-2"
                 type="date"
                 min={pendingRequest ? undefined : minimumDate}
                 aria-invalid={Boolean(form.requestedDate && dateBlocked)}
@@ -1280,7 +1277,7 @@ function CustomerChangeRequestForm({
             </label>
             <label>
               開始時間
-              <input
+              <Input className="mt-2"
                 type="time"
                 value={form.requestedStartTime}
                 onChange={(event) =>
@@ -1308,7 +1305,7 @@ function CustomerChangeRequestForm({
           <div className="form-fields single">
             <label>
               変更理由
-              <textarea
+              <Textarea className="mt-2"
                 value={form.reason}
                 onChange={(event) =>
                   onFormChange({ ...form, reason: event.target.value })
@@ -1395,7 +1392,7 @@ function CustomerContactRequestFields<T extends CustomerContactRequestForm>({
     <div className="form-fields single">
       <label>
         予約ID
-        <input
+        <Input className="mt-2"
           value={form.reservationId}
           placeholder="例: RSV-1047"
           onChange={(event) =>
@@ -1451,25 +1448,25 @@ function CustomerEmailVerificationPanel({
         に確認メールを送信しました。メール内のリンクを開いて認証を完了してください。
       </p>
       <div className="email-verification-actions">
-        <button type="button" onClick={onResend} disabled={isSubmitting}>
+        <Button type="button" variant="outline" className="min-h-11" onClick={onResend} disabled={isSubmitting}>
           確認メールを再送
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="next"
+          className="min-h-11"
           onClick={onRefresh}
           disabled={isSubmitting}
         >
           {isSubmitting ? "確認中" : "認証を確認"}
-        </button>
+        </Button>
       </div>
-      <button
+      <Button
         type="button"
-        className="email-verification-logout"
+        variant="ghost" className="mt-3 h-auto min-h-11 whitespace-normal"
         onClick={onLogout}
       >
         別のアカウントでログイン
-      </button>
+      </Button>
     </div>
   );
 }
@@ -2673,7 +2670,7 @@ function CustomerPortal({
                     <div className="form-fields single">
                       <label>
                         {isGroupBooking(form) ? "会社・支店名" : "お名前"}
-                        <input
+                        <Input className="mt-2"
                           value={
                             isGroupBooking(form)
                               ? (form.companyBranchName ?? form.name)
@@ -2694,7 +2691,7 @@ function CustomerPortal({
                       </label>
                       <label>
                         電話番号
-                        <input
+                        <Input className="mt-2"
                           value={form.phone}
                           onChange={(event) =>
                             setForm({ ...form, phone: event.target.value })
@@ -2703,7 +2700,7 @@ function CustomerPortal({
                       </label>
                       <label>
                         メールアドレス
-                        <input
+                        <Input className="mt-2"
                           type="email"
                           value={form.email}
                           onChange={(event) => {
@@ -2714,7 +2711,7 @@ function CustomerPortal({
                       </label>
                       <label>
                         住所
-                        <input
+                        <Input className="mt-2"
                           value={form.address}
                           onChange={(event) =>
                             setForm({ ...form, address: event.target.value })

@@ -21,13 +21,25 @@
 
 ### Windowsの準備
 
-1. Node.js 22以上、Docker Desktop、WSL 2を準備します。Docker DesktopはLinuxコンテナーで起動してください。
+1. Node.js 22.12以上、Docker Desktop、WSL 2を準備します。Docker DesktopはLinuxコンテナーで起動してください。
 2. `docker --version`、`docker compose version`、`docker info`が成功することを確認します。
 3. `npm install`を実行します。
 4. `.env.example`を`.env.development`へコピーして、ローカル専用のパスワードを設定します。
    既に`.env.development`がある場合は上書きせず、設定を確認してください。
 
 Docker Desktopの無料利用には組織規模等の条件があります。https://docs.docker.com/desktop/setup/install/windows-install/
+
+### 共通UIの確認（Storybook）
+
+共通UIだけを確認する場合は、DB・認証・メールの準備なしで次を実行できます。
+
+```powershell
+npm run storybook
+```
+
+`http://127.0.0.1:6006`で既存のデザイントークン・CSSを使った部品、管理一覧、顧客フォームを確認できます。`npm run dev:ui`も同じStorybookを起動します。旧`/design-system`カタログはStorybookへ移行しました。使用例と追加方法は[UI標準](docs/ui-design-system.md)を参照してください。
+
+`npm run build-storybook`で静的ファイルを`storybook-static/`へ出力します。このコマンドは公開・デプロイを行いません。
 
 ### 環境変数
 

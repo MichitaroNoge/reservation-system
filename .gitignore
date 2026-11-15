@@ -1,6 +1,7 @@
 .next/
 .next-dev/
 .next-check/
+storybook-static/
 node_modules/
 .env*
 !.env.example

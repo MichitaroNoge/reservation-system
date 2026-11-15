@@ -25,5 +25,7 @@ jobs:
       - run: npm ci
       - name: Types, lint, unit tests, isolated SQL tests and validation build
         run: npm run verify
+      - name: Build Storybook component catalog
+        run: npm run build-storybook
       - name: Firebase Auth emulator contract
         run: npm run test:auth

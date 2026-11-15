@@ -1,10 +1,10 @@
 # 開発時の検証環境
 
-更新日: 2026-11-09。変更範囲に応じて検証を選ぶ運用を採用。既存のNext.js 15・TypeScript・ESLint 9・Node.js test runner・tsx・PGlite・Firebase CLIを使用する。検証のための新しい依存パッケージは追加していない。
+更新日: 2026-11-15。変更範囲に応じて検証を選ぶ運用を採用。既存のNext.js 15・TypeScript・ESLint 9・Node.js test runner・tsx・PGlite・Firebase CLIを維持し、共通UIの確認にStorybook 10.6.7／Viteを追加した。
 
 ## 最初の準備と標準手順
 
-Node.js 22以上とnpmを用意する。適した既存のworktreeと導入済み依存を優先して使い、`npm ci`は初回、lockfile変更、依存の不整合など必要な場合だけ実行する。通常の検証にはDocker・実DB・実Firebaseアカウント・Resendの認証情報は不要。
+Node.js 22.12以上とnpmを用意する（Storybook／Viteの対応条件を含む）。適した既存のworktreeと導入済み依存を優先して使い、`npm ci`は初回、lockfile変更、依存の不整合など必要な場合だけ実行する。通常の検証にはDocker・実DB・実Firebaseアカウント・Resendの認証情報は不要。
 
 日常の修正では次の区分で必要なチェックを選ぶ。この方針は、以前の「すべての修正で`verify`と`test:auth`を実行する」手順を更新する。複数区分に該当する場合は必要なチェックを組み合わせる。
 
@@ -53,6 +53,8 @@ npm run test:auth
 | `npm run test:auth` | demoプロジェクトのAuthエミュレーターを起動し、実Firebase SDKによる契約テストを実行して停止。ホスト127.0.0.1、ポート9099・4400・4500 |
 | `npm run test:auth:contract` | 既に起動した専用エミュレーター内で使う内部コマンド。通常は`test:auth`を使う。テスト冒頭でローカル接続先を検査する |
 | `npm run build` | 通常のアプリ用ビルド。実行環境の設定を使って`.next`へ出力するため、日常の自律検証は`build:check`を使う |
+| `npm run storybook` | ダミー設定で127.0.0.1:6006に共通UIの確認環境を起動。`dev:ui`は同じ処理への互換コマンド |
+| `npm run build-storybook` | 同じダミー設定で`storybook-static/`へ静的ビルド。Storyのplay関数はこのビルドだけでは実行しない |
 | `npm run test:db:postgres -- --confirm reservation_system_test` | 任意の実PostgreSQL検証。専用ローカルテストDBを初期化するため、通常の`verify`・CIには含めない |
 
 通常テスト・PGliteのDBテスト・検証ビルドの子プロセスでは、実メール・OAuth・サービスアカウント・Cloud SQL設定を除去／無効化し、DB接続先とFirebaseプロジェクトを検証用に固定する。親のシェル環境や環境ファイルは書き換えない。DBドライバーはPGliteに固定し、既存の`DB_TEST_DRIVER=postgres`や初期化の確認値を引き継がない。
@@ -60,6 +62,8 @@ npm run test:auth
 `.next-check`の生成物はダミーのFirebase設定を含む検証専用で、配布しない。開発用`.next-dev`、通常ビルド`.next`と区別する。検証コマンドはアプリサーバー・メールワーカー・カレンダーワーカーを起動しない。`dev:local`／`start:local`はワーカーを起動するため、テスト用コマンドの代用にしない。
 
 ## 検証範囲
+
+- 共通UIの目視確認は`npm run storybook`（`dev:ui`も同じ動作）と127.0.0.1:6006を使用する。旧`/design-system`は廃止。既存のvalidationEnvironmentで外部認証情報を除き、StoryはAPIを呼ばず架空データを使う。PC1280px・モバイル390px・共有レイアウトでは768pxと境界幅で確認し、実業務フローの確認範囲とは区別する。Storyや設定・依存を変更した場合は`npm run build-storybook`も実行する。Docs・Controls・Viewportを使用し、playの成功はStorybookのInteractionsで確認する。静的ビルドだけではplayの実行成功を保証しない。Playwright／Vitest addonや画像差分の自動検証は未導入。
 
 - 通常テスト: 予約・認可・キャンセル条件・通知・問い合わせ・顧客画面の回帰、検証環境の安全な固定を確認する。
 - PGlite: SQLマイグレーション・Repository・API・本人の所有権・ロールバック・メール／カレンダーの送信予定などを検証。テストログの送信成功はモックの結果で、実メールの送信ではない。
@@ -69,7 +73,7 @@ npm run test:auth
 
 ## CI
 
-`.github/workflows/refactor-check.yml`でpush・pull request・手動起動を対象に、Node.js 22／`npm ci`／`verify`／`test:auth`を実行する。権限はcontents: read、上限20分。同じブランチの古い実行を取り消す。GitHub Secretsや実環境のFirebase変数を要求せず、デプロイ処理は含めない。
+`.github/workflows/refactor-check.yml`でpush・pull request・手動起動を対象に、Node.js 22の最新版／`npm ci`／`verify`／`build-storybook`／`test:auth`を実行する。権限はcontents: read、上限20分。同じブランチの古い実行を取り消す。GitHub Secretsや実環境のFirebase変数を要求せず、デプロイ処理は含めない。
 
 ## 失敗時の対応
 

@@ -13,9 +13,12 @@ export function useReservationPage(enabled: boolean, query: ReservationSearch, g
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const previousSearch = useRef<string | null>(null);
   const page = position.key === key ? position.page : 1;
 
   useEffect(() => {
+    const debounce = enabled && previousSearch.current !== null && previousSearch.current !== query.search;
+    previousSearch.current = enabled ? query.search : null;
     if (!enabled) return;
     const controller = new AbortController();
     setLoading(true);
@@ -39,10 +42,10 @@ export function useReservationPage(enabled: boolean, query: ReservationSearch, g
         if (!controller.signal.aborted) setLoading(false);
       }
     };
-    // Debounce typing; abort obsolete filters so an older response cannot replace the current result.
-    const timer = setTimeout(() => void load(), 200);
+    // Only text edits need a delay. Opening a screen, paging and explicit refreshes load immediately.
+    const timer = setTimeout(() => void load(), debounce ? 200 : 0);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [enabled, key, page, version, retry]);
+  }, [enabled, key, page, version, retry, query.search]);
 
   return {
     data, loading, error,

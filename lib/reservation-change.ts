@@ -1,5 +1,9 @@
 import { calculateReservationEndTime, type CreateReservationChangeRequestInput, type ReservationChangeRequest, type Reservation, type Menu } from "./domain";
 
+export function assertPendingReservationChange(request: Pick<ReservationChangeRequest, "status">) {
+  if (request.status !== "requested") throw Object.assign(new Error("この予約変更申請は既に処理されています。最新の処理結果を確認してください。"), { statusCode: 409 });
+}
+
 /** Preserve an explicitly scheduled end when the time and menu selection are unchanged. */
 export function reservationChangeEndTime(current: Pick<Reservation, "startTime" | "endTime" | "menuItems">, request: Pick<ReservationChangeRequest, "requestedStartTime" | "requestedMenuItems">, menus: Pick<Menu, "name" | "duration">[]) {
   const left = [...current.menuItems].sort(), right = [...request.requestedMenuItems].sort();

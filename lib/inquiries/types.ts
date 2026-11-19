@@ -23,7 +23,7 @@ const inquiryFieldsSchema = z.object({
 function validateInquiryFields(value: z.output<typeof inquiryFieldsSchema>, context: z.RefinementCtx) {
   if (value.category === "availability") {
     const details = inquiryAvailabilitySchema.safeParse(value);
-    if (!details.success) for (const issue of details.error.issues) context.addIssue(issue);
+    if (!details.success) for (const issue of details.error.issues) context.addIssue({ ...issue });
   } else {
     if (!value.subject) context.addIssue({ code: "custom", path: ["subject"], message: "件名を入力してください。" });
     if (!value.body) context.addIssue({ code: "custom", path: ["body"], message: "問い合わせ内容を入力してください。" });

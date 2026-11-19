@@ -30,6 +30,16 @@ export function reservationInterval(r: AvailabilityReservation, menus: Pick<Menu
   const finish = end !== null && start !== end ? day + end + (end < (start ?? 0) ? 1440 : 0) : begin + (duration || 1440);
   return { start: begin, end: finish, uncertain };
 }
+/** A conservative date window: final overlap and occupancy rules still run in reservationAvailability. */
+export function availabilityCandidateDates(target: AvailabilityReservation, menus: Pick<Menu, "name" | "duration">[]) {
+  const range = reservationInterval(target, menus);
+  if (!range) return null;
+  const longest = Math.max(1440, ...menus.map(menuDurationMinutes));
+  const day = (minutes: number) => new Date(Math.floor(minutes / 1440) * 86400000).toISOString().slice(0, 10);
+  // Include a full extra day for the latest possible start time and unknown historical times.
+  return { from: day(range.start - longest - 1440), to: day(range.end) };
+}
+
 export function reservationAvailability(target: AvailabilityReservation, reservations: AvailabilityReservation[], capacity: number | null, menus: Pick<Menu, "name" | "duration">[], blockedPeriods: AcceptanceBlock[] = []) {
   const range = reservationInterval(target, menus);
   const overlaps = reservations.flatMap(reservation => {

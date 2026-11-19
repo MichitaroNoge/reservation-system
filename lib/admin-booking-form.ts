@@ -3,6 +3,7 @@ import { customerBookingScheduleSchema } from "./customer-booking-schedule";
 
 /** Admin editing allows historical dates; lead-time and state rules remain server-owned. */
 export const adminBookingEditFormSchema = customerBookingScheduleSchema(null).extend({
+  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "開始時間を入力してください。"),
   name: z.string().trim().min(1, "お名前・会社名を入力してください。").max(100, "100文字以内で入力してください。"),
   email: z.string().email("メールアドレスを正しく入力してください。"),
   phone: z.string().trim().regex(/^[0-9+\-()\s]{8,30}$/, "電話番号は8〜30文字の数字・記号で入力してください。"),

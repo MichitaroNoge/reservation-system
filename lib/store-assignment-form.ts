@@ -17,7 +17,7 @@ export function storeAssignmentFormSchema(stores: Store[], saved: StoreAssignmen
   const allowed = new Set([...stores.map(store => store.name), ...saved.map(assignment => assignment.store)]);
   return z.object({ assignments: z.array(z.object({
     store: z.string(),
-    people: z.number({ invalid_type_error: "人数を確認してください。" }).int("整数で入力してください。").min(0, "0名以上を入力してください。").max(Math.min(people, 999), `${Math.min(people, 999)}名以下を入力してください。`),
+    people: z.number({ error: "人数を確認してください。" }).int("整数で入力してください。").min(0, "0名以上を入力してください。").max(Math.min(people, 999), `${Math.min(people, 999)}名以下を入力してください。`),
   })) }).superRefine((value, ctx) => {
     const selected = value.assignments.filter(assignment => assignment.people > 0);
     value.assignments.forEach((assignment, index) => {

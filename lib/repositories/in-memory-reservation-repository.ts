@@ -7,6 +7,7 @@ import { calculateReservationEndTime, defaultReservationStatus, getAutomaticRese
 import { defaultEmailTemplates } from "../email/email-template-catalog";
 import { seedMenus, seedReservations, seedStores } from "../seed-data";
 import type { ReservationRepository } from "./reservation-repository";
+import { assertPendingReservationChange } from "../reservation-change";
 
 export type InMemoryReservationDatabase = {
   reservations: Reservation[];
@@ -384,7 +385,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     database.reservationChangeRequests ??= [];
     const request = database.reservationChangeRequests.find((item) => item.id === id);
     if (!request) throw new Error(`Reservation change request not found: ${id}`);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    assertPendingReservationChange(request);
     const reservation = database.reservations.find((item) => item.id === request.reservationId);
     if (!reservation) throw new Error(`Reservation not found: ${request.reservationId}`);
     assertReservationChangeAllowed(reservation.status);
@@ -412,7 +413,7 @@ export class InMemoryReservationRepository implements ReservationRepository {
     database.reservationChangeRequests ??= [];
     const request = database.reservationChangeRequests.find((item) => item.id === id);
     if (!request) throw new Error(`Reservation change request not found: ${id}`);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    assertPendingReservationChange(request);
     request.status = "rejected";
     request.reviewedAt = new Date().toISOString();
     await this.writeDatabase(database);

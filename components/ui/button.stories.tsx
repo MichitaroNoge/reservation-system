@@ -26,3 +26,11 @@ export const Disabled: Story = {
 };
 export const Loading: Story = { args: { disabled: true, "aria-busy": true, children: <><LoaderCircle aria-hidden="true" className="animate-spin" />保存中…</> } };
 export const Icon: Story = { args: { variant: "outline", size: "icon", "aria-label": "検索", children: <Search aria-hidden="true" /> } };
+export const LongLabel: Story = {
+  args: { children: "入力した予約内容を確認して申請する", className: "max-w-40" },
+  play: async ({ canvas }) => {
+    const button = canvas.getByRole("button", { name: "入力した予約内容を確認して申請する" });
+    await expect(button).toBeVisible();
+    await expect(button.scrollHeight).toBeLessThanOrEqual(button.clientHeight);
+  },
+};

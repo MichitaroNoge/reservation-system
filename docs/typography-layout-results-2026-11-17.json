@@ -1,0 +1,6830 @@
+{
+  "date": "2026-11-17",
+  "branch": "codex/performance-investigation",
+  "environment": "Next production validation build, local Chrome, synthetic PGlite data and mocked Firebase identity; external requests blocked",
+  "fontPackage": "@fontsource-variable/noto-sans-jp@5.3.1",
+  "fontSynthesisWeight": "none",
+  "widths": [
+    1280,
+    768,
+    390
+  ],
+  "screens": 92,
+  "captures": 276,
+  "pageOverflow": [],
+  "textClipping": [],
+  "failures": [],
+  "externalLimitations": [
+    "Real Google OAuth, email verification links, password reset email and account deletion completion were not exercised against real services."
+  ],
+  "fonts": {
+    "fonts": [
+      {
+        "selector": "h1",
+        "fonts": [
+          {
+            "familyName": "Noto Sans JP Thin",
+            "postScriptName": "Noto-Sans-JP-Thin-SemiBold",
+            "isCustomFont": true,
+            "glyphCount": 5
+          }
+        ]
+      },
+      {
+        "selector": "label",
+        "fonts": [
+          {
+            "familyName": "Noto Sans JP Thin",
+            "postScriptName": "Noto-Sans-JP-Thin-Medium",
+            "isCustomFont": true,
+            "glyphCount": 5
+          }
+        ]
+      },
+      {
+        "selector": "button",
+        "fonts": [
+          {
+            "familyName": "Noto Sans JP Thin",
+            "postScriptName": "Noto-Sans-JP-Thin-SemiBold",
+            "isCustomFont": true,
+            "glyphCount": 6
+          }
+        ]
+      }
+    ],
+    "loadedFaces": [
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      },
+      {
+        "family": "Noto Sans JP Variable",
+        "weight": "100 900",
+        "status": "loaded"
+      }
+    ]
+  },
+  "story": {
+    "longLabel": [
+      {
+        "viewportWidth": 1280,
+        "width": 160,
+        "height": 56,
+        "scrollWidth": 160,
+        "scrollHeight": 56,
+        "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+        "weight": "600"
+      },
+      {
+        "viewportWidth": 768,
+        "width": 160,
+        "height": 56,
+        "scrollWidth": 160,
+        "scrollHeight": 56,
+        "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+        "weight": "600"
+      },
+      {
+        "viewportWidth": 390,
+        "width": 160,
+        "height": 56,
+        "scrollWidth": 160,
+        "scrollHeight": 56,
+        "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+        "weight": "600"
+      },
+      {
+        "viewportWidth": 320,
+        "width": 160,
+        "height": 56,
+        "scrollWidth": 160,
+        "scrollHeight": 56,
+        "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+        "weight": "600"
+      }
+    ],
+    "disabled": true
+  },
+  "records": [
+    {
+      "source": "final",
+      "name": "admin-login",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-login-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-login",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-login-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-login",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-login-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-dashboard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 66,
+        "500": 14,
+        "600": 49
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ダッシュボード"
+      ],
+      "height": 1722,
+      "screenshot": ".tmp/visual-audit/final/admin-dashboard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-dashboard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 44,
+        "500": 14,
+        "600": 47
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ダッシュボード"
+      ],
+      "height": 2003,
+      "screenshot": ".tmp/visual-audit/final/admin-dashboard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-dashboard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 43,
+        "500": 14,
+        "600": 47
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ダッシュボード"
+      ],
+      "height": 2534,
+      "screenshot": ".tmp/visual-audit/final/admin-dashboard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reservations",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 267,
+        "500": 15,
+        "600": 290
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 4888,
+      "screenshot": ".tmp/visual-audit/final/admin-reservations-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reservations",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 245,
+        "500": 15,
+        "600": 288
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 5038,
+      "screenshot": ".tmp/visual-audit/final/admin-reservations-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reservations",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 244,
+        "500": 15,
+        "600": 288
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 5072,
+      "screenshot": ".tmp/visual-audit/final/admin-reservations-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-new",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 19,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "新規予約"
+      ],
+      "height": 4888,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-new-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-new",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 19,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "新規予約"
+      ],
+      "height": 5038,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-new-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-new",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 19,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "新規予約"
+      ],
+      "height": 5072,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-new-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 112,
+        "500": 2,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約の受入状況"
+      ],
+      "height": 4888,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 112,
+        "500": 2,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約の受入状況"
+      ],
+      "height": 5038,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-booking-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 112,
+        "500": 2,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約の受入状況"
+      ],
+      "height": 5072,
+      "screenshot": ".tmp/visual-audit/final/admin-booking-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-csv",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 268,
+        "500": 15,
+        "600": 290
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 4888,
+      "screenshot": ".tmp/visual-audit/final/admin-csv-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-csv",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 246,
+        "500": 15,
+        "600": 288
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 5038,
+      "screenshot": ".tmp/visual-audit/final/admin-csv-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-csv",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 245,
+        "500": 15,
+        "600": 288
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧"
+      ],
+      "height": 5104,
+      "screenshot": ".tmp/visual-audit/final/admin-csv-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiries",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 55,
+        "500": 12,
+        "600": 16
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiries-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiries",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 12,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiries-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiries",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 32,
+        "500": 12,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiries-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiry-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 10,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理",
+        "問い合わせへの回答",
+        "長い問い合わせ件名の折り返し・表示確認について"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiry-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiry-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 10,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理",
+        "問い合わせへの回答",
+        "長い問い合わせ件名の折り返し・表示確認について"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiry-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-inquiry-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 10,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ管理",
+        "問い合わせへの回答",
+        "長い問い合わせ件名の折り返し・表示確認について"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-inquiry-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-calendar",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 87,
+        "500": 1,
+        "600": 56
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1032,
+      "screenshot": ".tmp/visual-audit/final/admin-calendar-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-calendar",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 65,
+        "500": 1,
+        "600": 54
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1180,
+      "screenshot": ".tmp/visual-audit/final/admin-calendar-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-calendar",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 64,
+        "500": 1,
+        "600": 54
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "月火水木金土日26—27—28—29—30—31—1—2—3—4—5—6—7—8—9—10—11—12—13—14—15—16—1710件本予約 0名仮予約込 0名承認待ちあり18",
+          "class": "grid min-w-[700px] grid-cols-7"
+        },
+        {
+          "tag": "DIV",
+          "text": "木",
+          "class": "border-b border-border bg-background/50 p-2 text-center text-xs text-muted-foreground"
+        },
+        {
+          "tag": "DIV",
+          "text": "金",
+          "class": "border-b border-border bg-background/50 p-2 text-center text-xs text-muted-foreground"
+        },
+        {
+          "tag": "DIV",
+          "text": "土",
+          "class": "border-b border-border bg-background/50 p-2 text-center text-xs text-muted-foreground"
+        },
+        {
+          "tag": "DIV",
+          "text": "日",
+          "class": "border-b border-border bg-background/50 p-2 text-center text-xs text-muted-foreground"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "29—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "30—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "SPAN",
+          "text": "30",
+          "class": "inline-flex size-6 items-center justify-center rounded-md font-semibold "
+        },
+        {
+          "tag": "SPAN",
+          "text": "—",
+          "class": "mt-3 block text-muted-foreground"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "31—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "SPAN",
+          "text": "31",
+          "class": "inline-flex size-6 items-center justify-center rounded-md font-semibold "
+        },
+        {
+          "tag": "SPAN",
+          "text": "—",
+          "class": "mt-3 block text-muted-foreground"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "1—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "SPAN",
+          "text": "1",
+          "class": "inline-flex size-6 items-center justify-center rounded-md font-semibold "
+        },
+        {
+          "tag": "SPAN",
+          "text": "—",
+          "class": "mt-3 block text-muted-foreground"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "5—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "6—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        },
+        {
+          "tag": "SPAN",
+          "text": "6",
+          "class": "inline-flex size-6 items-center justify-center rounded-md font-semibold "
+        },
+        {
+          "tag": "SPAN",
+          "text": "—",
+          "class": "mt-3 block text-muted-foreground"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "7—",
+          "class": "relative flex min-h-24 flex-col items-start border-b border-r border-border p-2 text-left text-xs hover:ring-2 hover:ring-inset hover:ring-r"
+        }
+      ],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1282,
+      "screenshot": ".tmp/visual-audit/final/admin-calendar-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 476,
+        "500": 9,
+        "600": 558
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 7896,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 454,
+        "500": 9,
+        "600": 556
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 9909,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 453,
+        "500": 9,
+        "600": 556
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 9915,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 562,
+        "500": 9,
+        "600": 562
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況"
+      ],
+      "height": 7896,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 562,
+        "500": 9,
+        "600": 562
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況"
+      ],
+      "height": 9909,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 562,
+        "500": 9,
+        "600": 562
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況"
+      ],
+      "height": 9915,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-confirm",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 7896,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-confirm-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-confirm",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 9909,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-confirm-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-approvals-confirm",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 9915,
+      "screenshot": ".tmp/visual-audit/final/admin-approvals-confirm-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 32,
+        "500": 9,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 9,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 9,
+        "500": 9,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 99,
+        "500": 9,
+        "600": 17
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 99,
+        "500": 9,
+        "600": 17
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 99,
+        "500": 9,
+        "600": 17
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-confirm",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-confirm-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-confirm",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-confirm-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-confirmed-confirm",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認",
+        "予約の受入状況",
+        "予約を承認しますか？"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-confirmed-confirm-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 76,
+        "500": 8,
+        "600": 68
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 1112,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 54,
+        "500": 8,
+        "600": 66
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 1590,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 53,
+        "500": 8,
+        "600": 66
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 1596,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 32,
+        "500": 12,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000"
+      ],
+      "height": 1112,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 32,
+        "500": 12,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000"
+      ],
+      "height": 1590,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 32,
+        "500": 12,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000"
+      ],
+      "height": 1596,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-confirm",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000",
+        "予約変更を承認しますか？"
+      ],
+      "height": 1112,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-confirm-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-confirm",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000",
+        "予約変更を承認しますか？"
+      ],
+      "height": 1590,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-confirm-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-changes-confirm",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認",
+        "予約変更内容の確認",
+        "RSV-2000",
+        "予約変更を承認しますか？"
+      ],
+      "height": 1596,
+      "screenshot": ".tmp/visual-audit/final/admin-changes-confirm-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 31,
+        "500": 9,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 9,
+        "500": 9,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 9,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 31,
+        "500": 7,
+        "600": 19
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認",
+        "予約詳細 RSV-2003",
+        "RSV-2003"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 31,
+        "500": 7,
+        "600": 19
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認",
+        "予約詳細 RSV-2003",
+        "RSV-2003"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-cancellations-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 31,
+        "500": 7,
+        "600": 19
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認",
+        "予約詳細 RSV-2003",
+        "RSV-2003"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-cancellations-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-contacts",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 29,
+        "500": 8,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "確認連絡"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-contacts-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-contacts",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 7,
+        "500": 8,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "確認連絡"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-contacts-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-contacts",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 8,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "確認連絡"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-contacts-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2430,
+        "500": 1207,
+        "600": 609
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当"
+      ],
+      "height": 45350,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2408,
+        "500": 1207,
+        "600": 607
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当"
+      ],
+      "height": 45444,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2407,
+        "500": 1207,
+        "600": 607
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当"
+      ],
+      "height": 46652,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当",
+        "店舗割当"
+      ],
+      "height": 45350,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当",
+        "店舗割当"
+      ],
+      "height": 45444,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-assignments-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗割当",
+        "店舗割当"
+      ],
+      "height": 46652,
+      "screenshot": ".tmp/visual-audit/final/admin-assignments-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reminders",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 27,
+        "500": 6,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約の催促"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-reminders-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reminders",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 6,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約の催促"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-reminders-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-reminders",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 6,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約の催促"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-reminders-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-menus",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1888,
+        "500": 538,
+        "600": 274
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー確定の催促"
+      ],
+      "height": 21821,
+      "screenshot": ".tmp/visual-audit/final/admin-menus-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-menus",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1866,
+        "500": 538,
+        "600": 272
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー確定の催促"
+      ],
+      "height": 21915,
+      "screenshot": ".tmp/visual-audit/final/admin-menus-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-menus",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1865,
+        "500": 538,
+        "600": 272
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー確定の催促"
+      ],
+      "height": 21921,
+      "screenshot": ".tmp/visual-audit/final/admin-menus-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-masters",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 24,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "マスタ・設定"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/admin-masters-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-masters",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "マスタ・設定"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/admin-masters-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "admin-masters",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "マスタ・設定"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/admin-masters-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 8,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-customers-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 8,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-customers-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 8,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-customers-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers-edit",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 6,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理",
+        "顧客情報を編集"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-customers-edit-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers-edit",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 6,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理",
+        "顧客情報を編集"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-customers-edit-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-customers-edit",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 6,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "顧客管理",
+        "顧客情報を編集"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-customers-edit-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 28,
+        "500": 6,
+        "600": 16
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-stores-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 6,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-stores-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 6,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-stores-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-new",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-stores-new-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-new",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を登録"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-stores-new-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-new",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を登録"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-stores-new-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-edit",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を編集"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-stores-edit-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-edit",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を編集"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-stores-edit-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-stores-edit",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "店舗管理",
+        "店舗を編集"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-stores-edit-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 34,
+        "500": 9,
+        "600": 17
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-menus-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 9,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-menus-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 9,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-menus-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-new",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-menus-new-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-new",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを登録"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-menus-new-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-new",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを登録"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-menus-new-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-edit",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを編集"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-menus-edit-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-edit",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを編集"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-menus-edit-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-menus-edit",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 9,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理",
+        "メニューを編集"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-menus-edit-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 35,
+        "500": 16,
+        "600": 28
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定"
+      ],
+      "height": 1240,
+      "screenshot": ".tmp/visual-audit/final/master-email-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 16,
+        "600": 26
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定"
+      ],
+      "height": 1334,
+      "screenshot": ".tmp/visual-audit/final/master-email-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 16,
+        "600": 26
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定"
+      ],
+      "height": 1398,
+      "screenshot": ".tmp/visual-audit/final/master-email-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email-edit",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 5,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定",
+        "メールアドレス変更完了通知を編集"
+      ],
+      "height": 1240,
+      "screenshot": ".tmp/visual-audit/final/master-email-edit-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email-edit",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 5,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定",
+        "メールアドレス変更完了通知を編集"
+      ],
+      "height": 1334,
+      "screenshot": ".tmp/visual-audit/final/master-email-edit-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-email-edit",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 5,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールテンプレート管理",
+        "メール送信設定",
+        "メールアドレス変更完了通知を編集"
+      ],
+      "height": 1398,
+      "screenshot": ".tmp/visual-audit/final/master-email-edit-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 28,
+        "500": 6,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-replies-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 6,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-replies-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 6,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-replies-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies-new",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート",
+        "テンプレートを登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-replies-new-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies-new",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート",
+        "テンプレートを登録"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-replies-new-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-replies-new",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 4,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ回答テンプレート",
+        "テンプレートを登録"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-replies-new-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-notifications",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 34,
+        "500": 3,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約通知メール"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-notifications-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-notifications",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 3,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約通知メール"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-notifications-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-notifications",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 3,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約通知メール"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-notifications-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-google",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 43,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "Googleカレンダー連携"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-google-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-google",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 21,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "Googleカレンダー連携"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-google-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-google",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 20,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "Googleカレンダー連携"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final/master-google-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-settings",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 29,
+        "500": 2,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "その他"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/master-settings-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-settings",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 7,
+        "500": 2,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "その他"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final/master-settings-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "master-settings",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 2,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "その他"
+      ],
+      "height": 1043,
+      "screenshot": ".tmp/visual-audit/final/master-settings-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-home",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "仮想の店舗Webサイト"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-home-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-home",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "仮想の店舗Webサイト"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-home-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-home",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "仮想の店舗Webサイト"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-home-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-login",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/login",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 2,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-login-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-login",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/login",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 2,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-login-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-login",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/login",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 2,
+        "600": 9
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 1129,
+      "screenshot": ".tmp/visual-audit/final/guest-login-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-register",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/register",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 10,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "新規登録"
+      ],
+      "height": 1015,
+      "screenshot": ".tmp/visual-audit/final/guest-register-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-register",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/register",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 10,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "新規登録"
+      ],
+      "height": 1015,
+      "screenshot": ".tmp/visual-audit/final/guest-register-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-register",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/register",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 10,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "新規登録"
+      ],
+      "height": 1368,
+      "screenshot": ".tmp/visual-audit/final/guest-register-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-contact",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-contact-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-contact",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-contact-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-contact",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 1184,
+      "screenshot": ".tmp/visual-audit/final/guest-contact-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-history",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-history-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-history",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-history-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-history",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-history-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-detailGuard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-9999999999",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-detailGuard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-detailGuard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-9999999999",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-detailGuard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-detailGuard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-9999999999",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-detailGuard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-accountGuard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-accountGuard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-accountGuard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-accountGuard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-accountGuard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-accountGuard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-settingsGuard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-settingsGuard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-settingsGuard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-settingsGuard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-settingsGuard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報登録"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-settingsGuard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-emailGuard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-emailGuard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-emailGuard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-emailGuard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-emailGuard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-emailGuard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-deleteGuard",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-deleteGuard-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-deleteGuard",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-deleteGuard-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "guest-deleteGuard",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/guest-deleteGuard-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-category",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "利用者区分を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-category-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-category",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "利用者区分を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-category-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-category",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "利用者区分を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-category-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-type",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約種別を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-type-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-type",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約種別を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-type-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-type",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約種別を選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-type-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-schedule",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 990,
+      "screenshot": ".tmp/visual-audit/final/booking-schedule-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-schedule",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-schedule-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-schedule",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 1237,
+      "screenshot": ".tmp/visual-audit/final/booking-schedule-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-validation",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 1014,
+      "screenshot": ".tmp/visual-audit/final/booking-validation-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-validation",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 935,
+      "screenshot": ".tmp/visual-audit/final/booking-validation-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-validation",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 7,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "日時と人数"
+      ],
+      "height": 1309,
+      "screenshot": ".tmp/visual-audit/final/booking-validation-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-auth",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 3,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-auth-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-auth",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 3,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/booking-auth-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "booking-auth",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 3,
+        "600": 14
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "ログイン"
+      ],
+      "height": 1294,
+      "screenshot": ".tmp/visual-audit/final/booking-auth-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-home",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 1,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お手続きを選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-home-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-home",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 1,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お手続きを選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-home-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-home",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=home",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 1,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お手続きを選択"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-home-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-settings",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 11,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1454,
+      "screenshot": ".tmp/visual-audit/final/member-settings-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-settings",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 11,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1454,
+      "screenshot": ".tmp/visual-audit/final/member-settings-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-settings",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 11,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1540,
+      "screenshot": ".tmp/visual-audit/final/member-settings-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-email",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 5,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-email-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-email",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 5,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-email-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-email",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=emailChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 5,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メールアドレス変更"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-email-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-deletion",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-deletion-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-deletion",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-deletion-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-deletion",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=accountDeletion",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 3,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "アカウント削除"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-deletion-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservations",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 5578,
+      "screenshot": ".tmp/visual-audit/final/member-reservations-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservations",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 6878,
+      "screenshot": ".tmp/visual-audit/final/member-reservations-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservations",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 11573,
+      "screenshot": ".tmp/visual-audit/final/member-reservations-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservation-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 21,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "予約内容の詳細"
+      ],
+      "height": 5578,
+      "screenshot": ".tmp/visual-audit/final/member-reservation-detail-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservation-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 21,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "予約内容の詳細"
+      ],
+      "height": 6878,
+      "screenshot": ".tmp/visual-audit/final/member-reservation-detail-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-reservation-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 21,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "予約内容の詳細"
+      ],
+      "height": 11573,
+      "screenshot": ".tmp/visual-audit/final/member-reservation-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-contact",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-contact-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-contact",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-contact-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-contact",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 15,
+        "600": 4
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お問い合わせ"
+      ],
+      "height": 1184,
+      "screenshot": ".tmp/visual-audit/final/member-contact-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-history",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 16,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-history-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-history",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 16,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-history-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-history",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact/history",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 16,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final/member-history-390.jpg"
+    },
+    {
+      "source": "final-inquiry",
+      "name": "member-inquiry-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-1003",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細",
+        "やり取りの履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-inquiry/member-inquiry-detail-1280.jpg"
+    },
+    {
+      "source": "final-inquiry",
+      "name": "member-inquiry-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-1003",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細",
+        "やり取りの履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-inquiry/member-inquiry-detail-768.jpg"
+    },
+    {
+      "source": "final-inquiry",
+      "name": "member-inquiry-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/contact/history/INQ-1003",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 2,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "問い合わせ詳細",
+        "やり取りの履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-inquiry/member-inquiry-detail-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-confirmedAlias",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 5578,
+      "screenshot": ".tmp/visual-audit/final/member-confirmedAlias-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-confirmedAlias",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 6878,
+      "screenshot": ".tmp/visual-audit/final/member-confirmedAlias-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-confirmedAlias",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 11573,
+      "screenshot": ".tmp/visual-audit/final/member-confirmedAlias-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-changeAlias",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 5578,
+      "screenshot": ".tmp/visual-audit/final/member-changeAlias-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-changeAlias",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 6878,
+      "screenshot": ".tmp/visual-audit/final/member-changeAlias-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-changeAlias",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 11573,
+      "screenshot": ".tmp/visual-audit/final/member-changeAlias-390.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-cancellationAlias",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 5578,
+      "screenshot": ".tmp/visual-audit/final/member-cancellationAlias-1280.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-cancellationAlias",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 6878,
+      "screenshot": ".tmp/visual-audit/final/member-cancellationAlias-768.jpg"
+    },
+    {
+      "source": "final",
+      "name": "member-cancellationAlias",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=account",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 128,
+        "600": 276
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約確認",
+        "2100/10/17 12:00〜13:30",
+        "2100/08/18 12:00〜13:30",
+        "2100/07/09 12:00〜13:30",
+        "2100/06/19 12:00〜13:30",
+        "2100/05/10 12:00〜13:30",
+        "2100/03/31 12:00〜13:30",
+        "2100/03/11 12:00〜13:30",
+        "2100/01/30 12:00〜13:30",
+        "2099/12/21 12:00〜13:30",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/15 19:15〜20:15",
+        "2099/12/01 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30",
+        "2026/11/17 12:00〜13:30"
+      ],
+      "height": 11573,
+      "screenshot": ".tmp/visual-audit/final/member-cancellationAlias-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-week",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 70,
+        "500": 1,
+        "600": 30
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "11/16（月）0件11/17（火）10件11/18（水）0件11/19（木）0件11/20（金）0件11/21（土）0件11/22（日）0件8:009:0010:0011:001",
+          "class": "grid min-w-[1000px]"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/17（火）10件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/17（火）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/18（水）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/18（水）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/19（木）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/19（木）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/20（金）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/20（金）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/21（土）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/21（土）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/22（日）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/22（日）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "DIV",
+          "text": "計測0010012:00〜13:305名・承認待ち計測0020012:00〜13:305名・承認待ち計測0030012:00〜13:305名・承認待ち計測0040012:00〜13",
+          "class": "relative border-l border-border"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "計測0060012:00〜13:305名・承認待ち",
+          "class": "absolute z-10 overflow-hidden rounded-md border px-1 py-1 text-left text-xs border-dashed border-muted-foreground/50 bg-muted"
+        }
+      ],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 978,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-week-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-week",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 48,
+        "500": 1,
+        "600": 28
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "11/16（月）0件11/17（火）10件11/18（水）0件11/19（木）0件11/20（金）0件11/21（土）0件11/22（日）0件8:009:0010:0011:001",
+          "class": "grid min-w-[1000px]"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/17（火）10件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/17（火）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "10件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/18（水）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/18（水）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/19（木）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/19（木）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/20（金）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/20（金）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/21（土）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/21（土）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/22（日）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/22（日）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "DIV",
+          "text": "計測0010012:00〜13:305名・承認待ち計測0020012:00〜13:305名・承認待ち計測0030012:00〜13:305名・承認待ち計測0040012:00〜13",
+          "class": "relative border-l border-border"
+        }
+      ],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1126,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-week-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-week",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 47,
+        "500": 1,
+        "600": 28
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [
+        {
+          "tag": "DIV",
+          "text": "11/16（月）0件11/17（火）10件11/18（水）0件11/19（木）0件11/20（金）0件11/21（土）0件11/22（日）0件8:009:0010:0011:001",
+          "class": "grid min-w-[1000px]"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/17（火）10件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/17（火）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "10件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/18（水）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/18（水）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/19（木）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/19（木）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/20（金）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/20（金）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/21（土）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/21（土）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "BUTTON",
+          "text": "11/22（日）0件",
+          "class": "sticky top-0 z-20 border-b border-l border-border bg-card px-2 py-3 text-center text-xs"
+        },
+        {
+          "tag": "SPAN",
+          "text": "11/22（日）",
+          "class": "block font-semibold"
+        },
+        {
+          "tag": "SPAN",
+          "text": "0件"
+        },
+        {
+          "tag": "DIV",
+          "text": "計測0010012:00〜13:305名・承認待ち計測0020012:00〜13:305名・承認待ち計測0030012:00〜13:305名・承認待ち計測0040012:00〜13",
+          "class": "relative border-l border-border"
+        }
+      ],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1180,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-week-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-stores",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 73,
+        "500": 22,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1010,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-stores-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-stores",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 51,
+        "500": 22,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1158,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-stores-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-stores",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 50,
+        "500": 22,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー"
+      ],
+      "height": 1284,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-stores-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-day",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 10,
+        "600": 2
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー",
+        "2026-11-17 の予約"
+      ],
+      "height": 1032,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-day-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-day",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 10,
+        "600": 2
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー",
+        "2026-11-17 の予約"
+      ],
+      "height": 1180,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-day-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "calendar-day",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 12,
+        "500": 10,
+        "600": 2
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約カレンダー",
+        "2026-11-17 の予約"
+      ],
+      "height": 1282,
+      "screenshot": ".tmp/visual-audit/final-extra/calendar-day-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-reservations",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 9,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/history-reservations-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-reservations",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/history-reservations-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-reservations",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/history-reservations-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-confirmed",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 9,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/history-confirmed-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-confirmed",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/history-confirmed-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-confirmed",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約変更承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/history-confirmed-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-changes",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 9,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/history-changes-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-changes",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/history-changes-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-changes",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約変更承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/history-changes-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-cancellations",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 33,
+        "500": 9,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/history-cancellations-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-cancellations",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 11,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/history-cancellations-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "history-cancellations",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 10,
+        "500": 9,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/history-cancellations-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-confirmed-record-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 30,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-confirmed-detail-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-confirmed-record-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 30,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-confirmed-detail-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-confirmed-record-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 30,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-confirmed-detail-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-editor",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 18,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-editor-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-editor",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 18,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-editor-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-editor",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 6,
+        "500": 18,
+        "600": 11
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-editor-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-stores-editor",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-stores-editor-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-stores-editor",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-stores-editor-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-stores-editor",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 4,
+        "500": 3,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-stores-editor-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-history",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002",
+        "申請・承認履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-history-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-history",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002",
+        "申請・承認履歴"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-history-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "admin-reservation-history",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 7,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約一覧",
+        "予約詳細 RSV-2002",
+        "RSV-2002",
+        "申請・承認履歴"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/admin-reservation-history-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "master-inactive-menu",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 38,
+        "500": 17,
+        "600": 20
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/master-inactive-menu-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "master-inactive-menu",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 16,
+        "500": 17,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-extra/master-inactive-menu-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "master-inactive-menu",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 15,
+        "500": 17,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "メニュー管理"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-extra/master-inactive-menu-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-confirmed-request",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=confirmedChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 7,
+        "500": 2,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約への変更申請"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-confirmed-request-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-confirmed-request",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=confirmedChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 7,
+        "500": 2,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約への変更申請"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-confirmed-request-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-confirmed-request",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=confirmedChange",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 7,
+        "500": 2,
+        "600": 8
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "本予約への変更申請"
+      ],
+      "height": 1101,
+      "screenshot": ".tmp/visual-audit/final-extra/member-confirmed-request-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-change-request",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=change",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 1,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約内容変更申請"
+      ],
+      "height": 1130,
+      "screenshot": ".tmp/visual-audit/final-extra/member-change-request-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-change-request",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=change",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 1,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約内容変更申請"
+      ],
+      "height": 1051,
+      "screenshot": ".tmp/visual-audit/final-extra/member-change-request-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-change-request",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=change",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 3,
+        "500": 1,
+        "600": 13
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約内容変更申請"
+      ],
+      "height": 1387,
+      "screenshot": ".tmp/visual-audit/final-extra/member-change-request-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-request",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-request-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-request",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-request-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-request",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 8,
+        "500": 7,
+        "600": 5
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-request-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-confirm",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請",
+        "キャンセル料の確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-confirm-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-confirm",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請",
+        "キャンセル料の確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-confirm-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-confirm",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請",
+        "キャンセル料の確認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-confirm-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-complete",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 1,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-complete-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-complete",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 1,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-complete-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-cancellation-complete",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=cancellation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 1,
+        "500": 1,
+        "600": 3
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "キャンセル申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-cancellation-complete-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-editor",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 14,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1610,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-editor-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-editor",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 14,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1610,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-editor-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-editor",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 14,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1728,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-editor-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-company",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 16,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1698,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-company-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-company",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 16,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1698,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-company-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-profile-company",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=settings",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 2,
+        "500": 16,
+        "600": 15
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報・パスワード変更"
+      ],
+      "height": 1816,
+      "screenshot": ".tmp/visual-audit/final-extra/member-profile-company-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-contact",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 4,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 1595,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-contact-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-contact",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 4,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 1595,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-contact-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-contact",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 13,
+        "500": 4,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 1852,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-contact-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-complete",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 1,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-complete-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-complete",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 1,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-complete-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-booking-complete",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 5,
+        "500": 1,
+        "600": 6
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約申請を受け付けました"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-extra/member-booking-complete-390.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-group-booking",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 17,
+        "500": 12,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 2391,
+      "screenshot": ".tmp/visual-audit/final-extra/member-group-booking-1280.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-group-booking",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 17,
+        "500": 12,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 2391,
+      "screenshot": ".tmp/visual-audit/final-extra/member-group-booking-768.jpg"
+    },
+    {
+      "source": "final-extra",
+      "name": "member-group-booking",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/?customerMode=reservation",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 17,
+        "500": 12,
+        "600": 18
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "お客様情報"
+      ],
+      "height": 2708,
+      "screenshot": ".tmp/visual-audit/final-extra/member-group-booking-390.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-with-record",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 37,
+        "500": 11,
+        "600": 12
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-history/history-with-record-1280.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-with-record",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 15,
+        "500": 11,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-history/history-with-record-768.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-with-record",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 14,
+        "500": 11,
+        "600": 10
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-history/history-with-record-390.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-processed-detail",
+      "width": 1280,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 68,
+        "500": 46,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約申請の履歴"
+      ],
+      "height": 900,
+      "screenshot": ".tmp/visual-audit/final-history/history-processed-detail-1280.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-processed-detail",
+      "width": 768,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 68,
+        "500": 46,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約申請の履歴"
+      ],
+      "height": 976,
+      "screenshot": ".tmp/visual-audit/final-history/history-processed-detail-768.jpg"
+    },
+    {
+      "source": "final-history",
+      "name": "history-processed-detail",
+      "width": 390,
+      "url": "http://127.0.0.1:3310/",
+      "font": "\"Noto Sans JP Variable\", \"Noto Sans JP\", sans-serif",
+      "synthesis": "none",
+      "weights": {
+        "400": 68,
+        "500": 46,
+        "600": 7
+      },
+      "pageOverflow": false,
+      "clipped": [],
+      "outside": [],
+      "heading": [
+        "予約承認",
+        "予約申請の履歴"
+      ],
+      "height": 992,
+      "screenshot": ".tmp/visual-audit/final-history/history-processed-detail-390.jpg"
+    }
+  ]
+}

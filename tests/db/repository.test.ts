@@ -139,7 +139,7 @@ test("change approval is atomic and can only be reviewed once",async()=>{
   } finally {await db.execute(sql.raw("DROP TRIGGER fail_test_review ON reservation_change_request"));await db.execute(sql.raw("DROP FUNCTION fail_test_review()"));}
   const approved=await repo.approveReservationChangeRequest(request.id);
   assert.equal(approved.request.status,"approved");assert.equal(approved.reservation.people,6);assert.equal(approved.reservation.date,"2026-11-20");assert.deepEqual(approved.reservation.storeAssignments,[]);assert.equal(approved.reservation.confirmationContactedAt,null);
-  await assert.rejects(repo.rejectReservationChangeRequest(request.id),/already reviewed/);
+  await assert.rejects(repo.rejectReservationChangeRequest(request.id), (error: unknown) => (error as { statusCode?: number }).statusCode === 409);
   const reject=await repo.createReservationChangeRequest({...requestInput,requestedPeople:7});
   assert.equal((await repo.rejectReservationChangeRequest(reject.id)).status,"rejected");
 });
@@ -399,7 +399,7 @@ test("authenticated profile API saves to PostgreSQL without depending on Firesto
     assert.ok(await repo.findAccountByFirebaseUid("review-api-user"));
     const request = (url: string, method: string, body?: unknown) => new Request(`http://localhost${url}`, { method, headers: { authorization: "Bearer review-test-token", "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
     const { POST: createBooking } = await import("../../app/api/reservations/route");
-    const booking = { ...input, status: "confirmed_requested", email: "review@example.test", cancellationPolicyAgreement: { accepted: true, version: cancellationPolicyVersion } };
+    const booking = { ...input, date: "2099-12-15", status: "confirmed_requested", email: "review@example.test", cancellationPolicyAgreement: { accepted: true, version: cancellationPolicyVersion } };
     assert.equal((await createBooking(request("/api/reservations", "POST", booking))).status, 403);
     verified = true;
     const initialBookingRequest = request("/api/reservations", "POST", booking);

@@ -5,6 +5,7 @@ import { buildEmailContent } from "../email/email-layout";
 import { EmailDeliveryError, type EmailClient } from "../email/resend-email-client";
 import { InquiryError, type InquiryRepository, type MailTarget } from "./repository";
 import type { SenderSnapshot } from "./types";
+import { RateLimitError } from "../abuse-limits";
 export type MailDependencies = {
     sender: () => Promise<SenderSnapshot>;
     client: (sender: SenderSnapshot) => Promise<EmailClient>;
@@ -32,7 +33,7 @@ export async function deliverInquiryMail(repo: InquiryRepository, target: MailTa
         id: string;
     } | {
         error: "failed" | "unknown";
-    };
+    } | RateLimitError;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
         const client = await deps.client(claim.sender);
@@ -40,7 +41,7 @@ export async function deliverInquiryMail(repo: InquiryRepository, target: MailTa
         result = await Promise.race([client.send({ to: claim.delivery.recipient, ...content, idempotencyKey: claim.delivery.deliveryKey }), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new EmailDeliveryError("timeout")), deps.timeoutMs ?? 20000); })]);
     }
     catch (error) {
-        result = { error: error instanceof EmailDeliveryError ? error.outcome : (error && typeof error === "object" && "statusCode" in error && [400, 429, 503].includes(Number(error.statusCode))) ? "failed" : "unknown" };
+        result = error instanceof RateLimitError ? error : { error: error instanceof EmailDeliveryError ? error.outcome : (error && typeof error === "object" && "statusCode" in error && [400, 429, 503].includes(Number(error.statusCode))) ? "failed" : "unknown" };
     }
     finally {
         if (timer)
@@ -48,11 +49,14 @@ export async function deliverInquiryMail(repo: InquiryRepository, target: MailTa
     }
     // Do not mark success if the final DB write fails. A retry uses the same frozen delivery and key.
     try {
-        await repo.finishMail(target, claim.token, result);
+        await repo.finishMail(target, claim.token, result instanceof RateLimitError ? { deferred: true } : result);
     }
     catch {
         throw new InquiryError("送信結果の保存を確認できません。少し待って再読み込みし、同じ回答の再試行を行ってください。", 503);
     }
+    // The shared client rejects local limits before calling Resend. Keep Retry-After
+    // so the durable queue waits without consuming a provider retry.
+    if (result instanceof RateLimitError) throw result;
     console.info(JSON.stringify({ event: "inquiry_mail_result", number: target.number, kind: target.replyId ? "reply" : "receipt", result: "id" in result ? "sent" : result.error }));
     if ("error" in result)
         throw new InquiryError(answerNotice + (result.error === "unknown" ? "メールの送信結果が不明です。同じ回答の再試行で確認してください。" : "メールを送信できませんでした。少し待って同じ回答を再試行してください。"), 502);

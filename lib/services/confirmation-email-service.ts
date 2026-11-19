@@ -3,6 +3,7 @@ import { isConfirmedReservation, type Reservation } from "../domain";
 import { reconcileReservationReadiness } from "./reservation-update-service";
 import { repositoryTransaction } from "../repositories/transaction";
 import type { ReservationRepository } from "../repositories/reservation-repository";
+import { findReservation } from "../repositories/reservation-lookup";
 import { buildEmailContent } from "../email/email-layout";
 import { reservationTemplateVariables } from "../email/email-template-catalog";
 import { getOrCreateEmailDelivery, renderRepositoryEmail } from "../email/template-email-service";
@@ -36,10 +37,11 @@ export async function sendDueConfirmationEmails(
 ): Promise<ConfirmationEmailRunResult> {
   const now = options.now ?? new Date();
   const daysBefore = options.daysBefore ?? confirmationEmailDaysBefore();
-  const reservations = await repository.listReservations();
+  const candidates = repository.confirmationEmailCandidates ? await repository.confirmationEmailCandidates(now, daysBefore) : null;
+  const reservations = candidates?.reservations ?? await repository.listReservations();
   const dueReservations = reservations.filter((reservation) => isConfirmationEmailDue(reservation, now, daysBefore));
   const result: ConfirmationEmailRunResult = {
-    checked: reservations.length,
+    checked: candidates?.checked ?? reservations.length,
     due: dueReservations.length,
     sent: 0,
     skipped: 0,
@@ -74,7 +76,7 @@ export async function sendConfirmationEmailForReservation(
   options: Omit<ConfirmationEmailServiceOptions, "daysBefore"> = {},
 ) {
   const now = options.now ?? new Date();
-  const found = (await repository.listReservations()).find((item) => item.id === reservationId);
+  const found = await findReservation(repository, reservationId);
   if (!found) throw new Error(`Reservation not found: ${reservationId}`);
   const reservation = structuredClone(found);
   if (reservation.confirmationContactedAt) return reservation;
@@ -91,7 +93,7 @@ export async function sendConfirmationEmailForReservation(
   }
   const deliveryKey = delivery.deliveryKey;
   const result = await repositoryTransaction(repository, `reservation:${reservation.id}`, async repo => {
-    const current = (await repo.listReservations()).find(item => item.id === reservation.id);
+    const current = await findReservation(repo, reservation.id);
     if (!current || !isConfirmedReservation(current) || confirmationEmailIdempotencyKey(current) !== canonicalKey) throw Object.assign(new Error("送信中に予約内容が変更されました。最新の内容で確認連絡を行ってください。"), { statusCode: 409 });
     if (current.confirmationContactedAt) return { reservation: current };
     const audit = (await repo.getEmailDelivery(deliveryKey))!;
@@ -114,7 +116,7 @@ export async function sendConfirmationEmailForReservation(
       if (saved?.status !== "sent") await repo.updateEmailDelivery(deliveryKey, { status: "failed", sentAt: null, lastError: "メールの送信結果を確認してください。" });
       return { error };
     }
-    const latest = (await repo.listReservations()).find(item => item.id === reservation.id);
+    const latest = await findReservation(repo, reservation.id);
     if (!latest || !isConfirmedReservation(latest) || confirmationEmailIdempotencyKey(latest) !== canonicalKey) throw Object.assign(new Error("送信中に予約内容が変更されました。最新の内容で確認連絡を行ってください。"), { statusCode: 409 });
     return { reservation: await reconcileReservationReadiness(repo, await repo.updateConfirmationContact(reservation.id, now.toISOString())) };
   });

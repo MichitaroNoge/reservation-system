@@ -4,6 +4,7 @@ import { getAutomaticReservationStatus, type Reservation, type UpdateReservation
 import { validateStoreAssignments } from "../api-validation";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 import { repositoryTransaction } from "../repositories/transaction";
+import { findReservation } from "../repositories/reservation-lookup";
 
 export async function reconcileReservationReadiness(repository: ReservationRepository, reservation: Reservation) {
   const status = getAutomaticReservationStatus(reservation);
@@ -12,7 +13,7 @@ export async function reconcileReservationReadiness(repository: ReservationRepos
 
 export async function saveReservationDetails(repository: ReservationRepository, id: string, input: UpdateReservationInput, expectedRevision?: number, actor?: HistoryActor) {
   return repositoryTransaction(repository, `reservation:${id}`, async repo => {
-    const current = (await repo.listReservations()).find(item => item.id === id);
+    const current = await findReservation(repo, id);
     if (!current) throw new Error(`Reservation not found: ${id}`);
     if (expectedRevision !== undefined && expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("他の画面で予約内容が更新されました。入力内容は保持しています。最新の予約を開き直し、変更内容を確認してください。"), { statusCode: 409 });
     const before = { ...current, ...reservationSnapshot(current) };
@@ -29,7 +30,7 @@ export async function saveReservationDetails(repository: ReservationRepository, 
 
 export async function saveReservationAssignments(repository: ReservationRepository, id: string, body: Record<string, unknown>) {
   return repositoryTransaction(repository, `reservation:${id}`, async repo => {
-    const current = (await repo.listReservations()).find(item => item.id === id);
+    const current = await findReservation(repo, id);
     if (!current) throw new Error(`Reservation not found: ${id}`);
     const assignments = validateStoreAssignments(body, current.people);
     return reconcileReservationReadiness(repo, await repo.assignStores(id, assignments));

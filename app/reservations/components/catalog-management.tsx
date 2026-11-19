@@ -17,10 +17,10 @@ import type { Store, Menu } from "../types";
 
 const schema = z.object({
   name: z.string().trim().min(1, "名前を入力してください。").max(100, "100文字以内で入力してください。"),
-  displayOrder: z.number({ invalid_type_error: "表示順を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。").max(9999, "9999以下を入力してください。"),
+  displayOrder: z.number({ error: "表示順を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。").max(9999, "9999以下を入力してください。"),
   description: z.string().max(1000, "1000文字以内で入力してください。"),
-  price: z.number({ invalid_type_error: "金額を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。").max(9999999, "9999999円以下を入力してください。"),
-  minutes: z.number({ invalid_type_error: "利用時間を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。"),
+  price: z.number({ error: "金額を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。").max(9999999, "9999999円以下を入力してください。"),
+  minutes: z.number({ error: "利用時間を入力してください。" }).int("整数を入力してください。").min(0, "0以上を入力してください。"),
 });
 type Values = z.infer<typeof schema>;
 type Item = Store | Menu;

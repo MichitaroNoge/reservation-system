@@ -12,6 +12,7 @@ import { assertAccountNotDeleting } from "@/lib/services/account-lifecycle-servi
 import { assertReservationLeadTime } from "@/lib/reservation-lead-time";
 import { requireCancellationPolicyAgreement, recordPolicyConsent } from "@/lib/services/policy-consent-service";
 import { isAccountProfileComplete } from "@/lib/account-profile";
+import { customerBookingTimeSchema } from "@/lib/customer-booking-schedule";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     const needsPolicyConsent = input.customerAccountMode === "account" && input.status === reservationStatusCodes.confirmedRequested;
     let reservation = await createReservationOnce(repository, user.uid, request.headers.get("Idempotency-Key"), input, async (repository) => {
       if (isPublicReservationRequest && (!isAdminToken(user) || input.customerAccountMode === "account")) {
+        customerBookingTimeSchema.partial().parse(input);
         assertReservationLeadTime(input.date, (await repository.getSystemSettings()).reservationLeadDays);
       }
       if (!isPublicReservationRequest) {

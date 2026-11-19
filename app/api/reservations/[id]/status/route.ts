@@ -10,6 +10,7 @@ import { repositoryTransaction } from "@/lib/repositories/transaction";
 import { approvalEmailDeliveryKey, requestAndSendApprovalEmail } from "@/lib/services/approval-email-service";
 
 import { reservationAvailability } from "@/lib/reservation-availability";
+import { findReservation } from "@/lib/repositories/reservation-lookup";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const manualReason = typeof body.manualReason === "string" ? body.manualReason.trim() : "";
     const repository = (await getReservationRepository());
     const updated = await repositoryTransaction(repository, `reservation:${id}`, async (repository) => {
-      const current = (await repository.listReservations()).find((reservation) => reservation.id === id);
+      const current = await findReservation(repository, id);
       if (!current) return null;
       if (nextStatus === reservationStatusCodes.waitingForVisit && !manualReason && !isVisitReadyReservation(current)) {
         throw new ApiValidationError("メニュー・店舗割当・確認連絡が完了していません。");

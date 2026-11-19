@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -15,7 +16,8 @@ import { useCustomerSession } from "../hooks/use-customer-session";
 import { GoogleCustomerButton, useGoogleCustomer } from "./google-customer-auth";
 
 type LoginMethods = { google: boolean; password: boolean; googleEmail: string | null; canLinkWithoutPassword: boolean };
-type PasswordValues = { currentPassword: string; password: string; confirmPassword: string };
+type PasswordInput = z.input<ReturnType<typeof loginMethodPasswordSchema>>;
+type PasswordValues = z.output<ReturnType<typeof loginMethodPasswordSchema>>;
 type FormState = { dirty: boolean; busy: boolean };
 
 export function CustomerLoginMethods({ onStateChange }: { onStateChange?: (state: FormState) => void }) {
@@ -29,7 +31,7 @@ export function CustomerLoginMethods({ onStateChange }: { onStateChange?: (state
   const [linkStage, setLinkStage] = useState<"password" | "google" | null>(null), [linkError, setLinkError] = useState(""), [linkMessage, setLinkMessage] = useState("");
   const [unlink, setUnlink] = useState(false), [unlinkError, setUnlinkError] = useState("");
   const pending = useRef(false);
-  const passwordForm = useForm<PasswordValues>({ resolver: zodResolver(loginMethodPasswordSchema(Boolean(methods?.password))), defaultValues: { currentPassword: "", password: "", confirmPassword: "" }, mode: "onTouched" });
+  const passwordForm = useForm<PasswordInput, unknown, PasswordValues>({ resolver: zodResolver(loginMethodPasswordSchema(Boolean(methods?.password))), defaultValues: { currentPassword: "", password: "", confirmPassword: "" }, mode: "onTouched" });
   const linkForm = useForm<{ currentPassword: string }>({ resolver: zodResolver(currentPasswordSchema), defaultValues: { currentPassword: "" } });
   const unlinkForm = useForm<{ currentPassword: string }>({ resolver: zodResolver(currentPasswordSchema), defaultValues: { currentPassword: "" } });
   const working = busy || linkBusy;

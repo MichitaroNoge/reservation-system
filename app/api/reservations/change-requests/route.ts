@@ -12,6 +12,7 @@ import { assertReservationLeadTime } from "@/lib/reservation-lead-time";
 import { cancellationFeeNotice, isFeeExemptPeopleOnlyChange, reservationChangeFeeContext } from "@/lib/cancellation-policy";
 import { matchesPendingReservationChange } from "@/lib/reservation-change";
 import { repositoryTransaction } from "@/lib/repositories/transaction";
+import { reservationChangeRequests } from "@/lib/repositories/reservation-lookup";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
     return await repositoryTransaction(repository, `reservation:${input.reservationId.trim().toUpperCase()}`, async repository => {
       const ownedReservation = await findOwnedReservationByAuthenticatedCustomer(request, repository, input.reservationId);
-      const existingRequest = (await repository.listReservationChangeRequests()).find(item => matchesPendingReservationChange(item, input));
+      const existingRequest = (await reservationChangeRequests(repository, input.reservationId)).find(item => matchesPendingReservationChange(item, input));
       const settings = await repository.getSystemSettings();
       const days = isFeeExemptPeopleOnlyChange(ownedReservation, input) ? 1 : settings.reservationLeadDays;
       // Reconfirming the exact pending request is not a new change after the cutoff.

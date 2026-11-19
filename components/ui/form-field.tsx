@@ -11,7 +11,7 @@ export function FormField({ label, required = false, error, children }: { label:
   const errorId = error ? `${id}-error` : undefined;
   return <FieldContext.Provider value={{ id, errorId, invalid: Boolean(error), required }}>
     <div className="grid min-w-0 content-start gap-2">
-      <Label htmlFor={id} className="flex items-center gap-2">{label}{required && <> <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">必須</span></>}</Label>
+      <Label htmlFor={id} className="flex flex-wrap items-center gap-x-2 gap-y-1">{label}{required && <> <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">必須</span></>}</Label>
       {children}
       {error && <p id={errorId} role="alert" className="text-xs text-destructive">{error}</p>}
     </div>

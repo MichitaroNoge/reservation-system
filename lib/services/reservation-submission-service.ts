@@ -3,6 +3,7 @@ import { ApiValidationError } from "../api-validation";
 import type { CreateReservationInput, Reservation } from "../domain";
 import type { ReservationRepository } from "../repositories/reservation-repository";
 import { repositoryTransaction } from "../repositories/transaction";
+import { findReservation } from "../repositories/reservation-lookup";
 import { assertAccountNotDeleting } from "./account-lifecycle-service";
 
 export async function createReservationOnce(repository: ReservationRepository, uid: string, requestKey: string | null, input: CreateReservationInput, work: (repository: ReservationRepository) => Promise<Reservation>) {
@@ -15,7 +16,7 @@ export async function createReservationOnce(repository: ReservationRepository, u
     const existing = await repository.getReservationSubmission(uid, requestKey);
     if (existing) {
       if (existing.requestHash !== requestHash) throw Object.assign(new Error("同じ送信識別子で予約内容が変更されています。再度内容を確認してください。"), { statusCode: 409 });
-      const reservation = (await repository.listReservations()).find(item => item.id === existing.reservationCode);
+      const reservation = await findReservation(repository, existing.reservationCode);
       if (!reservation) throw Object.assign(new Error("保存済みの予約を確認できません。管理者にお問い合わせください。"), { statusCode: 409 });
       if (reservation.accountId && !(await repository.findAccountByFirebaseUid(uid))) throw Object.assign(new Error("このアカウントは無効化されています。管理者にお問い合わせください。"), { statusCode: 403 });
       return reservation;

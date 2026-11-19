@@ -15,3 +15,14 @@ test("memory repository rejects changes to closed bookings as a client error wit
   }
   assert.deepEqual(await repository.listReservationChangeRequests(), []);
 });
+
+test("memory repository classifies already reviewed change decisions as conflicts", async () => {
+  const repository = new InMemoryReservationRepository({ reservations: [], menus: [], stores: [] });
+  const reservation = await repository.createReservation({ name: "検証", email: "owner@example.test", phone: "09012345678", date: "2099-11-15", people: 5, menuItems: [], status: "temporary_confirmed" });
+  const request = await repository.createReservationChangeRequest({ reservationId: reservation.id, email: reservation.email, requestedDate: reservation.date, requestedStartTime: "12:00", requestedPeople: 6, requestedMenuItems: [] });
+  await repository.rejectReservationChangeRequest(request.id);
+  for (const decide of [() => repository.approveReservationChangeRequest(request.id), () => repository.rejectReservationChangeRequest(request.id)]) {
+    await assert.rejects(decide, (error: unknown) => { assert.equal(apiErrorResponse(error).status, 409); return true; });
+  }
+  assert.equal((await repository.listReservations())[0].people, 5);
+});

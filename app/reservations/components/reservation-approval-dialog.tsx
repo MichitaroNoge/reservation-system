@@ -21,7 +21,9 @@ export function ReservationApprovalDialog({ reservation, getAdminToken, onClose,
   useEffect(() => {
     let cancelled = false; setLoading(true); setError(""); setData(null);
     void (async () => {
-      const result = await requestJson<AvailabilityResponse>(`/api/reservations/${encodeURIComponent(reservation.id)}/availability`, { authToken: await auth.current(), cache: "no-store" });
+      const authToken = await auth.current();
+      if (cancelled) return;
+      const result = await requestJson<AvailabilityResponse>(`/api/reservations/${encodeURIComponent(reservation.id)}/availability`, { authToken, cache: "no-store" });
       if (!cancelled) setData(result);
     })().catch(error => { if (!cancelled) setError(error instanceof Error ? error.message : "受入状況を取得できませんでした。"); }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

@@ -54,7 +54,7 @@ export function EmailTemplateManagement({ getAdminToken, notify }: Props) {
 
 const senderSchema = z.object({ senderName: z.string().trim().min(1, "送信者名を入力してください。"), fromEmail: z.string().email("送信元メールアドレスを確認してください。"), replyToEnabled: z.boolean(), replyToEmail: z.string().nullable() }).superRefine((value, context) => { if (value.replyToEnabled && !z.string().email().safeParse(value.replyToEmail).success) context.addIssue({ code: "custom", path: ["replyToEmail"], message: "返信先メールアドレスを正しく入力してください。" }); });
 function SenderSettings({ settings, allowedFromEmails, getAdminToken, notify }: { settings: EmailSettings; allowedFromEmails: string[] } & Props) {
-  const form = useForm<EmailSettings>({ resolver: zodResolver(senderSchema), defaultValues: settings });
+  const form = useForm<z.input<typeof senderSchema>>({ resolver: zodResolver(senderSchema), defaultValues: { ...settings, replyToEmail: settings.replyToEmail ?? null } });
   const [error, setError] = useState("");
   useAdminDraft(form.formState.isDirty, form.formState.isSubmitting);
   const enabled = form.watch("replyToEnabled");

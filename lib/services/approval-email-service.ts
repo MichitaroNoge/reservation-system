@@ -8,13 +8,14 @@ import { EmailDeliveryError, type EmailClient } from "../email/resend-email-clie
 import { repositoryEmailClient } from "../email/email-sender-settings";
 import { deliveryRecipients, reservationNotificationRecipients } from "../email/reservation-recipients";
 import type { ReservationRepository } from "../repositories/reservation-repository";
+import { findApprovalDelivery, findReservation } from "../repositories/reservation-lookup";
 
 type Options = { now?: Date; emailClient?: EmailClient; maxRetries?: number; timeoutMs?: number };
 const defaultMaxRetries = 5;
 
 export async function requestAndSendApprovalEmail(repository: ReservationRepository, reservationId: string, type: ApprovalEmailType, referenceId?: string, options: Options = {}) {
   const deliveryKey = approvalEmailDeliveryKey(reservationId, type, referenceId);
-  const reservation = (await repository.listReservations()).find(item => item.id === reservationId);
+  const reservation = await findReservation(repository, reservationId);
   if (!reservation) throw new Error("Reservation not found");
   await repository.createApprovalEmailDelivery({ snapshotKey: reservationNotificationSnapshot(reservation), deliveryKey, reservationId, type, referenceId: referenceId ?? null, requestedAt: (options.now ?? new Date()).toISOString() });
   const delivery = await sendApprovalEmailDelivery(repository, deliveryKey, options);
@@ -24,7 +25,9 @@ export async function requestAndSendApprovalEmail(repository: ReservationReposit
 
 export async function sendPendingApprovalEmails(repository: ReservationRepository, options: Options = {}) {
   const maxRetries = options.maxRetries ?? defaultMaxRetries;
-  const pending = (await repository.listApprovalEmailDeliveries()).filter((item) => !item.sentAt && !item.stoppedAt && (!item.nextAttemptAt || Date.parse(item.nextAttemptAt) <= (options.now ?? new Date()).getTime()) && item.retryCount < maxRetries);
+  const time = options.now ?? new Date();
+  const deliveries = repository.pendingApprovalEmailDeliveries ? await repository.pendingApprovalEmailDeliveries(time, maxRetries) : await repository.listApprovalEmailDeliveries();
+  const pending = deliveries.filter((item) => !item.sentAt && !item.stoppedAt && (!item.nextAttemptAt || Date.parse(item.nextAttemptAt) <= time.getTime()) && item.retryCount < maxRetries);
   const result = { pending: pending.length, sent: 0, skipped: 0, failed: 0, errors: [] as { reservationId: string; message: string }[] };
   for (const delivery of pending) {
     try {
@@ -41,7 +44,7 @@ export async function sendPendingApprovalEmails(repository: ReservationRepositor
 }
 
 export async function sendApprovalEmailDelivery(repository: ReservationRepository, deliveryKey: string, options: Options = {}) {
-  const queued = (await repository.listApprovalEmailDeliveries()).find(item => item.deliveryKey === deliveryKey);
+  const queued = await findApprovalDelivery(repository, deliveryKey);
   if (!queued) throw new Error("Approval email delivery not found");
   // Freeze provider payload before the send transaction. If its final commit fails,
   // the next attempt must still use exactly the same body and idempotency key.
@@ -50,7 +53,7 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
     try {
       const auditKey = `reservation-approval/${deliveryKey}`;
       if (!await repository.getEmailDelivery(auditKey)) {
-        const booking = (await repository.listReservations()).find(item => item.id === queued.reservationId);
+        const booking = await findReservation(repository, queued.reservationId);
         if (!booking) throw new Error("Reservation not found");
         const recipients = await reservationNotificationRecipients(repository, booking);
         if (!recipients.length) throw new Error("Reservation email is required");
@@ -65,10 +68,10 @@ export async function sendApprovalEmailDelivery(repository: ReservationRepositor
 }
 
 async function sendLockedApprovalEmail(repository: ReservationRepository, deliveryKey: string, options: Options, preparationError?: unknown) {
-  const delivery = (await repository.listApprovalEmailDeliveries()).find((item) => item.deliveryKey === deliveryKey);
+  const delivery = await findApprovalDelivery(repository, deliveryKey);
   if (!delivery) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
   if (delivery.sentAt || delivery.stoppedAt || (delivery.nextAttemptAt && Date.parse(delivery.nextAttemptAt) > (options.now ?? new Date()).getTime()) || delivery.retryCount >= (options.maxRetries ?? defaultMaxRetries)) return delivery;
-  const reservation = (await repository.listReservations()).find((item) => item.id === delivery.reservationId);
+  const reservation = await findReservation(repository, delivery.reservationId);
   if (!reservation) throw new Error(`Reservation not found: ${delivery.reservationId}`);
   const attemptedAt = (options.now ?? new Date()).toISOString();
   const retryCount = delivery.retryCount + 1;

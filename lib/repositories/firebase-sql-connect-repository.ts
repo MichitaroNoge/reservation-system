@@ -35,6 +35,7 @@ import {
 import { getFirebaseAdminApp } from "../auth";
 import type { ReservationRepository } from "./reservation-repository";
 import { planReservationDetails } from "../reservation-details";
+import { assertPendingReservationChange } from "../reservation-change";
 
 // Data Connect SDK is generated from dataconnect/**/*.gql. During this refactor the checked-in
 // generated package may temporarily lag behind the schema, so access operations through a narrow
@@ -331,8 +332,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   async approveReservationChangeRequest(id: string) {
-    const request = await this.getReservationChangeRequest(id);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const request = await this.requireReservationChangeRequest(id);
+    assertPendingReservationChange(request);
     const reservation = await this.getReservationWithInternalId(request.reservationId);
     assertReservationChangeAllowed(reservation.status);
     const target = await assertReservationChangeApproval(this, reservation, request);
@@ -351,8 +352,8 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
   }
 
   async rejectReservationChangeRequest(id: string) {
-    const request = await this.getReservationChangeRequest(id);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    const request = await this.requireReservationChangeRequest(id);
+    assertPendingReservationChange(request);
     const reviewedAt = new Date().toISOString();
     await op("updateReservationChangeRequestStatus")(this.connection(), { id, status: "REJECTED", reviewedAt });
     return { ...request, status: "rejected" as const, reviewedAt };
@@ -486,7 +487,7 @@ export class FirebaseSqlConnectReservationRepository implements ReservationRepos
     }
   }
 
-  private async getReservationChangeRequest(id: string) {
+  private async requireReservationChangeRequest(id: string) {
     const request = (await this.listReservationChangeRequests()).find((item) => item.id === id);
     if (!request) throw new Error(`Reservation change request not found: ${id}`);
     return request;

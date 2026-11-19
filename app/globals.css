@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@fontsource-variable/noto-sans-jp";
 @import "tw-animate-css";
 @import "./legacy.css";
 
@@ -44,7 +45,7 @@
   --radius-lg: calc(var(--radius) + 2px);
   --container-customer-form: 720px;
   --container-customer-list: 960px;
-  --font-sans: "Segoe UI", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  --font-sans: "Noto Sans JP Variable", "Noto Sans JP", sans-serif;
 }
 
 :root {
@@ -95,11 +96,19 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }
+  h1, h2, h3, h4, h5, h6, strong, b {
+    font-weight: var(--font-weight-semibold);
+  }
   button:disabled {
     cursor: not-allowed;
   }
   :focus-visible {
     @apply outline-none ring-2 ring-ring/35 ring-offset-2 ring-offset-background;
+  }
+  /* Screen titles receive focus for navigation announcements without an interactive ring. */
+  h1[tabindex="-1"]:focus {
+    @apply outline-none;
+    box-shadow: none;
   }
 }
 * {
@@ -111,9 +120,11 @@ html {
 body {
   margin: 0;
   font-size: 14px;
-  line-height: 1.55;
+  font-weight: 400;
+  line-height: 1.6;
   color: var(--foreground);
-  font-family: "Segoe UI", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
   background: var(--background);
 }
 @layer base {

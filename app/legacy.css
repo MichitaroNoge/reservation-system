@@ -30,7 +30,7 @@
   border-radius: 12px;
   background: #5678ec;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .logo strong {
   font-size: 18px;
@@ -1007,7 +1007,7 @@ td small {
 .guide span {
   font-size: 12px;
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 .guide h3 {
   font-size: 14px;
@@ -1141,7 +1141,7 @@ td small {
   color: var(--primary);
   font-size: 12px;
   letter-spacing: 1.5px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .page-title h2 {
   font-size: 23px;
@@ -1255,7 +1255,7 @@ td small {
   color: #4d6bd2;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 .entity-head > button {
   border: 0;
@@ -1414,7 +1414,7 @@ td small {
 }
 .reservation-summary small {
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 .exception-toggle {
   width: 100%;
@@ -1696,7 +1696,7 @@ td small {
   border-color: #c7d2fe;
   background: #eef2ff;
   color: #4164ce;
-  font-weight: 700;
+  font-weight: 600;
 }
 .customer-management-bar button.primary {
   border-color: var(--primary);
@@ -1705,7 +1705,7 @@ td small {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .customer-management-bar button.primary svg {
   width: 14px;
@@ -1845,7 +1845,7 @@ td small {
 }
 .reservation-date-range > span {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #667085;
   line-height: 1;
   white-space: nowrap;
@@ -1853,7 +1853,7 @@ td small {
 .reservation-date-range em {
   font-style: normal;
   color: #98a2b3;
-  font-weight: 700;
+  font-weight: 600;
 }
 .reservation-date-range input[type="date"] {
   height: 100%;
@@ -1895,7 +1895,7 @@ td small {
 }
 .reservation-status-dropdown summary span {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .reservation-status-dropdown summary strong {
   font-size: 12px;
@@ -2222,7 +2222,7 @@ td small {
   min-width: 44px;
   text-align: center;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   padding: 5px 10px;
 }
 .task-card-grid .task.has-count {
@@ -2358,7 +2358,7 @@ td small {
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .assignment-total.ok {
   background: #e9f7f1;
@@ -2807,7 +2807,7 @@ td small {
   background: linear-gradient(145deg, #8b5e34, #2d4d60);
   color: #fff3df;
   text-align: center;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.08em;
   line-height: 1.35;
 }
@@ -2929,7 +2929,7 @@ td small {
 }
 .agreement-notes > span {
   color: #b97930;
-  font-weight: 700;
+  font-weight: 600;
 }
 .agreement-notes ul {
   margin: 0;
@@ -2990,7 +2990,7 @@ td small {
 .agreement-check em {
   font-style: normal;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--primary);
   white-space: nowrap;
 }
@@ -3033,7 +3033,7 @@ td small {
 }
 .final-summary dd {
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--foreground);
   overflow-wrap: anywhere;
 }
@@ -3094,7 +3094,7 @@ td small {
 }
 .reservation-type-options legend {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--foreground);
   margin-bottom: 8px;
 }
@@ -3164,7 +3164,7 @@ td small {
 .reservation-type-options em {
   font-style: normal;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--primary);
   white-space: nowrap;
 }
@@ -3234,7 +3234,7 @@ td small {
   align-items: center;
   color: #667085;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .confirmation-window-control input {
@@ -3245,7 +3245,7 @@ td small {
   padding: 0 8px;
   color: var(--foreground);
   outline: 0;
-  font-weight: 700;
+  font-weight: 600;
 }
 .confirmation-presets {
   overflow: auto;
@@ -3265,7 +3265,7 @@ td small {
   align-items: center;
   gap: 7px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .confirmation-bulk-button svg {
@@ -3325,7 +3325,7 @@ td small {
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .breadcrumb-back:hover {
   color: var(--primary);
@@ -3393,7 +3393,7 @@ td small {
   border-color: #c7d2fe;
   background: #eef2ff;
   color: #4164ce;
-  font-weight: 700;
+  font-weight: 600;
 }
 .store-management-bar button.primary {
   border-color: var(--primary);
@@ -3402,7 +3402,7 @@ td small {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .store-management-bar button.primary svg {
   width: 14px;
@@ -3493,7 +3493,7 @@ td small {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .menu-management-bar button.primary svg {
   width: 14px;
@@ -3591,7 +3591,7 @@ td small {
   justify-content: center;
   gap: 7px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 .reservation-new-button svg {
@@ -3602,7 +3602,7 @@ td small {
   border-color: #c7d2fe;
   background: #eef2ff;
   color: #4164ce;
-  font-weight: 700;
+  font-weight: 600;
 }
 .inactive-menu-section {
   border-top: 1px solid var(--border);
@@ -3648,7 +3648,7 @@ td small {
 .admin-auth-form label {
   font-size: 12px;
   color: #596578;
-  font-weight: 700;
+  font-weight: 600;
 }
 .admin-auth-form input {
   display: block;
@@ -3668,7 +3668,7 @@ td small {
   border-radius: 8px;
   background: var(--primary);
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
 }
 .admin-auth-form button:disabled {
   opacity: 0.55;
@@ -3755,7 +3755,7 @@ td small {
 .customer-account-current span {
   font-size: 12px;
   color: #29916e;
-  font-weight: 700;
+  font-weight: 600;
 }
 .customer-account-current strong {
   min-width: 0;
@@ -3853,7 +3853,7 @@ td small {
 .customer-account-profile-form label {
   font-size: 12px;
   color: #596578;
-  font-weight: 700;
+  font-weight: 600;
 }
 .customer-account-profile-form input,
 .customer-account-profile-form select {
@@ -3875,7 +3875,7 @@ td small {
   background: var(--primary);
   color: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .customer-account-profile-form > button:disabled {
   opacity: 0.5;
@@ -3893,7 +3893,7 @@ td small {
   grid-column: 1/-1;
   font-size: 12px;
   color: #596578;
-  font-weight: 700;
+  font-weight: 600;
   margin-bottom: 6px;
 }
 .account-type-options button {
@@ -3930,7 +3930,7 @@ td small {
   border-radius: 999px;
   padding: 0 7px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   vertical-align: middle;
 }
 .required-mark {

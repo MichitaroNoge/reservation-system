@@ -2,8 +2,6 @@
 import { ReservationStatusBadge, StatusBadge } from "@/components/ui/reservation-status-badge";
 
 import { ApprovalHistoryTabs, ReservationHistoryButton } from "./components/reservation-history";
-import { ReplyTemplateManagement } from "@/components/inquiries/reply-template-management";
-import { InquiryManagement } from "@/components/inquiries/inquiry-management";
 import { InquiryReplyDraftStore } from "@/components/inquiries/reply-drafts";
 import { ReservationInquiryHistoryButton } from "@/components/inquiries/reservation-inquiry-history";
 import { AdminInteractionProvider, AdminFormDialog, AdminActions, useAdminInteractions, useAdminDraft } from "@/components/ui/admin-interactions";
@@ -46,23 +44,11 @@ import { toast as sonnerToast } from "sonner";
 import { ApiRequestError,requestJson } from "./api-client";
 import { AdminBookingForm } from "./components/admin-booking-form";
 import { AdminAuthShell,AdminLogin } from "./components/auth";
-import { Icon,InfoMetric,Task,TaskGrid } from "./components/common";
-import { CustomerManagement } from "./components/customer-management";
-import { EmailTemplateManagement } from "./components/email-template-management";
-import { MenuManagement } from "./components/menu-management";
-import { GoogleCalendarSettings } from "./components/google-calendar-settings";
-import { OtherSettingsManagement } from "./components/other-settings-management";
-import { PolicyConsentHistory } from "./components/policy-consent-history";
-import { ReservationApprovalDialog } from "./components/reservation-approval-dialog";
 import { ReservationCalendarPage } from "./components/reservation-calendar-page";
-import { ReservationChangeReviewDialog } from "./components/reservation-change-review-dialog";
-import { ReservationCsvExport } from "./components/reservation-csv-export";
-import { ReservationNotificationManagement } from "./components/reservation-notification-management";
-import { ReservationReminderPage } from "./components/reservation-reminder-page";
+import { ReservationApprovalDialog } from "./components/reservation-approval-dialog";
+import { Icon,InfoMetric,Task,TaskGrid } from "./components/common";
 import { ReservationSearchToolbar } from "./components/reservation-worklist";
-import { StoreAssignmentPage } from "./components/store-assignment-page";
 import { StoreAssignmentForm } from "./components/store-assignment-form";
-import { StoreManagement } from "./components/store-management";
 import {
   cancellationApprovalStatuses,
   DEFAULT_START_TIME,
@@ -113,6 +99,21 @@ StoreForm,
 View
 } from "./types";
 const CustomerPortal = dynamic(()=>import("./customer-portal"),{loading:()=> <p role="status" className="p-5">画面を読み込み中…</p>});
+const featureLoading = () => <p role="status" className="p-5 text-sm text-muted-foreground">画面を読み込み中…</p>;
+const ReplyTemplateManagement = dynamic(() => import("@/components/inquiries/reply-template-management").then(module => module.ReplyTemplateManagement), { loading: featureLoading });
+const InquiryManagement = dynamic(() => import("@/components/inquiries/inquiry-management").then(module => module.InquiryManagement), { loading: featureLoading });
+const CustomerManagement = dynamic(() => import("./components/customer-management").then(module => module.CustomerManagement), { loading: featureLoading });
+const EmailTemplateManagement = dynamic(() => import("./components/email-template-management").then(module => module.EmailTemplateManagement), { loading: featureLoading });
+const MenuManagement = dynamic(() => import("./components/menu-management").then(module => module.MenuManagement), { loading: featureLoading });
+const GoogleCalendarSettings = dynamic(() => import("./components/google-calendar-settings").then(module => module.GoogleCalendarSettings), { loading: featureLoading });
+const OtherSettingsManagement = dynamic(() => import("./components/other-settings-management").then(module => module.OtherSettingsManagement), { loading: featureLoading });
+const PolicyConsentHistory = dynamic(() => import("./components/policy-consent-history").then(module => module.PolicyConsentHistory), { loading: featureLoading });
+const ReservationChangeReviewDialog = dynamic(() => import("./components/reservation-change-review-dialog").then(module => module.ReservationChangeReviewDialog), { loading: featureLoading });
+const ReservationCsvExport = dynamic(() => import("./components/reservation-csv-export").then(module => module.ReservationCsvExport), { loading: featureLoading });
+const ReservationNotificationManagement = dynamic(() => import("./components/reservation-notification-management").then(module => module.ReservationNotificationManagement), { loading: featureLoading });
+const ReservationReminderPage = dynamic(() => import("./components/reservation-reminder-page").then(module => module.ReservationReminderPage), { loading: featureLoading });
+const StoreAssignmentPage = dynamic(() => import("./components/store-assignment-page").then(module => module.StoreAssignmentPage), { loading: featureLoading });
+const StoreManagement = dynamic(() => import("./components/store-management").then(module => module.StoreManagement), { loading: featureLoading });
 
 
 const sortByDisplayOrderThenName = <
@@ -278,14 +279,14 @@ function AdminApp() {
       catch (error) { if (!controller.signal.aborted) setDataErrors(current => ({ ...current, [label]: error instanceof Error ? error.message : "取得できませんでした。" })); }
     };
     const tasks: Promise<void>[] = [];
-    if (view === "customers" || isNewReservationOpen) tasks.push(load<{ customers: Customer[] }>("顧客", "/api/customers", result => setCustomerList(result.customers)));
+    if (view === "customers") tasks.push(load<{ customers: Customer[] }>("顧客", "/api/customers", result => setCustomerList(result.customers)));
     if (view === "customers") tasks.push(load<{ customers: Customer[] }>("無効な顧客", "/api/customers/inactive", result => setInactiveCustomerList(result.customers)));
     if (view === "stores") tasks.push(load<{ stores: Store[] }>("無効な店舗", "/api/stores/inactive", result => setInactiveStoreList(result.stores)));
     if (view === "menus") tasks.push(load<{ menus: Menu[] }>("無効なメニュー", "/api/menus/inactive", result => setInactiveMenuList(result.menus)));
     setPrivateMasterLoading(tasks.length > 0);
     void Promise.all(tasks).finally(() => { if (!controller.signal.aborted) setPrivateMasterLoading(false); });
     return () => controller.abort();
-  }, [adminSession, view, isNewReservationOpen, dataReloadVersion]);
+  }, [adminSession, view, dataReloadVersion]);
 
   const customers = customerList;
   const taskCounts = useMemo(
@@ -1028,7 +1029,7 @@ function AdminApp() {
       <aside className="z-10 flex w-full flex-col bg-foreground px-4 py-4 text-background lg:fixed lg:inset-y-0 lg:left-0 lg:w-68 lg:px-5 lg:py-7 lg:overflow-y-auto">
         <div className="mb-4 flex items-center justify-between gap-3 lg:mb-8">
         <div className="flex items-center gap-3 px-2">
-          <span className="grid size-10 place-items-center rounded-lg bg-primary text-lg font-bold">
+          <span className="grid size-10 place-items-center rounded-lg bg-primary text-lg font-semibold">
             R
           </span>
           <div>
@@ -1176,8 +1177,8 @@ function AdminApp() {
         </div>
       </aside>
       <div ref={adminContent} className="relative min-w-0 flex-1 lg:ml-68">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card/95 px-5 backdrop-blur lg:px-8">
-          <h1 tabIndex={-1} className="text-lg font-semibold">
+        <header className="sticky top-0 z-10 flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-card/95 px-5 py-3 backdrop-blur lg:px-8">
+          <h1 tabIndex={-1} className="min-w-0 basis-full text-lg font-semibold sm:basis-auto">
             {
               {
                 dashboard: "ダッシュボード",
@@ -1204,7 +1205,7 @@ function AdminApp() {
               }[view]
             }
           </h1>
-          <div className="topbar-meta">
+          <div className="topbar-meta ml-auto shrink-0">
             <div className="text-right">
               <span className="hidden text-xs text-muted-foreground sm:block">
                 管理画面

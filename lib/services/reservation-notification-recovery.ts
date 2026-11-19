@@ -4,22 +4,28 @@ import type { ReservationRepository } from "../repositories/reservation-reposito
 import { repositoryTransaction } from "../repositories/transaction";
 import { reservationNotificationSnapshot } from "./reservation-notification-state";
 import { approvalEmailDeliveryKey, sendApprovalEmailDelivery } from "./approval-email-service";
+import { findApprovalDelivery, findReservation } from "../repositories/reservation-lookup";
 const recoveryPrefix = (key: string) => "recovery-" + createHash("sha256").update(key).digest("hex").slice(0,16) + "-";
 function notificationType(r: Reservation): ApprovalEmailType | null {
   if (r.status === "cancelled") return "cancellation_approved";
   return ["temporary_confirmed", "confirmed", "waiting_for_visit"].includes(r.status) ? "reservation_approved" : null;
 }
 export async function reservationNotificationProblems(repo: ReservationRepository) {
-  const [deliveries, bookings] = await Promise.all([repo.listApprovalEmailDeliveries(), repo.listReservations()]);
-  const outstanding = deliveries.filter(d => {
-    if (d.sentAt || deliveries.some(other => other.referenceId?.startsWith(recoveryPrefix(d.deliveryKey)))) return false;
-    const booking = bookings.find(r => r.id === d.reservationId);
+  if (repo.hasUnsentApprovalEmailDeliveries && !await repo.hasUnsentApprovalEmailDeliveries()) return { total: 0, notifications: [] };
+  const deliveries = await repo.listApprovalEmailDeliveries();
+  const unsent = deliveries.filter(d => !d.sentAt);
+  if (!unsent.length) return { total: 0, notifications: [] };
+  const bookings = new Map((await repo.listReservations()).map(booking => [booking.id, booking]));
+  const outstanding = unsent.filter(d => {
+    const prefix = recoveryPrefix(d.deliveryKey);
+    if (deliveries.some(other => other.referenceId?.startsWith(prefix))) return false;
+    const booking = bookings.get(d.reservationId);
     const current = booking && reservationNotificationSnapshot(booking);
     // A newer notice already covers the current booking; keep superseded records in the audit only.
     return !deliveries.some(other => other.deliveryKey !== d.deliveryKey && other.reservationId === d.reservationId && other.snapshotKey === current && (!other.stoppedAt || other.sentAt) && (other.sentAt || d.snapshotKey !== current || other.requestedAt > d.requestedAt || (other.requestedAt === d.requestedAt && other.deliveryKey > d.deliveryKey)));
   });
   return { total: outstanding.length, notifications: outstanding.slice(0,50).map(d => {
-    const booking = bookings.find(r => r.id === d.reservationId);
+    const booking = bookings.get(d.reservationId);
     return { deliveryKey: d.deliveryKey, reservationId: d.reservationId, revision: booking?.revision ?? 0,
       date: booking?.date, people: booking?.people, status: booking?.status, canSendCurrent: !!booking && !!notificationType(booking),
       state: d.stoppedAt ? "停止中" : d.retryCount >= 5 ? "要確認" : d.nextAttemptAt ? "送信制限による待機中" : "再試行待ち",
@@ -28,7 +34,7 @@ export async function reservationNotificationProblems(repo: ReservationRepositor
 }
 /** Explicit admin confirmation only. Never reset an ambiguous provider key for automatic retry. */
 export async function recoverReservationNotification(repo: ReservationRepository, key: string, revision: number, action: "send_current" | "record_sent") {
-  const queued = (await repo.listApprovalEmailDeliveries()).find(d => d.deliveryKey === key);
+  const queued = await findApprovalDelivery(repo, key);
   if (!queued) throw Object.assign(new Error("通知が見つかりません。"), { statusCode: 404 });
   const nextKey = await repositoryTransaction(repo, "reservation:" + queued.reservationId, async tx => {
     const deliveries = await tx.listApprovalEmailDeliveries();
@@ -39,7 +45,7 @@ export async function recoverReservationNotification(repo: ReservationRepository
       throw Object.assign(new Error("最新内容の通知が既に作成されています。再読み込みし、新しい通知の送信履歴を確認してください。"), { statusCode: 409 });
     }
     if (original.sentAt) return null;
-    const booking = (await tx.listReservations()).find(r => r.id === original.reservationId);
+    const booking = await findReservation(tx, original.reservationId);
     if (!booking || (booking.revision ?? 0) !== revision) throw Object.assign(new Error("予約内容が更新されています。再読み込みして確認してください。"), { statusCode: 409 });
     const now = new Date().toISOString();
     if (action === "record_sent") {

@@ -5,7 +5,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { repositoryProvider } from "../db/environment";
 import { getDatabase } from "../db/client";
-import { account, emailDelivery, inquiry, inquiryReply, reservation } from "../db/schema";
+import { account, accountDeletion, emailDelivery, inquiry, inquiryReply, reservation } from "../db/schema";
 import { consumeDatabaseLimits } from "../db/abuse-limit-store";
 import type { Limit } from "../abuse-limits";
 import type { ReservationDatabase } from "../repositories/drizzle-reservation-repository";
@@ -28,6 +28,13 @@ function publicRow(row: Row, reservationNumber: string | null): Inquiry {
 }
 export class InquiryRepository {
     constructor(public db: ReservationDatabase) { }
+    private async assertCustomerAccess(uid: string) {
+        const [deleted] = await this.db.select({ uid: accountDeletion.firebaseUid }).from(accountDeletion).where(eq(accountDeletion.firebaseUid, uid)).limit(1);
+        if (deleted) throw new InquiryError("このアカウントは削除手続き中、または削除済みです。", 403);
+        const [customer] = await this.db.select({ active: account.active }).from(account).where(eq(account.firebaseUid, uid)).limit(1);
+        // Users may contact us before saving a customer profile.
+        if (customer && !customer.active) throw new InquiryError("このアカウントは無効化されています。管理者にお問い合わせください。", 403);
+    }
     private async locked<T>(key: string, work: (repo: InquiryRepository) => Promise<T>): Promise<T> {
         return this.db.transaction(async (tx) => {
             await tx.execute(sql `select pg_advisory_xact_lock(hashtextextended(${`inquiry:${key}`},0))`);
@@ -41,6 +48,7 @@ export class InquiryRepository {
         await this.db.update(inquiry).set({ status, revision: row.revision + 1, updatedAt: time }).where(eq(inquiry.id, row.id));
     }
     async ownedReservation(code: string, uid: string) {
+        await this.assertCustomerAccess(uid);
         if (!/^RSV-[0-9]{1,25}$/.test(code))
             throw new InquiryError("予約が見つかりません。", 404);
         const [row] = await this.db.select({ id: reservation.id, number: reservation.reservationCode }).from(reservation).innerJoin(account, eq(account.id, reservation.accountId)).where(and(eq(reservation.reservationCode, code), eq(account.firebaseUid, uid), eq(account.active, true)));
@@ -67,6 +75,7 @@ export class InquiryRepository {
         return Object.fromEntries(codes.map(code => [code, totals.get(code) ?? 0]));
     }
     async row(number: string, uid?: string) {
+        if (uid !== undefined) await this.assertCustomerAccess(uid);
         const [result] = await this.db.select({ row: inquiry, reservationNumber: reservation.reservationCode }).from(inquiry).leftJoin(reservation, eq(reservation.id, inquiry.reservationId)).where(and(eq(inquiry.inquiryNumber, inquiryNumber(number)), uid === undefined ? undefined : eq(inquiry.firebaseUid, uid)));
         if (!result)
             throw new InquiryError("問い合わせが見つかりません。", 404);
@@ -79,6 +88,7 @@ export class InquiryRepository {
         return { inquiry: publicRow(row, reservationNumber), replies: replies.map(r => ({ id: r.id, subject: r.subject, body: r.body, emailStatus: r.emailStatus, sentAt: r.sentAt, createdAt: r.createdAt, ...(uid === undefined ? { adminLabel: r.adminLabel, lastError: r.lastError, resolution: r.resolution } : {}) })) };
     }
     async list(query: InquiryQuery, uid?: string, reservationId?: string) {
+        if (uid !== undefined) await this.assertCustomerAccess(uid);
         const escaped = query.keyword.replace(/[\\%_]/g, "\\$&");
         const where = and(reservationId === undefined ? undefined : eq(inquiry.reservationId, reservationId), uid === undefined ? undefined : eq(inquiry.firebaseUid, uid), query.status ? eq(inquiry.status, query.status) : undefined, query.category ? eq(inquiry.category, query.category) : undefined, escaped ? or(ilike(inquiry.subject, `%${escaped}%`), ilike(inquiry.name, `%${escaped}%`), ilike(inquiry.email, `%${escaped}%`), sql `('INQ-' || ${inquiry.inquiryNumber}::text) ilike ${`%${escaped}%`}`) : undefined);
         const rows = await this.db.select({ row: inquiry, reservationNumber: reservation.reservationCode }).from(inquiry).leftJoin(reservation, eq(inquiry.reservationId, reservation.id)).where(where).orderBy(desc(inquiry.createdAt), desc(inquiry.id)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
@@ -96,6 +106,11 @@ export class InquiryRepository {
     }, actor: string, uid: string | null, reservationId: string | null, limits: Limit[]) {
         const requestHash = hash({ input, actor, reservationId });
         return this.locked(`request:${input.requestKey}`, async (repo) => {
+            if (uid !== null) {
+                // Serialize with account deactivation/reactivation/deletion, including idempotent replays.
+                await repo.db.execute(sql `select pg_advisory_xact_lock(hashtextextended(${`account:${uid}`},0))`);
+                await repo.assertCustomerAccess(uid);
+            }
             const [existing] = await repo.db.select().from(inquiry).where(eq(inquiry.requestKey, input.requestKey));
             if (existing) {
                 if (existing.requestHash !== requestHash)
@@ -199,6 +214,8 @@ export class InquiryRepository {
         id: string;
     } | {
         error: "failed" | "unknown";
+    } | {
+        deferred: true;
     }) {
         return this.locked(target.number, async (repo) => {
             const { row } = await repo.row(target.number);
@@ -207,6 +224,18 @@ export class InquiryRepository {
                 throw new InquiryError("回答が見つかりません。", 404);
             if ((reply ? reply.leaseToken : row.receiptLeaseToken) !== token)
                 throw conflict();
+            if ("deferred" in result) {
+                // A local limit prevented the provider call. Release this claim only;
+                // preserve any earlier genuine attempt and its safe retry deadline.
+                const [delivery] = await repo.db.select({ status: emailDelivery.status }).from(emailDelivery).where(eq(emailDelivery.deliveryKey, mailKey(row, reply)));
+                const status = delivery?.status === "unknown" ? "unknown" : delivery?.status === "failed" ? "failed" : "pending";
+                if (reply) {
+                    await repo.db.update(inquiryReply).set({ emailStatus: status, attempts: Math.max(0, reply.attempts - 1), firstAttemptAt: reply.attempts > 1 ? reply.firstAttemptAt : null, leaseUntil: null, leaseToken: null }).where(eq(inquiryReply.id, reply.id));
+                } else {
+                    await repo.db.update(inquiry).set({ receiptEmailStatus: status, receiptAttempts: Math.max(0, row.receiptAttempts - 1), receiptFirstAttemptAt: row.receiptAttempts > 1 ? row.receiptFirstAttemptAt : null, receiptLeaseUntil: null, receiptLeaseToken: null }).where(eq(inquiry.id, row.id));
+                }
+                return;
+            }
             const sent = "id" in result, status = sent ? "sent" : result.error, time = new Date().toISOString();
             if (reply) {
                 await repo.db.update(inquiryReply).set({ emailStatus: status, resendMessageId: sent ? result.id : null, sentAt: sent ? time : null, leaseUntil: null, leaseToken: null, lastError: sent ? null : status }).where(eq(inquiryReply.id, reply.id));

@@ -8,12 +8,12 @@ export function inquiryToday(now = Date.now()) {
 }
 
 export const inquiryAvailabilitySchema = z.object({
-  mealDate: z.string({ required_error: "食事日を入力してください。" }).min(1, "食事日を入力してください。").regex(/^\d{4}-\d{2}-\d{2}$/, "食事日を正しく入力してください。").refine(value => {
+  mealDate: z.string({ error: "食事日を入力してください。" }).min(1, "食事日を入力してください。").regex(/^\d{4}-\d{2}-\d{2}$/, "食事日を正しく入力してください。").refine(value => {
     const date = new Date(`${value}T00:00:00Z`);
     return !value.startsWith("0000-") && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
   }, "実在する食事日を入力してください。"),
-  mealStartTime: z.string({ required_error: "食事開始時間を入力してください。" }).regex(/^([01]\d|2[0-3]):[0-5]\d$/, "食事開始時間を時・分で入力してください。"),
-  people: z.coerce.number({ invalid_type_error: "人数を入力してください。" }).int("人数は整数で入力してください。").min(1, "人数は1名以上で入力してください。").max(MAX_INQUIRY_PEOPLE, "人数は999名以内で入力してください。"),
+  mealStartTime: z.string({ error: "食事開始時間を入力してください。" }).regex(/^([01]\d|2[0-3]):[0-5]\d$/, "食事開始時間を時・分で入力してください。"),
+  people: z.coerce.number<string | number>({ error: "人数を入力してください。" }).int("人数は整数で入力してください。").min(1, "人数は1名以上で入力してください。").max(MAX_INQUIRY_PEOPLE, "人数は999名以内で入力してください。"),
 });
 export type InquiryAvailability = z.output<typeof inquiryAvailabilitySchema>;
 

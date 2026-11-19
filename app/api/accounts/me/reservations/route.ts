@@ -32,15 +32,15 @@ export async function GET(request: Request) {
 function deduplicateChangeRequests<T extends { reservationId: string; requestedDate: string; requestedStartTime: string; requestedPeople: number; requestedMenuItems: string[]; reason?: string; status: string }>(requests: T[]) {
   const seen = new Set<string>();
   return requests.filter((request) => {
-    const key = [
+    const key = JSON.stringify([
       request.reservationId,
       request.requestedDate,
       request.requestedStartTime,
       request.requestedPeople,
-      [...request.requestedMenuItems].sort().join(","),
+      [...request.requestedMenuItems].sort(),
       request.reason ?? "",
       request.status,
-    ].join("|");
+    ]);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

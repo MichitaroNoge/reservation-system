@@ -3,7 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-const buttonVariants = cva("inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4", {
+const buttonVariants = cva("inline-flex min-w-0 max-w-full shrink-0 items-center justify-center gap-2 whitespace-normal rounded-md text-center text-sm font-semibold leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [table_&]:max-w-none [table_&]:whitespace-nowrap", {
   variants: {
     variant: {
       default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
@@ -14,9 +14,9 @@ const buttonVariants = cva("inline-flex shrink-0 items-center justify-center gap
       link: "text-primary underline-offset-4 hover:underline",
     },
     size: {
-      default: "h-11 px-4 py-2 sm:h-[42px]",
-      sm: "h-11 rounded-md px-3 text-xs sm:h-10",
-      lg: "h-11 rounded-md px-6",
+      default: "min-h-11 px-4 py-2 sm:min-h-[42px]",
+      sm: "min-h-11 rounded-md px-3 py-2 text-xs sm:min-h-10",
+      lg: "min-h-11 rounded-md px-6 py-2",
       icon: "size-11 sm:size-[42px]",
     },
   },

@@ -7,6 +7,7 @@ import type { EmailClient } from "../email/resend-email-client";
 import { repositoryEmailClient } from "../email/email-sender-settings";
 import { deliveryRecipients, reservationNotificationRecipients } from "../email/reservation-recipients";
 import type { ReservationRepository } from "../repositories/reservation-repository";
+import { findReservation } from "../repositories/reservation-lookup";
 
 export type ReceiptEmailRunResult = {
   checked: number;
@@ -56,7 +57,7 @@ export async function sendPendingReceiptEmails(repository: ReservationRepository
 }
 
 export async function sendReceiptEmailForReservation(repository: ReservationRepository, reservationId: string, options: ReceiptEmailServiceOptions = {}) {
-  const reservation = (await repository.listReservations()).find((item) => item.id === reservationId);
+  const reservation = await findReservation(repository, reservationId);
   if (!reservation) throw new Error(`Reservation not found: ${reservationId}`);
   if (!reservation.receiptEmailRequestedAt || reservation.receiptEmailSentAt) return reservation;
   const retryDelay = Date.parse(reservation.receiptEmailNextAttemptAt ?? "") - (options.now ?? new Date()).getTime();

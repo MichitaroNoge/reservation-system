@@ -6,7 +6,8 @@ import { ApiValidationError } from "../api-validation";
 import { assertReservationChangeApproval } from "../services/reservation-change-approval-service";
 import { isCompletedBooking } from "../cancellation-policy";
 import "server-only";
-import { and, asc, desc, eq, sql, gte, lte, lt, gt, or, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, sql, gte, lte, lt, gt, or, inArray, isNull } from "drizzle-orm";
+import { availabilityCandidateDates } from "../reservation-availability";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as s from "../db/schema";
 import {
@@ -21,6 +22,7 @@ import {
 import type { ReservationRepository } from "./reservation-repository";
 import { normalizeLoginEmail, loginEmailConflict } from "../login-email";
 import { planReservationDetails } from "../reservation-details";
+import { assertPendingReservationChange } from "../reservation-change";
 
 export type ReservationDatabase = NodePgDatabase<typeof s>;
 const reservationRelations = { policyConsents: { columns: { acceptedByFirebaseUid: false } }, account: true, reservationDetails: { with: { menu: true } }, storeAssignments: { with: { store: true } } } as const;
@@ -144,6 +146,25 @@ export class DrizzleReservationRepository implements ReservationRepository {
     return rows.map(row => reservationModel({ ...row, remarks: null, reserverAddress: null, account: null }));
   }
   async getReservation(id: string) { const row = await this.db.query.reservation.findFirst({ where: eq(s.reservation.reservationCode,id), with: reservationRelations }); return row ? reservationModel(row) : null; }
+  async listAvailabilityReservations(target: Reservation, menus: Menu[]) {
+    const range = availabilityCandidateDates(target, menus);
+    return range ? this.readReservationRows(and(gte(s.reservation.usageDate, range.from), lte(s.reservation.usageDate, range.to))) : [];
+  }
+  async confirmationEmailCandidates(time: Date, daysBefore: number) {
+    if (!Number.isFinite(daysBefore)) {
+      const reservations = await this.listReservations();
+      return { checked: reservations.length, reservations };
+    }
+    const today = new Date(time.getTime() + 9 * 3600000).toISOString().slice(0, 10);
+    // Keep a conservative upper bound; the service retains its exact scheduling predicate.
+    const last = new Date(time.getTime() + (Math.max(0, Math.ceil(daysBefore)) + 1) * 86400000 + 9 * 3600000).toISOString().slice(0, 10);
+    const [count] = await this.db.select({ total: sql<number>`count(*)::int` }).from(s.reservation);
+    const reservations = await this.db.query.reservation.findMany({
+      where: and(inArray(s.reservation.status, ["CONFIRMED", "WAITING_FOR_VISIT"]), isNull(s.reservation.confirmationContactedAt), gte(s.reservation.usageDate, today), lte(s.reservation.usageDate, last)),
+      orderBy: desc(s.reservation.receivedAt), with: reservationRelations,
+    });
+    return { checked: count.total, reservations: reservations.map(reservationModel) };
+  }
   async reservationPage(query: import("../reservation-search").ReservationSearch, page: number, pageSize: number, today: string) {
     const { reservationWhere, reservationSortExpression } = await import("../reservation-read-query");
     const { compareReservationSortValues } = await import("../reservation-search");
@@ -172,6 +193,14 @@ export class DrizzleReservationRepository implements ReservationRepository {
   async listReservationChangeRequestsForAccount(firebaseUid: string) {
     const owner=await this.findAccountByFirebaseUid(firebaseUid);if(!owner?.id)return [];
     return this.readChangeRequests(inArray(s.reservationChangeRequest.reservationId,this.db.select({id:s.reservation.id}).from(s.reservation).where(eq(s.reservation.accountId,owner.id))));
+  }
+  async listReservationChangeRequestsForReservation(id: string) {
+    return this.readChangeRequests(inArray(s.reservationChangeRequest.reservationId, this.db.select({ id: s.reservation.id }).from(s.reservation).where(eq(s.reservation.reservationCode, id))));
+  }
+  async getReservationChangeRequest(id: string) {
+    // Preserve a missing-record result for malformed public IDs, without a UUID cast error.
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) return null;
+    return (await this.readChangeRequests(eq(s.reservationChangeRequest.id, id)))[0] ?? null;
   }
   async readChangeRequests(where?: import("drizzle-orm").SQL) {
     return (await this.db.query.reservationChangeRequest.findMany({where,orderBy:desc(s.reservationChangeRequest.requestedAt),with:{reservation:{with:{reservationDetails:{with:{menu:true}},storeAssignments:{with:{store:true}}}}}})).map(raw=>{
@@ -322,12 +351,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
   }
 
   async listReservationChangeRequests(): Promise<ReservationChangeRequest[]> {
-    return (await this.db.query.reservationChangeRequest.findMany({ orderBy: desc(s.reservationChangeRequest.requestedAt), with: { reservation: { with: reservationRelations } } })).map(raw => {
-      const reservation = reservationModel(raw.reservation);
-      let requestedMenuItems: string[] = [];
-      try { const parsed: unknown = JSON.parse(raw.requestedMenuItemsJson); if (Array.isArray(parsed)) requestedMenuItems = parsed.filter((value): value is string => typeof value === "string"); } catch { /* Legacy invalid JSON is displayed as an empty selection. */ }
-      return { id: raw.id, reservationId: reservation.id, customer: reservation.customer, email: reservation.email, phone: reservation.phone, currentDate: reservation.date, currentStartTime: reservation.startTime ?? "10:00", currentPeople: reservation.people, currentMenuItems: reservation.menuItems, requestedDate: raw.requestedDate, requestedStartTime: raw.requestedTime, requestedPeople: raw.requestedPeople, requestedMenuItems, reason: raw.reason ?? undefined, baseRevision: raw.baseRevision, status: raw.status.toLowerCase() as ReservationChangeRequest["status"], requestedAt: iso(raw.requestedAt)!, reviewedAt: iso(raw.reviewedAt), feeAcknowledgement: raw.feeAcknowledgement };
-    });
+    return this.readChangeRequests();
   }
   async createReservationChangeRequest(input: CreateReservationChangeRequestInput): Promise<ReservationChangeRequest> {
     if (!this.inTransaction) return this.atomic(`reservation:${input.reservationId}`, repo => repo.createReservationChangeRequest(input));
@@ -338,7 +362,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const allowed: Reservation["status"][] = ["temporary_requested", "temporary_confirmed", "confirmed_requested", "confirmed", "waiting_for_visit"];
     if (!allowed.includes(current.status)) throw Object.assign(new Error("この予約は現在のステータスでは変更申請できません。"), { statusCode: 400 });
     if (input.expectedRevision !== undefined && input.expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから変更申請してください。"), { statusCode: 409 });
-    const existing = (await this.listReservationChangeRequests()).find(item => item.reservationId === input.reservationId && item.status === "requested" && item.requestedDate === input.requestedDate && item.requestedStartTime === input.requestedStartTime && item.requestedPeople === input.requestedPeople && JSON.stringify([...item.requestedMenuItems].sort()) === JSON.stringify([...input.requestedMenuItems].sort()) && (item.reason ?? "") === (input.reason ?? ""));
+    const existing = (await this.listReservationChangeRequestsForReservation(input.reservationId)).find(item => item.status === "requested" && item.requestedDate === input.requestedDate && item.requestedStartTime === input.requestedStartTime && item.requestedPeople === input.requestedPeople && JSON.stringify([...item.requestedMenuItems].sort()) === JSON.stringify([...input.requestedMenuItems].sort()) && (item.reason ?? "") === (input.reason ?? ""));
     if (existing) {
       if (existing.baseRevision !== (current.revision ?? 0) && input.expectedRevision !== (current.revision ?? 0)) throw Object.assign(new Error("予約内容が更新されています。予約一覧を再読み込みし、現在の内容を確認してから再申請してください。"), { statusCode: 409 });
       if (existing.baseRevision !== (current.revision ?? 0) || (input.feeAcknowledgement && existing.feeAcknowledgement?.context !== input.feeAcknowledgement.context)) {
@@ -348,10 +372,10 @@ export class DrizzleReservationRepository implements ReservationRepository {
       return existing;
     }
     const [created] = await this.db.insert(s.reservationChangeRequest).values({ reservationId: raw.id, baseRevision: current.revision ?? 0, requestedDate: input.requestedDate, requestedTime: input.requestedStartTime, requestedPeople: input.requestedPeople, requestedMenuItemsJson: JSON.stringify(input.requestedMenuItems), reason: input.reason ?? null, feeAcknowledgement: input.feeAcknowledgement ?? null, status: "REQUESTED" }).returning();
-    return (await this.listReservationChangeRequests()).find(item => item.id === created.id)!;
+    return (await this.getReservationChangeRequest(created.id))!;
   }
   private async changeRequest(id: string) {
-    const request = (await this.listReservationChangeRequests()).find(item => item.id === id);
+    const request = await this.getReservationChangeRequest(id);
     if (!request) throw new Error(`Reservation change request not found: ${id}`);
     return request;
   }
@@ -359,7 +383,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const initial = await this.changeRequest(id);
     if (!this.inTransaction) return this.atomic(`reservation:${initial.reservationId}`, repo => repo.approveReservationChangeRequest(id));
     const request = await this.changeRequest(id);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    assertPendingReservationChange(request);
     const current = reservationModel(await this.rawReservation(request.reservationId));
     assertReservationChangeAllowed(current.status);
     const target = await assertReservationChangeApproval(this, current, request);
@@ -377,7 +401,7 @@ export class DrizzleReservationRepository implements ReservationRepository {
     const initial = await this.changeRequest(id);
     if (!this.inTransaction) return this.atomic(`reservation:${initial.reservationId}`, repo => repo.rejectReservationChangeRequest(id));
     const request = await this.changeRequest(id);
-    if (request.status !== "requested") throw new Error(`Reservation change request already reviewed: ${id}`);
+    assertPendingReservationChange(request);
     const reviewedAt = now();
     await this.db.update(s.reservationChangeRequest).set({ status: "REJECTED", reviewedAt }).where(eq(s.reservationChangeRequest.id, id));
     return { ...request, status: "rejected", reviewedAt };
@@ -531,7 +555,23 @@ export class DrizzleReservationRepository implements ReservationRepository {
   }
 
   async listApprovalEmailDeliveries(): Promise<ApprovalEmailDelivery[]> {
-    return (await this.db.query.approvalEmailDelivery.findMany({ with: { reservation: true }, orderBy: asc(s.approvalEmailDelivery.requestedAt) })).map(raw => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: raw.reservation.reservationCode, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, snapshotKey: raw.snapshotKey, stoppedAt: iso(raw.stoppedAt), nextAttemptAt: iso(raw.nextAttemptAt), retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
+    return this.readApprovalEmailDeliveries();
+  }
+  private async readApprovalEmailDeliveries(where?: import("drizzle-orm").SQL) {
+    const rows = await this.db.select({ delivery: s.approvalEmailDelivery, code: s.reservation.reservationCode }).from(s.approvalEmailDelivery)
+      .innerJoin(s.reservation, eq(s.approvalEmailDelivery.reservationId, s.reservation.id)).where(where).orderBy(asc(s.approvalEmailDelivery.requestedAt));
+    return rows.map(({ delivery: raw, code }) => ({ id: raw.id, deliveryKey: raw.deliveryKey, reservationId: code, type: raw.emailType as ApprovalEmailDelivery["type"], referenceId: raw.referenceId, snapshotKey: raw.snapshotKey, stoppedAt: iso(raw.stoppedAt), nextAttemptAt: iso(raw.nextAttemptAt), retryCount: raw.retryCount, lastError: raw.lastError, requestedAt: iso(raw.requestedAt)!, sentAt: iso(raw.sentAt), lastAttemptAt: iso(raw.lastAttemptAt) }));
+  }
+  async getApprovalEmailDelivery(key: string) {
+    return (await this.readApprovalEmailDeliveries(eq(s.approvalEmailDelivery.deliveryKey, key)))[0] ?? null;
+  }
+  async pendingApprovalEmailDeliveries(time: Date, maxRetries: number) {
+    return this.readApprovalEmailDeliveries(and(isNull(s.approvalEmailDelivery.sentAt), isNull(s.approvalEmailDelivery.stoppedAt),
+      or(isNull(s.approvalEmailDelivery.nextAttemptAt), lte(s.approvalEmailDelivery.nextAttemptAt, time.toISOString())), lt(s.approvalEmailDelivery.retryCount, maxRetries)));
+  }
+  async hasUnsentApprovalEmailDeliveries() {
+    const rows = await this.db.select({ id: s.approvalEmailDelivery.id }).from(s.approvalEmailDelivery).where(isNull(s.approvalEmailDelivery.sentAt)).limit(1);
+    return rows.length > 0;
   }
   async listApprovalEmailDeliveriesForReservations(codes: string[]): Promise<ApprovalEmailDelivery[]> {
     if (!codes.length) return [];
@@ -540,12 +580,12 @@ export class DrizzleReservationRepository implements ReservationRepository {
   async createApprovalEmailDelivery(input: Parameters<ReservationRepository["createApprovalEmailDelivery"]>[0]): Promise<ApprovalEmailDelivery> {
     const reservation = await this.rawReservation(input.reservationId);
     await this.db.insert(s.approvalEmailDelivery).values({ deliveryKey: input.deliveryKey, reservationId: reservation.id, snapshotKey: input.snapshotKey ?? reservationNotificationSnapshot(reservationModel(reservation)), emailType: input.type, referenceId: input.referenceId ?? null, requestedAt: input.requestedAt }).onConflictDoNothing({ target: s.approvalEmailDelivery.deliveryKey });
-    return (await this.listApprovalEmailDeliveries()).find(item => item.deliveryKey === input.deliveryKey)!;
+    return (await this.getApprovalEmailDelivery(input.deliveryKey))!;
   }
   async updateApprovalEmailDelivery(deliveryKey: string, input: Parameters<ReservationRepository["updateApprovalEmailDelivery"]>[1]): Promise<ApprovalEmailDelivery> {
     const [raw] = await this.db.update(s.approvalEmailDelivery).set({ sentAt: input.sentAt ?? null, lastAttemptAt: input.lastAttemptAt, retryCount: input.retryCount, lastError: input.lastError ?? null, nextAttemptAt: input.nextAttemptAt ?? null, stoppedAt: input.stoppedAt ?? null }).where(eq(s.approvalEmailDelivery.deliveryKey, deliveryKey)).returning();
     if (!raw) throw new Error(`Approval email delivery not found: ${deliveryKey}`);
-    return (await this.listApprovalEmailDeliveries()).find(item => item.deliveryKey === deliveryKey)!;
+    return (await this.getApprovalEmailDelivery(deliveryKey))!;
   }
   async listEmailTemplates(): Promise<EmailTemplate[]> { return (await this.db.select().from(s.emailTemplate).orderBy(asc(s.emailTemplate.name))).map(templateModel); }
   async getEmailTemplate(templateKey: string): Promise<EmailTemplate | null> { const raw = await this.db.query.emailTemplate.findFirst({ where: eq(s.emailTemplate.templateKey, templateKey) }); return raw ? templateModel(raw) : null; }

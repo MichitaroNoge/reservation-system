@@ -1,8 +1,11 @@
-"use client";
-import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
-import type { CustomerPortalMode } from './reservations/reservation-shared';
-const Loading = () => <p role='status' className='p-5 text-sm text-muted-foreground'>画面を読み込み中…</p>;
-const AdminApp = dynamic(() => import('./reservations/admin-app'), { loading: Loading });
-const CustomerApp = dynamic(() => import('./reservations/customer-app'), { loading: Loading });
-export default function Home() { const [mode, setMode] = useState<CustomerPortalMode | 'admin' | null>(null); useEffect(() => { const value = new URL(location.href).searchParams.get('customerMode'); setMode(value && ['home', 'login', 'register', 'account', 'settings', 'emailChange', 'accountDeletion', 'reservation', 'confirmedChange', 'change', 'cancellation'].includes(value) ? value as CustomerPortalMode : 'admin'); }, []); return mode === null ? <Loading /> : mode === 'admin' ? <AdminApp /> : <CustomerApp initialMode={mode}/>; }
+import { ReservationEntry } from "./reservations/entry";
+import type { CustomerPortalMode } from "./reservations/reservation-shared";
+
+const customerModes = new Set(["home", "login", "register", "account", "settings", "emailChange", "accountDeletion", "reservation", "confirmedChange", "change", "cancellation"]);
+
+export default async function Home({ searchParams }: { searchParams: Promise<{ customerMode?: string | string[] }> }) {
+  const params = await searchParams;
+  const value = Array.isArray(params.customerMode) ? params.customerMode[0] : params.customerMode;
+  const mode = value && customerModes.has(value) ? value as CustomerPortalMode : "admin";
+  return <ReservationEntry initialMode={mode} />;
+}

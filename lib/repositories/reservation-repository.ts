@@ -17,7 +17,14 @@ export type ReservationRepository = {
   recordCancellationPolicyConsent?(id: string, input: Omit<import("../cancellation-policy-consent").CancellationPolicyConsent, "people"> & { firebaseUid: string }): Promise<Reservation>;
   queueTransactionalEmail?(target: import("../mail-dispatch").MailJobTarget): Promise<void>;
   getReservation?(id: string): Promise<Reservation | null>;
+  listAvailabilityReservations?(target: Reservation, menus: Menu[]): Promise<Reservation[]>;
+  confirmationEmailCandidates?(now: Date, daysBefore: number): Promise<{ checked: number; reservations: Reservation[] }>;
+  getApprovalEmailDelivery?(key: string): Promise<ApprovalEmailDelivery | null>;
+  pendingApprovalEmailDeliveries?(now: Date, maxRetries: number): Promise<ApprovalEmailDelivery[]>;
+  hasUnsentApprovalEmailDeliveries?(): Promise<boolean>;
   listReservationChangeRequestsForAccount?(firebaseUid: string): Promise<ReservationChangeRequest[]>;
+  listReservationChangeRequestsForReservation?(id: string): Promise<ReservationChangeRequest[]>;
+  getReservationChangeRequest?(id: string): Promise<ReservationChangeRequest | null>;
   listReservations(): Promise<Reservation[]>;
   scanReservationsForExport?(query: import("../reservation-search").ReservationSearch, consume: (rows: Reservation[]) => void, signal: AbortSignal, deadline: number): Promise<void>;
   listReservationsForReservationAccount(firebaseUid: string): Promise<Reservation[]>;

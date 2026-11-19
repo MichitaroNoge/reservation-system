@@ -31,13 +31,13 @@ export function CustomerManagement({ customers, inactiveCustomers, onSaveCustome
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CustomerForm>({ name: "", contact: "", phone: "", address: "", accountType: "individual" });
   const [saveError, setSaveError] = useState("");
-  const validation = useForm<CustomerForm>({
-    values: form,
+  const validation = useForm<CustomerForm & { id: string; phone: string }>({
+    values: { ...form, id: form.id ?? "", phone: form.phone ?? "" },
     resolver: zodResolver(z.object({
       id: z.string().min(1),
       name: z.string().trim().min(1, "アカウント名を入力してください").max(100),
       contact: z.string().email(),
-      phone: z.string().trim().min(1, "電話番号を入力してください").max(30).regex(/^[0-9+()\-\s]+$/, "電話番号の形式を確認してください"),
+      phone: z.string().trim().min(8, "電話番号は8〜30文字で入力してください").max(30, "電話番号は8〜30文字で入力してください").regex(/^[0-9+()\-\s]{8,30}$/, "電話番号の形式を確認してください"),
       address: z.string().max(500).optional(),
       accountType: z.enum(["individual", "travel_agency"]).optional(),
       companyBranchName: z.string().max(100).optional(),

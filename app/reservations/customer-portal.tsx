@@ -19,6 +19,7 @@ import { earliestReservationDate } from "@/lib/reservation-lead-time";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye,EyeOff,LoaderCircle,LockKeyhole,Mail } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { BookingSteps } from "@/components/ui/booking-steps";
 import { CustomerPageHeader } from "@/components/ui/customer-page-header";
 import { CustomerPageActions, CustomerPageFrame } from "@/components/ui/customer-page-layout";
@@ -41,11 +42,7 @@ import { CustomerBookingSchedule } from "./components/customer-booking-schedule"
 import { Icon } from "./components/common";
 import { CustomerAuthLink } from "./components/customer-auth-link";
 import { CustomerRequestSubmit } from "./components/customer-request-submit";
-import { CustomerEmailChangeScreen, CustomerAccountDeletionScreen } from "./components/customer-account-actions";
-import { CustomerLoginMethods } from "./components/customer-login-methods";
-import { CustomerReservationDetails } from "./components/customer-reservation-details";
 import { GoogleCustomerAuthProvider,GoogleCustomerButton,useGoogleCustomer } from "./components/google-customer-auth";
-import { ReservationFeeReconfirmation } from "./components/reservation-fee-reconfirmation";
 import {
   DEFAULT_START_TIME,
   STATUS,
@@ -78,6 +75,13 @@ ReservationChangeRequest,
 ReservationSubmitOptions,
 Status
 } from "./types";
+
+const featureLoading = () => <p role="status" className="p-5 text-sm text-muted-foreground">画面を読み込み中…</p>;
+const CustomerEmailChangeScreen = dynamic(() => import("./components/customer-account-actions").then(module => module.CustomerEmailChangeScreen), { loading: featureLoading });
+const CustomerAccountDeletionScreen = dynamic(() => import("./components/customer-account-actions").then(module => module.CustomerAccountDeletionScreen), { loading: featureLoading });
+const CustomerLoginMethods = dynamic(() => import("./components/customer-login-methods").then(module => module.CustomerLoginMethods), { loading: featureLoading });
+const CustomerReservationDetails = dynamic(() => import("./components/customer-reservation-details").then(module => module.CustomerReservationDetails), { loading: featureLoading });
+const ReservationFeeReconfirmation = dynamic(() => import("./components/reservation-fee-reconfirmation").then(module => module.ReservationFeeReconfirmation), { loading: featureLoading });
 
 const isTravelAgencyAccount = (form: Pick<BookingForm, "accountType">) =>
   form.accountType === "travel_agency";
@@ -537,7 +541,7 @@ function CustomerAccountAccessPanel({
             </div>
           </AuthField>
           {authError ? <Alert>{authError}</Alert> : null}
-          <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <Button
               type="button"
               variant="link"
@@ -551,7 +555,7 @@ function CustomerAccountAccessPanel({
             >
               パスワードをお忘れですか？
             </Button>
-            <Button type="submit" className="sm:min-w-36" disabled={busy}>
+            <Button type="submit" className="sm:ml-auto" disabled={busy}>
               {busy && <LoaderCircle className="animate-spin" />}
               {busy ? "確認中" : "ログイン"}
             </Button>
@@ -787,7 +791,6 @@ function AuthField({
 function CustomerReservationDashboard({
   getCustomerToken,
   customerIdentity,
-  customerEmail,
   isLoggedIn,
   authError,
   accountEmail,
@@ -812,7 +815,6 @@ function CustomerReservationDashboard({
   onLogin,
   onSubmitAccount,
   onResetPassword,
-  onLogout,
   onConfirmedChange,
   onChange,
   onCancellation,
@@ -820,7 +822,6 @@ function CustomerReservationDashboard({
 }: {
   getCustomerToken: () => Promise<string>;
   customerIdentity: string;
-  customerEmail: string;
   isLoggedIn: boolean;
   authError: string;
   accountEmail: string;
@@ -845,7 +846,6 @@ function CustomerReservationDashboard({
   onLogin: (email?: string, password?: string) => void;
   onSubmitAccount: (email?: string, password?: string, profile?: RegisterAuthFields) => void;
   onResetPassword: (email: string) => void;
-  onLogout: () => void;
   onConfirmedChange: (reservation: Reservation) => void;
   onChange: (reservation: Reservation) => void;
   onCancellation: (reservation: Reservation) => void;
@@ -860,15 +860,7 @@ function CustomerReservationDashboard({
       }}>
         <header className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <h1 className="text-xl font-semibold">予約確認</h1>
-        {isLoggedIn ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
-            <span className="text-muted-foreground">ログイン中</span>
-            <span className="min-w-0 [overflow-wrap:anywhere]">{customerEmail}</span>
-            <Button type="button" variant="ghost" className="min-h-11 px-2 text-xs" onClick={onLogout}>
-              ログアウト
-            </Button>
-          </div>
-        ) : (
+        {!isLoggedIn && (
           <section className="customer-account-panel">
             <CustomerAccountAccessPanel
               authError={authError}
@@ -2428,7 +2420,6 @@ function CustomerPortal({
               <CustomerReservationDashboard
                 customerIdentity={customerUser?.uid ?? ""}
                 getCustomerToken={async () => { if (!customerUser) throw new Error("ログインしてください。"); return customerUser.getIdToken(); }}
-                customerEmail={customerUser?.email ?? ""}
                 isLoggedIn={Boolean(customerUser)}
                 authError={customerAuthError}
                 accountEmail={accountEmail}
@@ -2455,12 +2446,6 @@ function CustomerPortal({
                 onLogin={loginForAccountReservations}
                 onSubmitAccount={submitAccount}
                 onResetPassword={sendCustomerPasswordReset}
-                onLogout={() => {
-                  setAccountReservations([]); setAccountInquiryCounts(null);
-                  setAccountChangeRequests([]);
-                  setCustomerAccount(null);
-                  signOutCustomer();
-                }}
                 onConfirmedChange={startConfirmedChangeFromReservation}
                 onChange={startReservationChangeFromReservation}
                 onReconfirmChange={reconfirmReservationChange}

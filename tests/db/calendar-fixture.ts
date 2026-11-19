@@ -8,12 +8,13 @@ import { Pool } from "pg";
 import { assertLocalDatabase } from "../../lib/db/environment";
 import { resolve } from "node:path";
 import { mock } from "node:test";
+import type { Logger } from "drizzle-orm/logger";
 import { getAuth } from "firebase-admin/auth";
 import { getFirebaseAdminApp } from "../../lib/auth";
 import * as schema from "../../lib/db/schema";
 import { DrizzleReservationRepository, type ReservationDatabase } from "../../lib/repositories/drizzle-reservation-repository";
 
-export async function createCalendarFixture() {
+export async function createCalendarFixture(options: { logger?: Logger } = {}) {
   process.env.APP_ENV = "test";
   process.env.DB_PROVIDER = "drizzle";
   process.env.DATABASE_URL = "postgresql://test@127.0.0.1:5433/reservation_system_test";
@@ -30,12 +31,12 @@ export async function createCalendarFixture() {
     process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
     const pool = new Pool({ connectionString: process.env.TEST_DATABASE_URL, connectionTimeoutMillis: 5000, max: 5 });
     await pool.query("DROP SCHEMA public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;");
-    db = drizzle(pool, { schema });
+    db = drizzle(pool, { schema, logger: options.logger });
     await migrate(db, { migrationsFolder: resolve("drizzle") });
     closeDatabase = () => pool.end();
   } else {
     const client = new PGlite();
-    const embedded = pgliteDrizzle(client, { schema });
+    const embedded = pgliteDrizzle(client, { schema, logger: options.logger });
     await pgliteMigrate(embedded, { migrationsFolder: resolve("drizzle") });
     db = embedded as unknown as ReservationDatabase;
     closeDatabase = () => client.close();

@@ -1,6 +1,7 @@
 import { finishHistory } from "@/lib/services/reservation-history-service";
 import { historyActor, reservationSnapshot } from "@/lib/reservation-history";
 import { NextResponse } from "next/server";
+import { findReservation, findReservationChangeRequest } from "@/lib/repositories/reservation-lookup";
 import { requireAdmin } from "@/lib/auth";
 import { apiErrorResponse } from "@/lib/api-validation";
 import { getReservationRepository } from "@/lib/repositories";
@@ -14,10 +15,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const user = await requireAdmin(request);
     const { id } = await context.params;
     const repository = (await getReservationRepository());
-    const currentRequest = (await repository.listReservationChangeRequests()).find(item => item.id === id);
+    const currentRequest = await findReservationChangeRequest(repository, id);
     if (!currentRequest) return NextResponse.json({ error: "予約変更申請が見つかりません。" }, { status: 404 });
     const result = await repositoryTransaction(repository, `reservation:${currentRequest.reservationId}`, async repo => {
-      const before = (await repo.listReservations()).find(row => row.id === currentRequest.reservationId);
+      const before = await findReservation(repo, currentRequest.reservationId);
       if (!before) throw new Error("予約が見つかりません。");
       const decisionAt = new Date().toISOString();
       const beforeSnapshot = { ...before, ...reservationSnapshot(before) };
